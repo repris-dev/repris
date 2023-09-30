@@ -49,6 +49,7 @@ export class Gaussian implements OnlineStat<number> {
 
   skewness() { return Math.sqrt(this.#n) * this.#M3 / (this.#M2 ** 1.5); }
 
+  /** Excess kurtosis. The standard normal distribution has an excess kurtosis of zero */
   kurtosis() { return (this.#n * this.#M4) / (this.#M2 * this.#M2) - 3; }
 
   range(): [number, number] { return [this.#min, this.#max]; }
@@ -136,6 +137,7 @@ export class Lognormal implements SimpleSummary<number> {
     return (v + 2) * Math.sqrt(v - 1);
   }
 
+  /** Excess kurtosis. The log-normal distribution has an excess kurtosis of zero */
   kurtosis(): number {
     const s = this.s.var();
     return Math.exp(4 * s) + 2 * Math.exp(3 * s) + 3 * Math.exp(2 * s) - 6;

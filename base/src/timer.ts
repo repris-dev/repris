@@ -27,13 +27,16 @@ export interface TimeSource {
  * whether the consumer should stop polling
  */
 export interface Clock {
-  /** Begin the timer, returning a timer id */
+  /** Begin one interval. A tick id is returned */
   tick(): number;
 
-  /** Emit a duration. Returns whether to continue timing */
-  tock(id: number): boolean;
+  /**
+   * End the current interval. The tick id for the current must be supplied.
+   * Returns whether to continue timing
+   */
+  tock(tickId: number): boolean;
 
-  /** Cancel the current timer, optionally overriding the duration */
+  /** Cancel the current interval, optionally overriding the duration */
   cancel(duration?: HrTime): void;
 }
 
@@ -83,21 +86,22 @@ export function createClock(
   timer: TimeSource,
   emit: (valid: boolean, duration: HrTime) => boolean
 ): Clock {
-  let tickId = -1;
+  let currentTick = -1;
 
   return {
     tick() {
       timer.start();
-      return ++tickId;
+      return ++currentTick;
     },
     tock(id: number) {
-      return emit(id === tickId && tickId >= 0, timer.current());
+      const t = timer.current();
+      return emit(id === currentTick && currentTick >= 0, t);
     },
     cancel(duration?: HrTime) {
       if (duration !== void 0) {
         emit(true, duration);
       }
-      tickId++;
+      currentTick++;
     },
   };
 }
