@@ -101,3 +101,7 @@ export function stbPhi(x: number) {
 export function sidak(p: number, comparisons: number) {
   return 1.0 - Math.pow(1.0 - p, comparisons);
 }
+
+export function jarqueBera(n: number, S: number, K: number, ddof = 0) {
+  return ((n - ddof) / 6) * (S * S + (1 / 4) * (K * K));
+}

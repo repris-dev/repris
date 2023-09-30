@@ -13,9 +13,9 @@ export interface SimpleSummary<T> {
 
   cov(ddof?: number): T;
 
-  skewness(): T;
+  skewness(ddof?: number): T;
 
-  kurtosis(): T;
+  kurtosis(ddof?: number): T;
 
   range(): [T, T];
 }
@@ -47,10 +47,10 @@ export class Gaussian implements OnlineStat<number> {
 
   cov(ddof?: number) { return this.std(ddof) / this.mean(); }
 
-  skewness() { return Math.sqrt(this.#n) * this.#M3 / (this.#M2 ** 1.5); }
+  skewness(ddof = 0) { return Math.sqrt(this.#n - ddof) * this.#M3 / (this.#M2 ** 1.5); }
 
   /** Excess kurtosis. The standard normal distribution has an excess kurtosis of zero */
-  kurtosis() { return (this.#n * this.#M4) / (this.#M2 * this.#M2) - 3; }
+  kurtosis(ddof = 0) { return ((this.#n - ddof) * this.#M4) / (this.#M2 * this.#M2) - 3; }
 
   range(): [number, number] { return [this.#min, this.#max]; }
 
@@ -132,14 +132,14 @@ export class Lognormal implements SimpleSummary<number> {
     return Math.sqrt(Math.exp(this.s.var(ddof)) - 1);
   }
 
-  skewness(): number {
-    const v = Math.exp(this.s.var());
+  skewness(ddof?: number): number {
+    const v = Math.exp(this.s.var(ddof));
     return (v + 2) * Math.sqrt(v - 1);
   }
 
   /** Excess kurtosis. The log-normal distribution has an excess kurtosis of zero */
-  kurtosis(): number {
-    const s = this.s.var();
+  kurtosis(ddof?: number): number {
+    const s = this.s.var(ddof);
     return Math.exp(4 * s) + 2 * Math.exp(3 * s) + 3 * Math.exp(2 * s) - 6;
   }
 
