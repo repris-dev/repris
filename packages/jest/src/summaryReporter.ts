@@ -35,7 +35,9 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
     const stats = this.aggregatedBenchStats;
     if (testResult?.repris) {
       const stat = testResult.repris;
-      // The epoch is complete when *all* snapshots updated
+
+      // The epoch is complete after *all* snapshots have been updated in this
+      // or previous runs
       stats.epochStat.complete = stats.epochStat.complete && stat.epochStat.complete;
 
       stats.cacheStat.runBenchmarks += stat.cacheStat.runBenchmarks;
@@ -67,7 +69,7 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
     if (this.globalConfig.updateSnapshot === 'all') {
       if (stats.epochStat.complete) {
-        await this.deleteStagingArea();
+        await this.resetAllIndexes();
       }
     }
 
@@ -134,11 +136,11 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
     return summary;
   }
 
-  private async deleteStagingArea() {
+  private async resetAllIndexes() {
     for (const [projConfig, testPaths] of this.projectTestMap) {
-      const stagingArea = new snapshotManager.SnapshotFileManager(IndexResolver(projConfig));
+      const projIndex = new snapshotManager.SnapshotFileManager(IndexResolver(projConfig));
       for (const path of testPaths) {
-        await stagingArea.delete(path);
+        await projIndex.delete(path);
       }
     }
   }

@@ -115,7 +115,6 @@ async function showIndexSummary(
 
     const report = new TableTreeReporter<IndexFileStat>(columns, {
       annotate: stat => {
-        const captured = stat.tombstoneCount / (stat.tombstoneCount + stat.benchmarkCount);
         const ann = {
           benchmarkStat:
             stat.benchmarkCount === 0
@@ -124,7 +123,7 @@ async function showIndexSummary(
           tombstoneCount:
             stat.tombstoneCount === 0
               ? chalk.dim('0')
-              : `${stat.tombstoneCount} of ${stat.benchmarkCount})`,
+              : `${stat.tombstoneCount} of ${stat.benchmarkCount}`,
         };
         return annotators.DefaultBag.fromJson(ann);
       },

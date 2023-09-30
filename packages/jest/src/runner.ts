@@ -116,6 +116,7 @@ function initializeEnvironment(
       title = getTestID(evt.test);
       nth = titleCount.increment(JSON.stringify(title));
 
+      // Don't re-run benchmarks which were committed to the baseline in a previous run
       const state = getState(title, nth);
       if (state === snapshots.BenchmarkState.Tombstoned) {
         evt.test.mode = 'skip';
@@ -164,15 +165,14 @@ export default async function testRunner(
     indexedSnapshot = sCacheFile[0];
   }
 
-  // Don't re-run benchmarks which were committed to the baseline in a previous run
-  const skipTest = (title: string[], nth: number) =>
+  const getBenchmarkState = (title: string[], nth: number) =>
     indexedSnapshot?.benchmarkState(title, nth) ?? snapshots.BenchmarkState.Unknown;
 
   // Sample annotation config
   const testAnnotations = reprisConfig.parseAnnotations(reprisCfg.commands.test?.annotations ?? [])();
 
   // Wire up the environment
-  const envState = initializeEnvironment(environment, reprisCfg, skipTest);
+  const envState = initializeEnvironment(environment, reprisCfg, getBenchmarkState);
 
   const testResult: TestResult = await circus(
     globalConfig,
@@ -276,7 +276,7 @@ export default async function testRunner(
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const snapStat = await commitToBaseline(config, testPath, indexedSnapshot);
+    const snapStat = await tryCommitToBaseline(config, testPath, indexedSnapshot);
     testResult.snapshot.added += snapStat.added;
     testResult.snapshot.updated += snapStat.updated;
 
@@ -294,7 +294,7 @@ export default async function testRunner(
   }
 
   if (indexedSnapshot) {
-    // total tombstones in the index area is the total moved to snapshot in this epoch
+    // total tombstones in the index is the total moved to snapshot in this epoch
     stat.snapshotStat.updatedTotal = iter.count(indexedSnapshot.allTombstones());
     // commit the new test run to the cache
     const e = await stagingAreaMgr.save(indexedSnapshot);
@@ -310,7 +310,7 @@ export default async function testRunner(
 }
 
 /** Move benchmarks from the index to the baseline snapshot. */
-async function commitToBaseline(
+async function tryCommitToBaseline(
   config: Config.ProjectConfig,
   testPath: string,
   index: snapshots.Snapshot
@@ -327,10 +327,11 @@ async function commitToBaseline(
 
   for (const bench of index.allBenchmarks()) {
     const bag = bench.annotations().get(bench[uuid]) ?? {};
+    const { title, nth } = bench.name;
+    const state = snapshot.benchmarkState(title, nth);
 
     if (bag[f.annotations.stable]) {
-      const { title, nth } = bench.name;
-      if (snapshot.benchmarkState(title, nth) === snapshots.BenchmarkState.Stored) {
+      if (state === snapshots.BenchmarkState.Stored) {
         stat.updated++;
       } else {
         stat.added++;
@@ -340,7 +341,7 @@ async function commitToBaseline(
       snapshot.updateBenchmark(bench);
       // allow the runner to skip this benchmark in future runs
       index.tombstone(title, nth);
-    } else {
+    } else if (state !== snapshots.BenchmarkState.Tombstoned) {
       // benchmark is not ready for snapshotting
       stat.pending++;
     }
