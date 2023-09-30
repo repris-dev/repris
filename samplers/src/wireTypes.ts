@@ -66,6 +66,17 @@ export type Report = {
   fixtures: Fixture[];
 };
 
+/**
+ * A file storing the results of one or more runs of a test suite
+ */
+export type ReportCacheFile = {
+  /** The suite which produced each run in this cache */
+  suiteFilePath: string;
+
+  /**  */
+  fixtures: Fixture[];
+};
+
 export function isSample(x: Sample): x is Sample {
   return typeof x === 'object'
       && typeof x.samplerInfo !== 'undefined'

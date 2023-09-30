@@ -9,16 +9,6 @@ import { json, typeid, Status } from '@sampleci/base';
 const dbg = debug('sci:cache');
 
 /**
- * A file storing the results of one or more runs of a test suite
- */
-type ReportCacheWT = {
-  /** The suite which produced each run in this cache */
-  suiteFilePath: string;
-  /**  */
-  fixtures: wt.Fixture[];
-};
-
-/**
  * A test run produces a report. The report contains a number of fixtures,
  * and each fixture contains a sample and its annotations.
  *
@@ -33,6 +23,7 @@ export type AggregatedFixture<T extends samples.Sample<any>> = {
     annotations?: Record<typeid, json.Value>;
   }[];
 
+  /** An analysis of the samples */
   conflation?: wt.SampleConflation;
 };
 
@@ -114,7 +105,7 @@ export class SampleCacheManager {
 
   save() {
     if (this.fixtures) {
-      const cache: ReportCacheWT = {
+      const cache: wt.ReportCacheFile = {
         suiteFilePath: this.filePath,
         fixtures: Array.from(this.fixtures.values()),
       };
@@ -127,10 +118,10 @@ export class SampleCacheManager {
     this.fixtures = new Map();
 
     if (fs.existsSync(this.cachePath)) {
-      let cache: ReportCacheWT;
+      let cache: wt.ReportCacheFile;
 
       try {
-        cache = JSON.parse(fs.readFileSync(this.cachePath, 'utf8')) as ReportCacheWT;
+        cache = JSON.parse(fs.readFileSync(this.cachePath, 'utf8')) as wt.ReportCacheFile;
       } catch (e) {
         throw new Error('Failed to load sample cache file: ' + (e as {}).toString());
       }
