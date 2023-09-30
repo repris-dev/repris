@@ -73,18 +73,16 @@ export class TerminalReport<Id> {
    * Multiple samples can have the same id. When rendered, samples by the same id
    * are rendered in the order they were loaded in to the table.
    */
-  load(rowid: Id, sample: wt.AnnotationBag, conflation?: wt.AnnotationBag): boolean {
+  load(rowid: Id, sample: wt.AnnotationBag): boolean {
     const bag = anno.DefaultBag.fromJson(sample);
-    const conflationAnnotations = anno.DefaultBag.fromJson(conflation ?? {});
 
     const cells = this.columns.map((c) => {
-      const selectedBag = bag.annotations.has(c.id) ? bag : conflationAnnotations;
-      const ann = selectedBag.annotations.get(c.id);
+      const ann = bag.annotations.get(c.id);
 
       if (ann !== undefined) {
         let cell = this.fmt.format(ann);
         if (c.grading !== void 0) {
-          cell = this._colorizeByQuality(cell, c.grading, selectedBag);
+          cell = this._colorizeByQuality(cell, c.grading, bag);
         }
 
         return cell;

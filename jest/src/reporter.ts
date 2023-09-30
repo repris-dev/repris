@@ -13,23 +13,22 @@ import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 import { typeid } from '@sampleci/base';
 import { annotators } from '@sampleci/samplers';
 
-import { TerminalReport, Column } from './durationReport.js';
+import { TerminalReport, Column } from './tableReport.js';
 import * as config from './config.js';
 
-type TableRowKey = `${string}-${string}`;
-
-type Suite<T> = {
+type ReportTree<T> = {
+  depth: number;
   title: string;
-  suites: Suite<T>[];
-  tests: T[];
+  children: ReportTree<T>[];
+  items: T[];
 };
 
-type TestSuite = Suite<AssertionResult>;
+type TestSuite = ReportTree<AssertionResult>;
 
 const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
-async function loadReporter(rootDir: string): Promise<TerminalReport<TableRowKey>> {
+async function loadReporter(rootDir: string): Promise<TerminalReport<AssertionResult>> {
   const cfg = await config.load(rootDir);
 
   // groups of annotations to report
@@ -58,7 +57,7 @@ async function loadReporter(rootDir: string): Promise<TerminalReport<TableRowKey
     }
   }
 
-  return new TerminalReport<TableRowKey>(columns);
+  return new TerminalReport<AssertionResult>(columns);
 }
 
 export default class SampleReporter extends DefaultReporter {
@@ -68,7 +67,7 @@ export default class SampleReporter extends DefaultReporter {
 
   // resolves when the configuration has loaded
   loadingMutex: Promise<void>;
-  table: TerminalReport<TableRowKey> | undefined;
+  table: TerminalReport<AssertionResult> | undefined;
   consoleWidth!: { columns: number };
 
   constructor(globalConfig: Config.GlobalConfig, private _config?: unknown) {
@@ -87,30 +86,6 @@ export default class SampleReporter extends DefaultReporter {
 
   static filterTestResults(testResults: Array<AssertionResult>): Array<AssertionResult> {
     return testResults.filter(({ status }) => status !== 'pending');
-  }
-
-  static groupTestsBySuites<T>(testResults: T[], titles: (test: T) => string[]): Suite<T> {
-    const root: Suite<T> = { suites: [], tests: [], title: '' };
-
-    testResults.forEach((testResult) => {
-      let targetSuite = root;
-
-      // Find the target suite for this test, creating nested suites as necessary.
-      for (const title of titles(testResult)) {
-        let matchingSuite = targetSuite.suites.find((s) => s.title === title);
-
-        if (!matchingSuite) {
-          matchingSuite = { suites: [], tests: [], title };
-          targetSuite.suites.push(matchingSuite);
-        }
-
-        targetSuite = matchingSuite;
-      }
-
-      targetSuite.tests.push(testResult);
-    });
-
-    return root;
   }
 
   override async onRunStart(
@@ -150,21 +125,14 @@ export default class SampleReporter extends DefaultReporter {
       this.printTestFileHeader(result.testFilePath, test.context.config, result);
 
       if (!result.testExecError && !result.skipped) {
-        // extract samples from this test result
+        // extract annotations from this test result
         for (const assertionResult of result.testResults) {
           const aar = assertionResult as import('./runner.js').AugmentedAssertionResult;
 
           if (aar.sci?.sample) {
-            this.table!.load(`${test.path}-${aar.fullName}`, aar.sci.sample, aar.sci?.conflation);
+            const annotations = { ...aar.sci.sample, ...aar.sci?.conflation };
+            this.table!.load(assertionResult, annotations);
           }
-        }
-
-        // print columns
-        if (this.table!.count() > 0) {
-          const w = this.consoleWidth.columns;
-          const line = this.table!.renderTitles();
-          const moveTo = `\x1b[${w - line.length + 1}G`;
-          this.log(moveTo + line.line);
         }
 
         this._logTestResults(test.path, result.testResults);
@@ -180,19 +148,27 @@ export default class SampleReporter extends DefaultReporter {
   }
 
   private _logTestResults(path: string, testResults: AssertionResult[]) {
-    const suite = SampleReporter.groupTestsBySuites(testResults, (ar) => ar.ancestorTitles);
+    const suite = createTreeFrom(testResults, (ar) => ar.ancestorTitles);
 
-    this._logSuite(path, suite, 0);
+    // print columns
+    if (this.table!.count() > 0) {
+      const w = this.consoleWidth.columns;
+      const line = this.table!.renderTitles();
+      const moveTo = `\x1b[${w - line.length + 1}G`;
+      this.log(moveTo + line.line);
+    }
+
+    this._logSuite(path, suite);
     this._logLine();
   }
 
-  private _logSuite(path: string, suite: TestSuite, indentLevel: number) {
+  private _logSuite(path: string, suite: TestSuite) {
     if (suite.title) {
-      this._logLine(suite.title, indentLevel);
+      this._logLine(suite.title, suite.depth);
     }
 
-    this._logTests(path, suite.tests, indentLevel + 1);
-    suite.suites.forEach((suite) => this._logSuite(path, suite, indentLevel + 1));
+    this._logTests(path, suite.items, suite.depth + 1);
+    suite.children.forEach((suite) => this._logSuite(path, suite));
   }
 
   private _logTests(path: string, tests: AssertionResult[], indentLevel: number) {
@@ -216,7 +192,7 @@ export default class SampleReporter extends DefaultReporter {
   private _logTest(path: string, test: AssertionResult, indentLevel: number) {
     const icon = getIcon(test.status);
     const title = '  '.repeat(indentLevel) + `${icon} ${chalk.dim(test.title)}`;
-    const renderedCells = this.table!.renderRow(`${path}-${test.fullName}`);
+    const renderedCells = this.table!.renderRow(test);
 
     if (renderedCells) {
       // move to terminal column to right-align the table
@@ -253,4 +229,30 @@ function getIcon(status: Status) {
       return chalk.magenta(ICONS.todo);
   }
   return chalk.green(ICONS.success);
+}
+
+function createTreeFrom<T>(testResults: T[], titles: (test: T) => string[]): ReportTree<T> {
+  const root: ReportTree<T> = { depth: 0, children: [], items: [], title: '' };
+
+  testResults.forEach((testResult) => {
+    let targetSuite = root;
+    let depth = 1;
+    
+    // Find the target suite for this test, creating nested suites as necessary.
+    for (const title of titles(testResult)) {
+      let matchingSuite = targetSuite.children.find((s) => s.title === title);
+
+      if (!matchingSuite) {
+        matchingSuite = { depth, children: [], items: [], title };
+        targetSuite.children.push(matchingSuite);
+      }
+
+      targetSuite = matchingSuite;
+      depth++;
+    }
+
+    targetSuite.items.push(testResult);
+  });
+
+  return root;
 }

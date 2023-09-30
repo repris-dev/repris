@@ -5,8 +5,15 @@ import type { JestEnvironment } from '@jest/environment';
 import type { Circus, Config } from '@jest/types';
 import type { AssertionResult, TestFileEvent, TestResult } from '@jest/test-result';
 
-import { annotators, samples, conflations, wiretypes as wt, snapshots, snapshotManager } from '@sampleci/samplers';
-import { typeid, assert, iterator, Status } from '@sampleci/base';
+import {
+  annotators,
+  samples,
+  conflations,
+  wiretypes as wt,
+  snapshots,
+  snapshotManager,
+} from '@sampleci/samplers';
+import { typeid, assert, iterator, Status, array } from '@sampleci/base';
 
 import * as sciConfig from './config.js';
 import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
@@ -50,7 +57,7 @@ export interface AugmentedTestResult extends TestResult {
     epochStat: {
       /**  */
       complete: boolean;
-    }
+    };
   };
 }
 
@@ -59,9 +66,10 @@ const dbg = debug('sci:runner');
 function initializeEnvironment(
   environment: JestEnvironment,
   cfg: sciConfig.SCIConfig,
-  getState: (title: string[], nth: number) => snapshots.FixtureState,
+  getState: (title: string[], nth: number) => snapshots.FixtureState
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
+  const newSamples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const titleCount = new snapshots.RecordCounter<string>();
   const stat = {
     runFixtures: 0,
@@ -69,29 +77,28 @@ function initializeEnvironment(
     newFixtures: 0,
   };
 
-  let hasSample = false;
   let title: string[] | undefined;
   let nth = -1;
 
   environment.global.getSamplerOptions = () => cfg.sampler.options;
   environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
     assert.isDefined(title, 'No test running');
-    samples.push({ title, nth, sample });
 
-    if (!hasSample) {
+    if (newSamples.length === 0) {
       stat.runFixtures++;
 
       if (getState(title, nth) === snapshots.FixtureState.Unknown) {
-        stat.newFixtures++
+        stat.newFixtures++;
       }
     }
-    hasSample = true;
+
+    newSamples.push({ title, nth, sample });
   };
 
   const hte = environment.handleTestEvent;
   environment.handleTestEvent = (evt, state) => {
     if (evt.name === 'test_start') {
-      hasSample = false;
+      newSamples.length = 0;
       title = getTestID(evt.test);
       nth = titleCount.increment(JSON.stringify(title));
 
@@ -100,14 +107,22 @@ function initializeEnvironment(
         evt.test.mode = 'skip';
         stat.skippedFixtures++;
       }
+    } else if (evt.name === 'test_done') {
+      if (!evt.test.failing) {
+        for (const s of newSamples) samples.push(s);
+      }
     }
 
     return hte?.(evt as Circus.SyncEvent, state);
   };
 
   return {
-    stat() { return stat; },
-    getSamples() { return samples; },
+    stat() {
+      return stat;
+    },
+    getSamples() {
+      return samples;
+    },
   };
 }
 
@@ -136,7 +151,9 @@ export default async function testRunner(
   }
 
   // Don't re-run benchmarks which were committed to the snapshot in a previous run
-  const skipTest = (title: string[], nth: number) => saSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
+  const skipTest = (title: string[], nth: number) =>
+    saSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
+
   // Conflation annotation config
   const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
   // Conflation annotation config
@@ -156,7 +173,7 @@ export default async function testRunner(
   {
     let i = 0;
     const allTestResults = testResult.testResults;
-    
+
     // pair up samples to their test result from Jest. They must be in the same order
     for (const { sample, title, nth } of envState.getSamples()) {
       const key = JSON.stringify(title);
@@ -166,7 +183,7 @@ export default async function testRunner(
         const ar = allTestResults[i++];
 
         const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
-        if (key === arKey) {
+        if (ar.status === 'passed' && key === arKey) {
           matched = true;
 
           if (!samples.Duration.is(sample)) {
@@ -177,7 +194,7 @@ export default async function testRunner(
           // assign serialized sample generated during the most recent test case
           // to this test case result
           augmentedResult.sci = {
-            sample: annotate(sample, sampleAnnotations)
+            sample: annotate(sample, sampleAnnotations),
           };
 
           if (saSnapshot) {
@@ -216,8 +233,8 @@ export default async function testRunner(
       updatedTotal: 0,
     },
     epochStat: {
-      complete: false
-    }
+      complete: false,
+    },
   };
 
   if (globalConfig.updateSnapshot === 'all') {
@@ -232,8 +249,8 @@ export default async function testRunner(
     testResult.snapshot.added += snapStat.added;
     testResult.snapshot.updated += snapStat.updated;
 
-    stat.snapshotStat.updated = snapStat.updated + snapStat.added,
-    stat.cacheStat.totalFixtures = snapStat.pending;
+    (stat.snapshotStat.updated = snapStat.updated + snapStat.added),
+      (stat.cacheStat.totalFixtures = snapStat.pending);
     stat.epochStat.complete = snapStat.pending === 0;
   } else if (saSnapshot) {
     // update pending/pendingReady
