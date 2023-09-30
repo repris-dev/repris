@@ -1,6 +1,6 @@
 packages:
-  - 'samplers'
-  - 'base'
-  - 'util'
-  - 'jest'
-  - 'jest-demo'
+  - 'packages/samplers'
+  - 'packages/base'
+  - 'packages/util'
+  - 'packages/jest'
+  - 'packages/jest-demo'

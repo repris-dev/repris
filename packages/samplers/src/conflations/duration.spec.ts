@@ -1,4 +1,4 @@
-import { timer, random, iterator, quantity as q } from '@repris/base';
+import { timer, random, iterator, quantity as q, stats } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import { DurationResult, Duration } from './duration.js';
 import { ConflatedSampleStatus } from './types.js';
@@ -158,4 +158,3 @@ describe('Duration', () => {
     expect(a.outlier).toHaveValues([sA, sB, sC, sD]);
   });
 });
-

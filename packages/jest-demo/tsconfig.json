@@ -1,12 +1,13 @@
 {
-  "extends": "../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "include": ["./src/**/*.ts", "./src/**/*.json"],
-  "exclude": ["./src/**/*.spec.ts"],
   "compilerOptions": {
     "declaration": true,
     "declarationDir": ".tsc",
     "rootDir": "src",
     "outDir": ".tsc",
-    "types": ["@repris/util/globals"]
+    "types": ["@repris/jest/stopwatch-env", "jest"],
+    "strict": true,
+    "skipLibCheck": false
   }
 }
