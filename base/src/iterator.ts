@@ -152,3 +152,13 @@ export function* pairs<T>(xs: Iterable<T>): Iterable<[T, T]> {
     }
   }
 }
+
+export function count<T>(xs: Iterable<T>): number {
+  let n = 0;
+
+  for (const _ of xs) {
+    n++;
+  }
+
+  return n;
+}
