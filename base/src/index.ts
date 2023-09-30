@@ -9,3 +9,4 @@ export * as random from './random.js';
 
 export * from './multimap.js';
 export * from './util.js';
+export * from './assignDeep.js';
