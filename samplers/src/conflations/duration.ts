@@ -7,7 +7,6 @@ import {
   array,
   iterator,
   partitioning,
-  assert,
 } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
@@ -17,7 +16,7 @@ export type DurationOptions = typeof defaultDurationOptions;
 
 const defaultDurationOptions = {
   /** The maximum number of samples in the cache */
-  maxCacheSize: 5,
+  maxCacheSize: 7,
 
   /**
    * Threshold of similarity for the conflation to be considered valid, between
@@ -26,13 +25,13 @@ const defaultDurationOptions = {
   maxEffectSize: 0.05,
 
   /** Minimum number of samples in a valid conflation */
-  minConflationSize: 3,
+  minConflationSize: 5,
 
   /**
    * Method to remove samples from a cache when more than the maximum
    * number are supplied.
    */
-  exclusionMethod: 'outliers' as 'slowest' | 'outliers',
+  exclusionMethod: 'slowest' as 'slowest' | 'outliers',
 };
 
 export type SampleStatus =
@@ -156,10 +155,10 @@ export class Duration implements Conflation<timer.HrTime> {
 
     if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
       // try to find a cluster of samples which are consistent
-      const cluster = dunnsCluster(kw, opts.minConflationSize);
+      const cluster = dunnsCluster(kw, opts.maxEffectSize);
       subset = array.subsetOf(subset, cluster, []);
 
-      if (subset.length > 0) {
+      if (subset.length > 1) {
         kw = stats.kruskalWallis(subset);
       }
     }
@@ -182,47 +181,50 @@ export class Duration implements Conflation<timer.HrTime> {
 }
 
 /**
- * @internal
- * @returns Find the densest cluster of samples of size at least minSize
+ * @returns Find the largest, densest cluster of samples
  */
-function dunnsCluster(kw: stats.KruskalWallisResult, minSize: number): number[] {
+function dunnsCluster(kw: stats.KruskalWallisResult, minEffectSize: number): number[] {
   const N = kw.size;
-  const edges = [] as [number, number, number][];
+  const parents = array.fillAscending(new Int32Array(N), 0);
+  // effect-size sums
+  const sums = new Float32Array(N);
 
   for (let i = 0; i < N; i++) {
     for (let j = i + 1; j < N; j++) {
-      const p = kw.dunnsTest(i, j);
-      if (p > 0) {
-        edges.push([i, j, p]);
+      const es = kw.dunnsTest(i, j).effectSize;
+      if (es <= minEffectSize) {
+        partitioning.union(parents, i, j);
       }
+
+      // The sum of all edges, not just those within components
+      sums[i] += es;
+      sums[j] += es;
     }
   }
 
-  // sort by p-value, descending
-  edges.sort((a, b) => b[2] - a[2]);
+  const cc = partitioning.DisjointSet.build(parents);
+  const groups = iterator.collect(cc.iterateGroups());
 
-  let e = 0;
-  const parents = array.fillAscending(new Int32Array(N), 0);
+  for (const g of groups) {
+    let sum = 0;
 
-  do {
-    if (e < edges.length) {
-      const [from, to] = edges[e];
-      partitioning.union(parents, from, to);
-
-      const cc = partitioning.DisjointSet.build(parents);
-      const groups = iterator.collect(cc.iterateGroups());
-      groups.sort((a, b) => cc.groupSize(b) - cc.groupSize(a));
-
-      if (cc.groupSize(groups[0]) >= minSize) {
-        return iterator.collect(cc.iterateGroup(groups[0]));
-      }
-    } else {
-      break;
+    for (const gi of cc.iterateGroup(g)) {
+      sum += sums[gi];
+      sums[gi] = 0;
     }
-    e++;
-  } while (true);
 
-  return [];
+    sums[g] = sum;
+  }
+
+  // Sort by component size, then sum of effect sizes
+  groups.sort((a, b) => {
+    const size = cc.groupSize(b) - cc.groupSize(a);
+    return size === 0 ? sums[a] - sums[b] : size;
+  });
+
+  // if the largest connected component is big enough, return it
+  const g = iterator.collect(cc.iterateGroup(groups[0]));
+  return g.length > 1 ? g : [];
 }
 
 /**
@@ -234,45 +236,13 @@ function dunnAvgSort(kw: stats.KruskalWallisResult): number[] {
 
   for (let i = 0; i < N; i++) {
     for (let j = i + 1; j < N; j++) {
-      const a = kw.dunnsTest(i, j);
+      const a = kw.dunnsTest(i, j).effectSize;
       sum[i] += a;
       sum[j] += a;
     }
   }
 
   return array.fillAscending(new Array(N), 0).sort((a, b) => sum[b] - sum[a]);
-}
-
-/**
- * @return A sorting of the samples based on the pair-wise similarity
- */
-function dunnGreedySort(kw: stats.KruskalWallisResult): number[] {
-  const N = kw.size;
-  const edges = [] as [number, number, number][];
-
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      edges.push([i, j, kw.dunnsTest(i, j)]);
-    }
-  }
-
-  // sort by p-value, descending
-  edges.sort((a, b) => b[2] - a[2]);
-
-  const order = [] as number[];
-  const degrees = new Int32Array(N);
-
-  for (const [from, to] of edges) {
-    if (degrees[from]++ === 0) {
-      order.push(from);
-    }
-    if (degrees[to]++ === 0) {
-      order.push(to);
-    }
-  }
-
-  assert.eq(order.length, N);
-  return order;
 }
 
 function kwRankSort(kw: stats.KruskalWallisResult): number[] {

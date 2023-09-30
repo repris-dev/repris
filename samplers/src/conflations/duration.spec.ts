@@ -40,7 +40,7 @@ describe('DurationConflation', () => {
   const sF = create(1005, 10, 250);
 
   test('samples() - cluster of 3, 1 outlier', () => {
-    const conf = new Duration();
+    const conf = new Duration(void 0, { minConflationSize: 2 });
 
     conf.push(sB);
     conf.push(sA);
@@ -77,18 +77,18 @@ describe('DurationConflation', () => {
     // No rejections
     expect(result.rejected.length).toBe(0);
     
-    // The slower cluster are outliers
+    // The sparser cluster are outliers
     expect(result.outlier.length).toBe(2);
     expect(result.outlier).toHaveValues([0, 3]);
 
-    // The faster cluster is selected
+    // The denser cluster is selected
     expect(result.consistent.length).toBe(2);
     expect(result.consistent).toHaveValues([1, 2]);
   });
 
   test('maxEffectSize', () => {
     { // High threshold
-      const conf = new Duration([sA, sF], { maxEffectSize: 0.8 });
+      const conf = new Duration([sA, sF], { maxEffectSize: 0.8, minConflationSize: 2 });
       const a = postProcess(conf.analysis());
 
       expect(a.consistent).toEqual([0, 1]);
@@ -96,7 +96,7 @@ describe('DurationConflation', () => {
       expect(a.rejected.length).toBe(0);
     }
     { // Low threshold
-      const conf = new Duration([sA, sF], { maxEffectSize: 0.1 });
+      const conf = new Duration([sA, sF], { maxEffectSize: 0.1, minConflationSize: 2 });
       const a = postProcess(conf.analysis());
       
       expect(a.consistent).toEqual([]);
@@ -123,23 +123,23 @@ describe('DurationConflation', () => {
   });
 
   test('maxCacheSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 1, maxCacheSize: 4 });
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 1, maxCacheSize: 4, minConflationSize: 2 });
     const a = postProcess(conf.analysis());
 
     expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
-    expect(a.rejected).toEqual([3, 0]);
-    expect(a.consistent).toHaveValues([5, 1, 2, 4]);
+    expect(a.rejected).toEqual([4, 0]);
+    expect(a.consistent).toHaveValues([5, 1, 2, 3]);
     expect(a.outlier).toEqual([]);
   });
 
   test('maxCacheSize, maxEffectSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 0.33, maxCacheSize: 4 });
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 0.33, maxCacheSize: 4, minConflationSize: 2 });
     const a = postProcess(conf.analysis());
 
     expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
-    expect(a.rejected).toEqual([3, 0]);
+    expect(a.rejected).toEqual([4, 0]);
     expect(a.consistent).toHaveValues([5, 1, 2]);
-    expect(a.outlier).toEqual([4]);
+    expect(a.outlier).toEqual([3]);
   });
 });
 
