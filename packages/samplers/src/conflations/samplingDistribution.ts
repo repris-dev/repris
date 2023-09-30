@@ -242,6 +242,8 @@ function aggregateAndFilter<T>(
     // spread as the coefficient of variation
     relativeSpread = os.cov(1);
 
+    console.info('>', relativeSpread.toFixed(4), ((os.std() / Math.sqrt(os.N())) / os.mean()).toFixed(4));
+
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
       (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean())
