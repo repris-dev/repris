@@ -107,7 +107,7 @@ export class TerminalReport<Id> {
    * @param config Configuration of the quality annotation
    * @param bag A bag of annotations containing the quality annotation
    */
-  _colorizeByQuality(cell: Cell, config: ColumnQuality, bag: anno.AnnotationBag): Cell {
+  private _colorizeByQuality(cell: Cell, config: ColumnQuality, bag: anno.AnnotationBag): Cell {
     const ann = bag.annotations.get(config.id);
     const colors = [chalk.green, chalk.yellow, chalk.red];
 
@@ -149,7 +149,7 @@ export class TerminalReport<Id> {
     this.columnWidths = this.titleCells.map((c) => c.length);
   }
 
-  _renderRow(cells: Cell[]): RenderedLine {
+  private _renderRow(cells: Cell[]): RenderedLine {
     assert.eq(cells.length, this.columns.length);
 
     const margin = ' '.repeat(this.colMargin);
@@ -231,4 +231,115 @@ class ValueFormatter {
 
     assert.is(false, `Failed to format value ${val}`);
   }
+}
+
+type ReportTree<T> = {
+  depth: number;
+  node: string;
+  children: ReportTree<T>[];
+  items: T[];
+};
+
+interface TreeStrategy<Leaf> {
+  pathOf(leaf: Leaf): string[];
+  render(leaf: Leaf): string;
+  annotate(leaf: Leaf): anno.AnnotationBag | undefined;
+};
+
+export class TableTreeReporter<Leaf> {
+  table: TerminalReport<Leaf>;
+
+  constructor(
+    public readonly columns: Column[],
+    private strategy: TreeStrategy<Leaf>
+  ) {
+    this.table = new TerminalReport(columns);
+  }
+
+  render(items: Leaf[], stream: NodeJS.WriteStream) {
+    const strat = this.strategy;
+
+    items.forEach((item) => {
+      const bag = strat.annotate(item);
+      if (bag) {
+        this.table.load(item, bag);
+      }
+    });
+
+    const tree = this.createTreeFrom(items);
+
+    this.#renderColumns(stream, stream.columns);
+    this.#logSuite(tree, stream);
+
+    stream.write('\n');
+
+    this.table.reset();
+  }
+
+  #renderColumns(stream: NodeJS.WriteStream, width: number) {
+    if (this.table!.count() > 0) {
+      const line = this.table!.renderTitles();
+      const moveTo = `\x1b[${width - line.length + 1}G`;
+      stream.write(moveTo + line.line + '\n');
+    }
+  }
+
+  #logSuite(suite: ReportTree<Leaf>, stream: NodeJS.WriteStream) {
+    if (suite.node) {
+      stream.write(indent(suite.depth) + suite.node + '\n');
+    }
+
+    for (const test of suite.items) {
+      this.#logTest(test, suite.depth + 1, stream);
+    }
+
+    suite.children.forEach((suite) => this.#logSuite(suite, stream));
+  }
+
+  #logTest(test: Leaf, indentLevel: number, stream: NodeJS.WriteStream) {
+    const title = indent(indentLevel) + this.strategy.render(test);
+    const renderedCells = this.table!.renderRow(test);
+
+    if (renderedCells) {
+      // move to terminal column to right-align the table
+      const w = stream.columns;
+      const moveTo = `\x1b[${w - renderedCells.length + 1}G`;
+
+      stream.write(title + moveTo + renderedCells.line + '\n');
+    } else {
+      stream.write(title + '\n');
+    }
+  }
+
+  createTreeFrom(items: Leaf[]): ReportTree<Leaf> {
+    const pathOf = this.strategy.pathOf;
+    const root: ReportTree<Leaf> = { depth: 0, children: [], items: [], node: '' };
+  
+    items.forEach((testResult) => {
+      let targetSuite = root;
+      let depth = 1;
+      
+      // Find the target suite for this test, creating nested suites as necessary.
+      for (const node of pathOf(testResult)) {
+        let matchingSuite = targetSuite.children.find((s) => s.node === node);
+  
+        if (!matchingSuite) {
+          matchingSuite = { depth, children: [], items: [], node };
+          targetSuite.children.push(matchingSuite);
+        }
+  
+        targetSuite = matchingSuite;
+        depth++;
+      }
+  
+      targetSuite.items.push(testResult);
+    });
+  
+    return root;
+  }
+}
+
+
+function indent(n: number) {
+  return '  '.repeat(n);
 }

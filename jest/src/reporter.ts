@@ -13,22 +13,13 @@ import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 import { typeid } from '@sampleci/base';
 import { annotators } from '@sampleci/samplers';
 
-import { TerminalReport, Column } from './tableReport.js';
+import { Column, TableTreeReporter } from './tableReport.js';
 import * as config from './config.js';
-
-type ReportTree<T> = {
-  depth: number;
-  title: string;
-  children: ReportTree<T>[];
-  items: T[];
-};
-
-type TestSuite = ReportTree<AssertionResult>;
 
 const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
-async function loadReporter(rootDir: string): Promise<TerminalReport<AssertionResult>> {
+async function loadReporter(rootDir: string): Promise<Column[]> {
   const cfg = await config.load(rootDir);
 
   // groups of annotations to report
@@ -57,7 +48,7 @@ async function loadReporter(rootDir: string): Promise<TerminalReport<AssertionRe
     }
   }
 
-  return new TerminalReport<AssertionResult>(columns);
+  return columns;
 }
 
 export default class SampleReporter extends DefaultReporter {
@@ -67,21 +58,39 @@ export default class SampleReporter extends DefaultReporter {
 
   // resolves when the configuration has loaded
   loadingMutex: Promise<void>;
-  table: TerminalReport<AssertionResult> | undefined;
-  consoleWidth!: { columns: number };
+  testRenderer!: TableTreeReporter<AssertionResult>;
+  writeStream!: NodeJS.WriteStream;
 
   constructor(globalConfig: Config.GlobalConfig, private _config?: unknown) {
     super(globalConfig);
     this._globalConfig = globalConfig;
 
-    this.loadingMutex = loadReporter(globalConfig.rootDir).then((table) => {
-      this.table = table;
+    this.loadingMutex = loadReporter(globalConfig.rootDir).then((columns) => {
+      this.testRenderer = new TableTreeReporter(columns, {
+        annotate(test) {
+          const aar = test as import('./runner.js').AugmentedAssertionResult;
+
+          if (aar.sci?.sample) {
+            const annotations = { ...aar.sci.sample, ...aar.sci?.conflation };
+            const bag = annotators.DefaultBag.fromJson(annotations);
+            return bag;
+          }
+
+          return void 0;
+        },
+        pathOf(test) {
+          return test.ancestorTitles;
+        },
+        render(test) {
+          return `${getIcon(test.status)} ${chalk.dim(test.title)}`;
+        },
+      });
     });
   }
 
-  protected override __wrapStdio(stream: NodeJS.WritableStream | NodeJS.WriteStream): void {
+  protected override __wrapStdio(stream: NodeJS.WriteStream): void {
     super.__wrapStdio(stream);
-    this.consoleWidth = stream as NodeJS.WriteStream;
+    this.writeStream = stream;
   }
 
   static filterTestResults(testResults: Array<AssertionResult>): Array<AssertionResult> {
@@ -98,7 +107,7 @@ export default class SampleReporter extends DefaultReporter {
 
     // Throws if there is a configuration error
     await this.loadingMutex;
-    const columns = this.table!.columns;
+    const columns = this.testRenderer!.columns;
 
     // configuration warnings
     if (columns.length === 0) {
@@ -122,101 +131,18 @@ export default class SampleReporter extends DefaultReporter {
     super.testFinished(test.context.config, result, aggregatedResults);
 
     if (!result.skipped) {
-      this.printTestFileHeader(result.testFilePath, test.context.config, result);
+      const filtered = result.testResults.filter(
+        (test) => test.status !== 'todo' && test.status !== 'pending'
+      );
 
-      if (!result.testExecError && !result.skipped) {
-        // extract annotations from this test result
-        for (const assertionResult of result.testResults) {
-          const aar = assertionResult as import('./runner.js').AugmentedAssertionResult;
-
-          if (aar.sci?.sample) {
-            const annotations = { ...aar.sci.sample, ...aar.sci?.conflation };
-            const bag = annotators.DefaultBag.fromJson(annotations);
-            this.table!.load(assertionResult, bag);
-          }
-        }
-
-        this._logTestResults(test.path, result.testResults);
+      if (filtered.length > 0) {
+        this.printTestFileHeader(result.testFilePath, test.context.config, result);
+        this.testRenderer.render(filtered, this.writeStream!);
       }
-
-      this.printTestFileFailureMessage(result.testFilePath, test.context.config, result);
-
-      // Reset column widths for the next test suite
-      this.table!.reset();
     }
 
+    this.printTestFileFailureMessage(result.testFilePath, test.context.config, result);
     super.forceFlushBufferedOutput();
-  }
-
-  private _logTestResults(path: string, testResults: AssertionResult[]) {
-    const suite = createTreeFrom(testResults, (ar) => ar.ancestorTitles);
-
-    // print columns
-    if (this.table!.count() > 0) {
-      const w = this.consoleWidth.columns;
-      const line = this.table!.renderTitles();
-      const moveTo = `\x1b[${w - line.length + 1}G`;
-      this.log(moveTo + line.line);
-    }
-
-    this._logSuite(suite);
-    this._logLine();
-  }
-
-  private _logSuite(suite: TestSuite) {
-    if (suite.title) {
-      this._logLine(suite.title, suite.depth);
-    }
-
-    this._logTests(suite.items, suite.depth + 1);
-    suite.children.forEach((suite) => this._logSuite(suite));
-  }
-
-  private _logTests(tests: AssertionResult[], indentLevel: number) {
-    const pending = [] as AssertionResult[];
-    const todo = [] as AssertionResult[];
-
-    for (const test of tests) {
-      if (test.status === 'pending') {
-        pending.push(test);
-      } else if (test.status === 'todo') {
-        todo.push(test);
-      } else {
-        this._logTest(test, indentLevel);
-      }
-    }
-
-    pending.forEach((t) => this._logTodoOrPendingTest(t, indentLevel));
-    todo.forEach((t) => this._logTodoOrPendingTest(t, indentLevel));
-  }
-
-  private _logTest(test: AssertionResult, indentLevel: number) {
-    const icon = getIcon(test.status);
-    const title = '  '.repeat(indentLevel) + `${icon} ${chalk.dim(test.title)}`;
-    const renderedCells = this.table!.renderRow(test);
-
-    if (renderedCells) {
-      // move to terminal column to right-align the table
-      const w = this.consoleWidth.columns;
-      const moveTo = `\x1b[${w - renderedCells.length + 1}G`;
-
-      this.log(title + moveTo + renderedCells.line);
-    } else {
-      this.log(title);
-    }
-  }
-
-  private _logTodoOrPendingTest(test: AssertionResult, indentLevel: number) {
-    const printedTestStatus = test.status === 'pending' ? 'skipped' : test.status;
-    const icon = getIcon(test.status);
-    const text = chalk.dim(`${printedTestStatus} ${test.title}`);
-
-    this._logLine(`${icon} ${text}`, indentLevel);
-  }
-
-  private _logLine(str = '', indentLevel = 0) {
-    const indentation = '  '.repeat(indentLevel);
-    this.log(indentation + str);
   }
 }
 
@@ -230,33 +156,4 @@ function getIcon(status: Status) {
       return chalk.magenta(ICONS.todo);
   }
   return chalk.green(ICONS.success);
-}
-
-function createTreeFrom<T>(
-  items: T[],
-  pathOf: (item: T) => string[]
-): ReportTree<T> {
-  const root: ReportTree<T> = { depth: 0, children: [], items: [], title: '' };
-
-  items.forEach((testResult) => {
-    let targetSuite = root;
-    let depth = 1;
-    
-    // Find the target suite for this test, creating nested suites as necessary.
-    for (const title of pathOf(testResult)) {
-      let matchingSuite = targetSuite.children.find((s) => s.title === title);
-
-      if (!matchingSuite) {
-        matchingSuite = { depth, children: [], items: [], title };
-        targetSuite.children.push(matchingSuite);
-      }
-
-      targetSuite = matchingSuite;
-      depth++;
-    }
-
-    targetSuite.items.push(testResult);
-  });
-
-  return root;
 }
