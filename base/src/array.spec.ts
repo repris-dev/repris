@@ -83,3 +83,38 @@ describe('quickSelect', () => {
     }
   });
 });
+
+describe('removeAtIndices', () => {
+  const arr = ['a', 'b', 'c'];
+  
+  test('remove one index', () => {
+    const a = arr.slice();
+  
+    const len = array.removeAtIndices(a, [1])
+    expect(len).toBe(2);
+
+    a.length = len;
+    expect(a).toEqual(['a', 'c']);
+  });
+
+  test('remove two index', () => {
+    const a = arr.slice();
+  
+    const len = array.removeAtIndices(a, [0, 2])
+    expect(len).toBe(1);
+
+    a.length = len;
+    expect(a).toEqual(['b']);
+  });
+
+  test('remove three index', () => {
+    const a = arr.slice();
+  
+    const len = array.removeAtIndices(a, [0, 1, 2])
+    expect(len).toBe(0);
+
+    a.length = len;
+    expect(a).toEqual([]);
+  });
+});
+

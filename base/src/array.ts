@@ -57,6 +57,26 @@ export function subsetOf<T, P extends { push(val: T): any }>(
   return dest;
 }
 
+export function removeAtIndices(
+  arr: Indexable<any>,
+  indices: Indexable<number>
+): number {
+  let off = 0;
+  const len = arr.length;
+
+  for (let i = 0; i < len; i++) {
+    const el = arr[i];
+
+    if (off < indices.length && indices[off] === i) {
+      off++;
+    }
+
+    arr[i - off] = el;
+  }
+
+  return len - off;
+}
+
 export function swap<T>(arr: Indexable<T>, adx: number, bdx: number) {
   assert.is(adx >= 0 && adx < arr.length && bdx >= 0 && bdx < arr.length);
 
