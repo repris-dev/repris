@@ -212,7 +212,7 @@ export const annotations = {
    */
   summaryText: 'benchmark:summary-text' as typeid,
 
-  nRuns: 'benchmark:runs' as typeid,
+  runs: 'benchmark:runs' as typeid,
 
   uncertainty: 'benchmark:uncertainty' as typeid,
 
@@ -254,7 +254,7 @@ ann.register('@benchmark:annotator' as typeid, {
     }
 
     const result = new Map<typeid, ann.Annotation>([
-      [annotations.nRuns, fixt.totalRuns()],
+      [annotations.runs, fixt.totalRuns()],
       [annotations.summaryText, summary],
       [annotations.stable, confl?.ready() ?? false],
     ]);
