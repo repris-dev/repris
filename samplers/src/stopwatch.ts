@@ -25,7 +25,7 @@ const defaultSamplerOptions = {
 
   /* The range of observations to take for the sample */
   'sampleSize.min': 10,
-  'sampleSize.max': 5_000,
+  'sampleSize.max': 1000,
 
   /**
    * The maximum size of the returned sample, using reservoir sampling.
