@@ -169,15 +169,8 @@ export default async function testRunner(
     indexedSnapshot?.benchmarkState(title, nth) ?? snapshots.BenchmarkState.Unknown;
 
   // Sample annotation config
-  const sampleAnnotations = reprisConfig.parseAnnotations(reprisCfg.sample.annotations)();
-  // Conflation annotation config
-  const conflationAnnotationConfig = reprisConfig.parseAnnotations(
-    reprisCfg.conflation.annotations
-  )();
-  // Conflation annotation config
-  const benchmarkAnnotationConfig = reprisConfig.parseAnnotations(
-    reprisCfg.benchmark.annotations
-  )();
+  const testAnnotations = reprisConfig.parseAnnotations(reprisCfg.commands.test?.annotations ?? [])();
+
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, skipTest);
 
@@ -217,7 +210,7 @@ export default async function testRunner(
             throw new Error('Unknown sample type ' + sample[typeid]);
           }
 
-          const sampleBag = annotate(sample, sampleAnnotations);
+          const sampleBag = annotate(sample, testAnnotations);
           const sampleBagJson = sampleBag.toJson();
 
           // assign annotations to the test case result
@@ -233,8 +226,7 @@ export default async function testRunner(
               indexedBenchmark,
               { sample, annotations: sampleBagJson },
               reprisCfg.conflation.options,
-              conflationAnnotationConfig,
-              benchmarkAnnotationConfig,
+              testAnnotations,
             );
 
             // Update the index
@@ -377,8 +369,7 @@ function reconflateBenchmark(
   bench: f.AggregatedBenchmark<samples.duration.Duration>,
   newEntry: { sample: samples.duration.Duration; annotations: wt.AnnotationBag },
   opts: conflations.duration.Options,
-  conflationRequest: Map<typeid, any>,
-  benchmarkRequest: Map<typeid, any>,
+  annotationRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
   const allSamples = iter.collect(bench.samples())
     .map(s => asTuple([s.sample, bench.annotations().get(s.sample[uuid])]));
@@ -404,7 +395,7 @@ function reconflateBenchmark(
   }
 
   // Annotate this conflation
-  const conflationBag = annotators.annotate(newConflation[0], conflationRequest);
+  const conflationBag = annotators.annotate(newConflation[0], annotationRequest);
 
   if (Status.isErr(conflationBag)) {
     dbg('Failed to annotate conflation %s', conflationBag[1].message);
@@ -416,7 +407,7 @@ function reconflateBenchmark(
   }
 
   // Annotate the benchmark and store these annotations in the benchmark itself
-  const benchmarkBag = annotators.annotate(result, benchmarkRequest);
+  const benchmarkBag = annotators.annotate(result, annotationRequest);
 
   if (Status.isErr(benchmarkBag)) {
     dbg('Failed to annotate benchmark %s', benchmarkBag[1].message);

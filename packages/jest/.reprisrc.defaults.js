@@ -7,64 +7,70 @@ export default {
   sampler: {
     options: defaults.samplers.stopwatch
   },
-
   sample: {
-    options: defaults.samples.duration,
-    annotations: [
-      ['duration:iter', { displayName: 'N' }],
-      ['mode:hsm', { displayName: 'Mode' }],
-      ['mode:hsm:ci-rme', {
-        displayName: '95% CI',
-        grading: {
-          rules: [
-            { '>=': 0, apply: chalk.green },
-            { '>=': 0.05, apply: chalk.yellow },
-            { '>=': 0.2, apply: chalk.red },
-          ],
-        },
-      }],
-    ],
+    options: defaults.samples.duration
   },
-
-  benchmark: {
-    annotations: [
-      ['benchmark:summaryText', {
-        displayName: 'Index',
-        grading: [
-          'benchmark:stable', {
-            rules: [{ '==': false, apply: chalk.dim }],
-          },
-        ],
-      }],
-    ]
-  },
-
-  // prettier-ignore
   conflation: {
-    options: defaults.conflations.duration,
-    annotations: [
-      ['mean:conflation', {
-        displayName: 'Avg.',
-        display: { if: ['show'] }
-      }],
-      ['mode:hsm:conflation:ci-rme', {
-        displayName: '95% CI',
-        display: { if: ['show'] },
-        grading: {
-          rules: [
-            { '>=': 0, apply: chalk.green },
-            { '>=': 0.05, apply: chalk.yellow },
-            { '>=': 0.2, apply: chalk.red },
-          ],
-        },
-      }],
-    ],
+    options: defaults.conflations.duration
   },
+  
+  commands: {
+    test: {
+      annotations: [
+        ['duration:iter', { displayName: 'N' }],
+        ['mode:hsm', { displayName: 'Mode' }],
+        ['mode:hsm:ci-rme', {
+          displayName: '95% CI',
+          grading: {
+            rules: [
+              { '>=': 0, apply: chalk.green },
+              { '>=': 0.05, apply: chalk.yellow },
+              { '>=': 0.2, apply: chalk.red },
+            ],
+          },
+        }],
+        ['benchmark:summaryText', {
+          displayName: 'Index status',
+          grading: [
+            'benchmark:stable', {
+              rules: [{ '==': false, apply: chalk.dim }],
+            },
+          ],
+        }],
+      ],
+    },
 
-  // prettier-ignore
-  comparison: {
-    annotations: [
-      {
+    show: {
+      annotations: [{
+        '@index': [
+          ['mean:conflation', { displayName: 'mean (index)'}],
+          ['benchmark:summaryText', {
+            displayName: 'Index Status',
+            grading: [
+              'benchmark:stable', {
+                ctx: '@index',
+                rules: [{ '==': false, apply: chalk.dim }],
+              },
+            ],
+          }],
+        ],
+        '@baseline': [
+          ['mean:conflation', { displayName: 'mean (baseline)'}],
+          ['benchmark:summaryText', {
+            displayName: 'Baseline Status',
+            grading: [
+              'benchmark:stable', {
+                ctx: '@baseline',
+                rules: [{ '==': false, apply: chalk.dim }],
+              },
+            ],
+          }],
+        ]
+      }]
+    },
+
+    compare: {
+      annotations: [{
         '@index': [
           ['mean:conflation', {
             displayName: 'Index',
@@ -81,6 +87,7 @@ export default {
             ],
           }],
         ],
+
         '@test': [
           ['mean:hypothesis:summaryText', {
             displayName: 'Change (99% CI)',
@@ -96,11 +103,13 @@ export default {
               },
             ],
           }],
+
           ['mean:hypothesis:difference-ci', {
             display: false,
             options: { level: 0.99 }
           }],
         ],
+
         '@baseline': [
           ['mean:conflation', {
               displayName: 'Baseline',
@@ -118,7 +127,7 @@ export default {
             },
           ],
         ],
-      },
-    ],
-  },
+      }],
+    }
+  }
 };

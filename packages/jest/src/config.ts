@@ -14,35 +14,32 @@ export interface ReprisConfig {
   sample: {
     /** Configuration of each sample */
     options: import('@repris/samplers').samples.duration.Options;
-
-    /** The annotations to compute for each sample */
-    annotations: AnnotationRequest[];
   };
 
   conflation: {
     /** Configuration of each conflation */
     options: import('@repris/samplers').conflations.duration.Options;
-
-    /** The annotations to compute for each conflation */
-    annotations: AnnotationRequest[];
   };
 
-  benchmark: {
-    /** The annotations to compute for each conflation */
-    annotations: AnnotationRequest[];
-  };
-
-  comparison: {
-    /**
-     * The annotations to compute for each conflation. In a conflation,
-     * 3 items are annotatable and the annotations for each can be configured
-     * separately based on the corresponding context:
-     * 
-     *  1. '@index' - The annotations for the conflation stored in the index
-     *  2. '@baseline' - The annotations for the baseline conflation
-     *  3. '@test' - The annotations for the hypothesis test 
-     */
-    annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>
+  commands: {
+    compare?: {
+      /**
+       * The annotations to compute for each conflation. In a conflation,
+       * 3 items are annotatable and the annotations for each can be configured
+       * separately based on the corresponding context:
+       * 
+       *  1. '@index' - The annotations for the conflation stored in the index
+       *  2. '@baseline' - The annotations for the baseline conflation
+       *  3. '@test' - The annotations for the hypothesis test 
+       */
+      annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>
+    },
+    show?: {
+      annotations: AnnotationRequestTree<'@index' | '@baseline'>
+    },
+    test?: {
+      annotations: AnnotationRequest[]
+    }
   }
 }
 
@@ -207,7 +204,7 @@ export function* iterateAnnotationTree(
  * the given configuration.
  */
 export function parseAnnotations(
-  annotations: AnnotationRequestTree,
+  annotations: AnnotationRequestTree = [],
 ): (context?: Ctx) => Map<typeid, any> {
   const requests = iterator.collect(iterateAnnotationTree(annotations));
 

@@ -56,8 +56,9 @@ async function showComparison(
   index: snapshotManager.SnapshotFileManager,
   baseline: snapshotManager.SnapshotFileManager
 ) {
-  const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.comparison.annotations);
-  const columns = gradedColumns(reprisCfg.comparison.annotations, void 0, 'compare');
+  const annotationTree = reprisCfg.commands.compare?.annotations ?? [];
+  const annotationRequests = reprisConfig.parseAnnotations(annotationTree);
+  const columns = gradedColumns(annotationTree, void 0, 'compare');
   const testRenderer = new TableTreeReporter<ComparedBenchmarks>(columns, {
     annotate: comparison => comparison.annotations,
     pathOf: comparison => comparison.name.title.slice(0, -1),

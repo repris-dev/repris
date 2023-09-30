@@ -22,12 +22,7 @@ const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
 function loadColumns(cfg: config.ReprisConfig): Column[] {
   // Groups of annotations to report
-  const annotationGroups = [
-    ...cfg.sample.annotations,
-    ...cfg.conflation.annotations,
-    ...cfg.benchmark.annotations
-  ];
-
+  const annotationGroups = cfg.commands.test?.annotations ?? [];
   // Create columns
   return gradedColumns(annotationGroups, void 0, 'test');
 }

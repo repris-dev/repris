@@ -40,30 +40,30 @@ async function showSnapshotDetail(
   testFiles: jReporters.Test[],
   sfm: snapshotManager.SnapshotFileManager
 ) {
-  const conflationAnnotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
-  const benchmarkAnnotationRequests = reprisConfig.parseAnnotations(reprisCfg.benchmark.annotations)();
-
-  const cols = reprisCfg.conflation.annotations.concat(reprisCfg.benchmark.annotations);
+  const annotationTree = reprisCfg.commands.show?.annotations ?? [];
+  const annotationReq = reprisConfig.parseAnnotations(annotationTree);
 
   const testRenderer = new TableTreeReporter<b.AggregatedBenchmark<any>>(
-    gradedColumns(cols, void 0, 'show'), {
+    gradedColumns(annotationTree, void 0, 'show'), {
     annotate(benchmark) {
       const bag = annotators.DefaultBag.from([]);
       const conflation = benchmark.conflation();
 
       loadOrReannotate(
         benchmark,
-        benchmarkAnnotationRequests,
+        annotationReq('@baseline'),
         benchmark.annotations().get(benchmark[uuid]),
         bag,
+        '@baseline'
       );
 
       if (conflation) {
         loadOrReannotate(
           conflation,
-          conflationAnnotationRequests,
+          annotationReq('@baseline'),
           benchmark.annotations().get(conflation[uuid]),
           bag,
+          '@baseline'
         );
       }
 
@@ -93,14 +93,15 @@ function loadOrReannotate<T extends annotators.Annotatable>(
   annotationRequest: Map<typeid, any>,
   annotations: wiretypes.AnnotationBag = {},
   target: annotators.DefaultBag,
+  ctx?: `@${string}`
 ) {
   // Use existing annotations from the index
   const deserializedBag = annotators.DefaultBag.fromJson(annotations);
   target.union(deserializedBag);
   
   // Compute missing annotations
-  const result = annotators.annotateMissing(target, annotationRequest, annotatable);
-  
+  const result = annotators.annotateMissing(target, annotationRequest, annotatable, ctx);
+
   if (Status.isErr(result)) {
     dbg('%s', result[1]);
   }
