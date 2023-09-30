@@ -88,7 +88,7 @@ export function crouxCorrectionFactorSn(n: number) {
  * Nonparametric measure of spread
  * See: Alternatives to the Median Absolute Deviation - Rousseeuw and Croux (1993)
  */
-export function crouxSn(sample: Indexable<number>, start = 0, len = sample.length - start) {
+export function crouxSn(sample: Indexable<number>, start = 0, len = sample.length - start): RobustScale {
   assert.bounds(sample, start + len - 1);
   if (len === 1) return oneObservation(sample);
 
