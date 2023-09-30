@@ -84,7 +84,6 @@ importers:
   jest-demo:
     specifiers:
       '@repris/jest': workspace:*
-      '@repris/samplers': workspace:*
       '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^16
@@ -93,7 +92,6 @@ importers:
       vite: ~2.9
     devDependencies:
       '@repris/jest': link:../jest
-      '@repris/samplers': link:../samplers
       '@repris/util': link:../util
       '@types/jest': 28.1.4
       '@types/node': 16.11.43

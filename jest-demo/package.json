@@ -13,7 +13,6 @@
     "@types/jest": "^28",
     "@types/node": "^16",
     "@repris/jest": "workspace:*",
-    "@repris/samplers": "workspace:*",
     "@repris/util": "workspace:*",
     "jest": "^28",
     "typescript": "~4.9",
