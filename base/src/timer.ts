@@ -1,4 +1,4 @@
-import * as assert from './assert.js';
+import * as json from './json.js';
 import { divRounded } from './math.js';
 import { As } from './util.js';
 
@@ -81,24 +81,18 @@ export function cvtFrom(time: number | string | bigint, units: UnitType): HrTime
   throw new Error(`Unknown Unit '${ units }'`);
 }
 
-
 /**
- * Returns the numeric high resolution time in nanoseconds
- * as a 64-bit floating point number
+ * Returns the string representation of a HrTime time in nanoseconds
  */
 export function toString(t: HrTime) {
-  return t.toString() + 'n';
+  return json.bigint.toJson(t);
 };
 
 /**
- * Returns the numeric high resolution time in nanoseconds
- * as a 64-bit floating point number
+ * Returns the HrTime from the given string
  */
  export function fromString(t: string): HrTime {
-  assert.gt(t.length, 0);
-  assert.eq(t[t.length - 1], 'n');
-  
-  return BigInt(t.substring(0, t.length - 1)) as HrTime;
+  return json.bigint.fromJson(t) as HrTime;
 };
 
 /** Returns a high-resolution timer for the current runtime */

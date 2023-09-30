@@ -1,3 +1,4 @@
+import { assert } from './index.js';
 import { Status } from './util.js';
 
 /** A valid Json value */
@@ -12,6 +13,19 @@ export interface Serializable<J extends Value = Value> {
 /** deserializing an object of type T */
 export interface Deserializer<T extends Serializable, J extends Value = Value> {
   fromJson(json: J): Status<T>;
+}
+
+export namespace bigint {
+  export function toJson(x: bigint): string {
+    return x.toString() + 'n';
+  };
+  
+  export function fromJson(t: string): bigint  {
+    assert.gt(t.length, 0);
+    assert.eq(t[t.length - 1], 'n');
+    
+    return BigInt(t.substring(0, t.length - 1));
+  }
 }
 
 /**
