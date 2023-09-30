@@ -2,7 +2,7 @@ import * as assert from './assert.js';
 import { fillAscending, Indexable } from './array.js';
 
 /** Encodes a partitioning as a set of vertex tours */
-class DisjointSet<T extends number> {
+export class DisjointSet<T extends number> {
   readonly size: number;
 
   private constructor(
