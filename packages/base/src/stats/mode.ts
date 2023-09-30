@@ -1,9 +1,7 @@
 import { sort } from '../array.js';
-import { assert, Indexable, random, stats } from '../index.js';
-import { online } from '../stats.js';
+import { assert, Indexable, stats } from '../index.js';
 import * as boot from './bootstrap.js';
-import { mean } from './centralTendency.js';
-import { quantile, qcd, median } from './util.js';
+import { quantile, qcd } from './util.js';
 
 /** A Robust Estimation of the Mode */
 export type REM = {
@@ -177,89 +175,6 @@ export function medianConfidence(
   return [
     quantile(hsms, 0.5 - level / 2),
     quantile(hsms, 0.5 + level / 2),
-  ];
-}
-
-/**
- * A percentile bootstrapped paired HSM difference test of two samples.
- * x0 - x1
- */
-export function hsmDifferenceTest(
-  x0: Indexable<number>,
-  x1: Indexable<number>,
-  level: number,
-  K: number,
-  entropy = random.mathRand,
-  smoothing: number | [smoothing0: number, smoothing1: number] = 0,
-): [lo: number, hi: number] {
-  assert.inRange(level, 0, 1);
-  assert.gt(K, 1);
-
-  // bootstrap distribution of HSM differences
-  const hsms = new Float64Array(K);
-  const [smoothing0, smoothing1] = typeof smoothing === 'number'
-    ? [smoothing, smoothing]
-    : smoothing;
-
-  sort(x0);
-  for (let i = 0, next0 = boot.resampler(x0, entropy, smoothing0); i < K; i++) {
-    hsms[i] = hsmImpl(next0()).mode;
-  }
-
-  sort(x1);
-  for (let i = 0, next1 = boot.resampler(x1, entropy, smoothing1); i < K; i++) {
-    hsms[i] -= hsmImpl(next1()).mode;
-  }
-
-  //console.info(hsms.reduce((acc, x) => acc + x + ', ', ''));
-  // {
-  //   const os = online.Gaussian.fromValues(hsms);
-  //   console.info('jarqueBera', os.skewness(1), os.kurtosis(1), stats.jarqueBera(os.N(), os.skewness(1), os.kurtosis(1), 1))
-  // }
-
-  return [
-    quantile(hsms, 0.5 - level / 2),
-    quantile(hsms, 0.5 + level / 2),
-  ];
-}
-
-/**
- * A studentized bootstrapped paired HSM difference test of two samples. x0 - x1
- * @reference https://olebo.github.io/textbook/ch/18/hyp_studentized.html
- * @reference http://bebi103.caltech.edu.s3-website-us-east-1.amazonaws.com/2019a/content/recitations/bootstrapping.html
- */
-export function studentizedHsmDifferenceTest(
-  x0: Indexable<number>,
-  x1: Indexable<number>,
-  level: number,
-  /** number of primary resamples */
-  K: number,
-  /** number of secondary resamples */
-  KK: number,
-  entropy = random.mathRand
-): [lo: number, hi: number] {
-  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => mean(x0) - mean(x1);
-  const resampler = boot.pairedStudentizedResampler(
-    x0, x1, estimator, KK, entropy
-  );
-
-  const stat = estimator(x0, x1);
-  const pivotalQuantities = new Float64Array(K);
-  const estStat = new online.Gaussian();
-
-  for (let i = 0; i < K; i++) {
-    const ti = resampler();
-    pivotalQuantities[i] = ti.pivotalQuantity;
-    estStat.push(ti.estimate);
-  }
-
-  const bootStd = estStat.std();
-  console.info('K', K, KK, level);
-  console.info('jarqueBera', stats.jarqueBera(estStat.N(), estStat.skewness(1), estStat.kurtosis(1), 1))
-
-  return [
-    stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),
-    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2)
   ];
 }
 

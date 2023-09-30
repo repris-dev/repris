@@ -226,52 +226,41 @@ const hypothesisAnnotator: ann.Annotator = {
     hypot: hypothesis.DefaultHypothesis<conflations.Conflation<duration.Duration>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex(id => request.has(id)) < 0) {
+    if (this.annotations().findIndex(id => request.has(id)) < 0 || !hypothesis.DefaultHypothesis.is(hypot)) {
       return Status.value(void 0);
     }
-
-    if (!hypothesis.DefaultHypothesis.is(hypot)) {
-      return Status.value(void 0);
-    }
-
-    const [c0, c1] = hypot.operands();
-
-//    const xs0 = tof64Samples(c0);
-//    const x0 = concatSamples(xs0);
-    const x0 = toHSMSampleDist(c0);
-
-//    const xs1 = tof64Samples(c1);
-//    const x1 = concatSamples(xs1);
-    const x1 = toHSMSampleDist(c1);
-
-    const hsm0 = stats.median(x0);
-    const hsm1 = stats.median(x1);
-    const relChange = (hsm0 - hsm1) / hsm1;
 
     const result = new Map<typeid, ann.Annotation>();
+
+    const mean = stats.centralTendency.mean;
+    const [c0, c1] = hypot.operands();
+
+    const x0 = toHSMSampleDist(c0);
+    const x1 = toHSMSampleDist(c1);
+
+    const mean0 = mean(x0);
+    const mean1 = mean(x1);
+    const relChange = (mean0 - mean1) / mean1;
+
     result.set(HypothesisAnnotations.hsmDifference, relChange);
 
     let ci: [lo: number, hi: number] | undefined;
 
-    // hsm difference
+    // hsm difference confidence intervals
     if (request.has(HypothesisAnnotations.hsmDifferenceCI.id)) {
       const opts = {
         ...HypothesisAnnotations.hsmDifferenceCI.opts,
         ...request.get(HypothesisAnnotations.hsmDifferenceCI.id),
       };
 
-//      const smoothing0 = bootstrapSmoothing(x0, opts.smoothing);
-//      const smoothing1 = bootstrapSmoothing(x1, opts.smoothing);
-//
-//      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples, void 0, [
-//        smoothing0,
-//        smoothing1,
-//      ]);
-
-      //console.info(x0.reduce((acc, x) => acc + x + ', ', ''));
-      //console.info(x1.reduce((acc, x) => acc + x + ', ', ''));
-
-      ci = stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 100);
+      ci = stats.bootstrap.studentizedDifferenceTest(
+        x0, x1,
+        (x0, x1) => mean(x0) - mean(x1),
+        opts.level,
+        opts.resamples,
+        50,
+      );
+    
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
 
@@ -281,8 +270,8 @@ const hypothesisAnnotator: ann.Annotator = {
       let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
 
       if (ci) {
-        const lo = ci[0] / hsm1;
-        const hi = ci[1] / hsm1;
+        const lo = ci[0] / mean1;
+        const hi = ci[1] / mean1;
 
         summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
       }
@@ -292,7 +281,8 @@ const hypothesisAnnotator: ann.Annotator = {
 
     if (request.has(HypothesisAnnotations.hsmSignificantDifference)) {
       if (ci) {
-        // Accept the null hypothesis if the interval includes 0, otherwise reject
+        // Accept the null hypothesis (no difference) if the interval
+        // includes 0, otherwise reject
         const reject = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
         result.set(HypothesisAnnotations.hsmSignificantDifference, reject ? relChange : 0);
       }

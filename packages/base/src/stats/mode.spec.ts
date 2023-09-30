@@ -1,5 +1,6 @@
 import * as random from '../random.js';
 import * as modes from './mode.js';
+import * as bootstrap from './bootstrap.js';
 
 
 describe('modalSearch', () => {  
@@ -123,7 +124,8 @@ describe('hsmDifferenceTest', () => {
       x1[i] = rng1();
     }
 
-    const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
+    const [p05, p95] = bootstrap.differenceTest(x0, x1, x => modes.hsm(x).mode, 0.9, 1000);
+
     expect(p05).toBeInRange(-10, 5);
     expect(p95).toBeInRange(5, 15);
   });
@@ -142,7 +144,8 @@ describe('hsmDifferenceTest', () => {
       x1[i] = rng1();
     }
 
-    const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
+    const [p05, p95] = bootstrap.differenceTest(x0, x1, x => modes.hsm(x).mode, 0.9, 1000);
+
     expect(p05).toBeInRange(-50, 0);
     expect(p95).toBeInRange(0, 50);
   });

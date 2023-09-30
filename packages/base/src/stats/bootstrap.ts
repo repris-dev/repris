@@ -1,6 +1,7 @@
 import { Indexable, copyTo } from '../array.js';
+import { assert } from '../index.js';
 import * as random from '../random.js';
-import { online } from '../stats.js';
+import { online, quantile } from '../stats.js';
 
 /**
  * @returns A function which generates resamples of the given sample
@@ -132,4 +133,96 @@ export function pairedStudentizedResampler(
       pivotalQuantity,
     };
   };
+}
+
+/**
+ * A percentile bootstrapped paired HSM difference test of two samples.
+ * x0 - x1
+ */
+export function differenceTest(
+  /** First sample (x0) */
+  x0: Indexable<number>,
+  /** Second sample (x1) */
+  x1: Indexable<number>,
+  /** Function to estimate the difference between two resamples */
+  estimator: (x0: Indexable<number>) => number,
+  /** The confidence level */
+  level: number,
+  /** The number of resamples */
+  K: number,
+  /** Source of randomness */
+  entropy = random.mathRand,
+  /** Smoothing factor as a standard deviation of a gaussian distribution */
+  smoothing: number | [smoothing0: number, smoothing1: number] = 0,
+): [lo: number, hi: number] {
+  assert.inRange(level, 0, 1);
+  assert.gt(K, 0);
+  assert.gte(smoothing, 0)
+
+  // bootstrap distribution of HSM differences
+  const pointEsts = new Float64Array(K);
+  const [smoothing0, smoothing1] = typeof smoothing === 'number'
+    ? [smoothing, smoothing]
+    : smoothing;
+
+  for (let i = 0, next0 = resampler(x0, entropy, smoothing0); i < K; i++) {
+    pointEsts[i] = estimator(next0());
+  }
+
+  for (let i = 0, next1 = resampler(x1, entropy, smoothing1); i < K; i++) {
+    pointEsts[i] -= estimator(next1());
+  }
+
+  return [
+    quantile(pointEsts, 0.5 - level / 2),
+    quantile(pointEsts, 0.5 + level / 2),
+  ];
+}
+
+/**
+ * A studentized bootstrapped paired difference test of two samples. x0 - x1
+ * @reference https://olebo.github.io/textbook/ch/18/hyp_studentized.html
+ * @reference http://bebi103.caltech.edu.s3-website-us-east-1.amazonaws.com/2019a/content/recitations/bootstrapping.html
+ */
+export function studentizedDifferenceTest(
+  /** First sample (x0) */
+  x0: Indexable<number>,
+  /** Second sample (x1) */
+  x1: Indexable<number>,
+  /** Function to estimate the difference between two resamples */
+  estimator: (x0: Indexable<number>, x1: Indexable<number>) => number,
+  /** The confidence level */
+  level: number,
+  /** Number of primary resamples */
+  K: number,
+  /** Number of secondary resamples */
+  KK: number,
+  /** Random source */
+  entropy = random.mathRand
+): [lo: number, hi: number] {
+  assert.inRange(level, 0, 1);
+  assert.gt(K, 0);
+  assert.gt(K, 0);
+
+  const resampler = pairedStudentizedResampler(
+    x0, x1, estimator, KK, entropy
+  );
+
+  const stat = estimator(x0, x1),
+    pivotalQuantities = new Float64Array(K),
+    estStat = new online.Gaussian();
+
+  for (let i = 0; i < K; i++) {
+    const ti = resampler();
+
+    pivotalQuantities[i] = ti.pivotalQuantity;
+    estStat.push(ti.estimate);
+  }
+
+  const bootStd = estStat.std();
+
+  return [
+    stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),
+    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2)
+  ];
 }
