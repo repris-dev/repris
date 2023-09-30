@@ -47,10 +47,16 @@ export class Gaussian implements OnlineStat<number> {
 
   cov(ddof?: number) { return this.std(ddof) / this.mean(); }
 
-  skewness(ddof = 0) { return Math.sqrt(this.#n - ddof) * this.#M3 / (this.#M2 ** 1.5); }
+  skewness(ddof = 0) {
+    if (this.#M2 === 0) return 0;
+    return Math.sqrt(this.#n - ddof) * this.#M3 / (this.#M2 ** 1.5);
+  }
 
   /** Excess kurtosis. The standard normal distribution has an excess kurtosis of zero */
-  kurtosis(ddof = 0) { return ((this.#n - ddof) * this.#M4) / (this.#M2 * this.#M2) - 3; }
+  kurtosis(ddof = 0) {
+    if (this.#M2 === 0) return 0;
+    return ((this.#n - ddof) * this.#M4) / (this.#M2 * this.#M2) - 3;
+  }
 
   range(): [number, number] { return [this.#min, this.#max]; }
 
