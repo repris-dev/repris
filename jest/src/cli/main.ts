@@ -102,7 +102,6 @@ async function show(argv: string[]): Promise<void> {
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
   const reprisCfg = await reprisConfig.load(projCfg.rootDir);
 
-  //const annoatationRequest = createAnnotationRequest(reprisCfg.conflation.annotations);
   await showSnapshotDetail(projCfg, reprisCfg, testFiles, sfm);
 }
 
@@ -116,7 +115,7 @@ async function showSnapshotDetail(
 
   const testRenderer = new TableTreeReporter<snapshots.AggregatedFixture<any>>(columns, {
     annotate(fixture) {
-      if (fixture.conflation) {
+      if (fixture.conflation?.annotations) {
         return annotators.DefaultBag.fromJson(fixture.conflation.annotations);
       }
     },

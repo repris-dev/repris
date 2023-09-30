@@ -1,4 +1,4 @@
-import { typeid, json } from '@repris/base';
+import { typeid, json, uuid } from '@repris/base';
 import * as wt from '../wireTypes.js';
 
 /**
@@ -9,6 +9,9 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
 {
   /** The kind of sample */
   readonly [typeid]: typeid;
+
+  /** Unique identifier */
+  readonly [uuid]: uuid;
 
   /** The number of values in the sample */
   sampleSize(): number;

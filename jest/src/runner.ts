@@ -1,4 +1,5 @@
 import { debug } from 'util';
+import * as crypto from 'crypto';
 
 import circus from 'jest-circus/runner';
 import type { JestEnvironment } from '@jest/environment';
@@ -13,7 +14,7 @@ import {
   snapshots,
   snapshotManager,
 } from '@repris/samplers';
-import { typeid, assert, iterator as iter, Status, array } from '@repris/base';
+import { typeid, assert, iterator as iter, Status } from '@repris/base';
 
 import * as reprisConfig from './config.js';
 import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
@@ -79,6 +80,10 @@ function initializeEnvironment(
 
   let title: string[] | undefined;
   let nth = -1;
+
+  environment.global.crypto = globalThis.crypto = {
+    randomUUID() { return crypto.randomUUID() as any }
+  } as any;
 
   environment.global.getSamplerOptions = () => cfg.sampler.options;
   environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
@@ -207,18 +212,18 @@ export default async function testRunner(
             // load the previous samples of this fixture from the cache
             const indexedFixture = idxSnapshot.getOrCreateFixture(title, nth);
             
-            conflate(
+            reconflateFixture(
               sample,
+              reprisCfg.conflation.options,
               conflationAnnotations,
               indexedFixture,
-              reprisCfg.conflation.options
             );
 
             // Update the index
             idxSnapshot.updateFixture(title, nth, indexedFixture);
 
-            // publish the conflation on the current test case result
-            augmentedResult.repris.conflation = indexedFixture.conflation;
+            // publish the conflation annotations on the current test case result
+            augmentedResult.repris.conflation = indexedFixture.conflation?.annotations;
           }
 
           break;
@@ -266,7 +271,7 @@ export default async function testRunner(
     for (const f of idxSnapshot.allFixtures()) {
       stat.cacheStat.totalFixtures++;
 
-      if (f.conflation?.annotations[conflations.annotations.isReady]) {
+      if (f.conflation?.annotations?.[conflations.annotations.isReady]) {
         stat.cacheStat.stagedFixtures++;
       }
     }
@@ -288,7 +293,9 @@ export default async function testRunner(
   return testResult;
 }
 
-/** Move fixtures from the index to the snapshot */
+/**
+ * Move fixtures from the index to the snapshot.
+ */
 async function commitToSnapshot(
   config: Config.ProjectConfig,
   testPath: string,
@@ -328,6 +335,7 @@ async function commitToSnapshot(
 
   const e = await s.save(snapshot);
   Status.get(e);
+
   return stat;
 }
 
@@ -355,12 +363,12 @@ function annotate(
   }
 }
 
-function conflate(
+function reconflateFixture(
   newSample: samples.Duration,
+  opts: Partial<conflations.DurationOptions>,
   annotations: Map<typeid, any>,
   indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
-  opts?: Partial<conflations.DurationOptions>
-): conflations.Duration {
+) {
   // The existing cached samples
   const fixtureIndex = new Map(indexedFixture.samples.map(s => [s.sample, s]));
 
@@ -368,7 +376,7 @@ function conflate(
   fixtureIndex.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the new and previous samples together
-  const newConflation = new conflations.Duration(fixtureIndex.keys(), opts);
+  const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
 
   // annotate this conflation
   const [bag, err] = annotators.annotate(newConflation, annotations);
@@ -378,17 +386,16 @@ function conflate(
   }
 
   // overwrite the previous conflation annotations
-  indexedFixture.conflation = {
-    '@type': conflations.Duration[typeid],
-    annotations: bag?.toJson() ?? {}
-  };
+  indexedFixture.conflation = newConflation.toJson();
+  indexedFixture.conflation.annotations = bag?.toJson() ?? {};
 
-  // Update the aggregated fixture, discarding the worst sample(s).
+  // Update the aggregated fixture, discarding sample(s) rejected in the analysis.
   indexedFixture.samples = iter.collect(
-    iter.map(newConflation.samples(false), best => fixtureIndex.get(best)!)
+    iter.map(
+      newConflation.stat().filter(x => x.status !== 'rejected'),
+      best => fixtureIndex.get(best.sample)!
+    )
   );
-
-  return newConflation;
 }
 
 // Return a string that identifies the test (concat of parent describe block

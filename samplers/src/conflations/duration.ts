@@ -1,31 +1,29 @@
 import {
+  random,
   Status,
   typeid,
-  timer,
-  stats,
-  Indexable,
-  array,
-  iterator,
-  partitioning,
+  uuid,
 } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
-import { Conflation } from './types.js';
+import * as wt from '../wireTypes.js';
+import { KWConflation, KWConflationResult, KWOptions } from './kruskal.js';
+import { ConflationResult, Conflator } from './types.js';
 
 export type DurationOptions = typeof defaultDurationOptions;
 
-const defaultDurationOptions = {
+const defaultDurationOptions = {  
+  /** Minimum number of samples in a valid conflation */
+  minSize: 4,
+
   /** The maximum number of samples in the cache */
-  maxCacheSize: 7,
+  maxSize: 7,
 
   /**
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
   maxEffectSize: 0.075,
-
-  /** Minimum number of samples in a valid conflation */
-  minConflationSize: 4,
 
   /**
    * Method to remove samples from a cache when more than the maximum
@@ -34,222 +32,67 @@ const defaultDurationOptions = {
   exclusionMethod: 'outliers' as 'slowest' | 'outliers',
 };
 
-export type SampleStatus =
-  /**
-   * A Rejected sample due to limits on the maximum cache size. These
-   * will be the 'worst' samples depending on the method used.
-   */
-  | 'rejected'
-  /**
-   * A sample not included in the conflation because it differs significantly
-   * from the conflation
-   */
-  | 'outlier'
-  /**
-   * A sample which is sufficiently similar to be considered to
-   * have been drawn from the same distribution.
-   */
-  | 'consistent';
-
-/** A Sample conflation result based on pair-wise Mann-Whitney U tests */
-export interface MWUConflationAnalysis {
-  /** Sample indices ordered from 'best' to 'worst' depending on the method used. */
-  stat: { index: number; status: SampleStatus }[];
-
-  /** Effect size of the 'consistent' subset of samples */
-  effectSize: number;
-
-  /** A sufficiently large consistent subset was found */
-  ready: boolean;
-}
-
-export class Duration implements Conflation<timer.HrTime> {
-  static [typeid] = '@conflation:duration' as typeid;
-  static is(x?: any): x is Duration {
-    return x !== void 0 && x[typeid] === Duration[typeid];
-  }
-
-  readonly [typeid] = Duration[typeid];
-
-  private opts: DurationOptions;
+export class Duration implements Conflator<samples.Duration, KWOptions> {
   private allSamples: samples.Duration[] = [];
-  private rawSamples: Float64Array[] = [];
-  private analysisCache?: MWUConflationAnalysis;
+  private analysisCache?: KWConflation<samples.Duration>;
 
-  constructor(initial?: Iterable<samples.Duration>, opts?: Partial<DurationOptions>) {
-    this.opts = Object.assign({}, defaultDurationOptions, opts);
+  constructor(initial?: Iterable<samples.Duration>) {
     if (initial !== void 0) {
       for (const x of initial) this.push(x);
     }
   }
 
-  samples(excludeOutliers = true): samples.Duration[] {
-    const samples = this.allSamples;
-    const a = this.analysis();
-
-    const subset = !excludeOutliers
-      ? // exclude rejected samples
-        a.stat.filter((x) => x.status !== 'rejected')
-      : // exclude rejected and outlier samples
-        a.stat.filter((x) => x.status === 'consistent');
-
-    return array.subsetOf(
-      samples,
-      subset.map((x) => x.index),
-      []
-    );
-  }
-
-  analysis(): MWUConflationAnalysis {
-    return (this.analysisCache ??= Duration.analyze(this.rawSamples, this.opts));
-  }
-
-  isReady(): boolean {
-    return this.analysis().ready;
+  analyze(opts?: Partial<DurationOptions>): Conflation {
+    const defaultedOpts = Object.assign({}, defaultDurationOptions, opts);
+    this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
+    
+    const kwAnalysis = this.analysisCache!.conflate(defaultedOpts);
+    return new Conflation(defaultedOpts, kwAnalysis);
   }
 
   push(sample: samples.Duration) {
     this.allSamples.push(sample);
-    this.rawSamples.push(sample.toF64Array());
     this.analysisCache = undefined;
   }
+}
 
-  static analyze(samples: Indexable<number>[], opts: DurationOptions): MWUConflationAnalysis {
-    const N = samples.length;
+export class Conflation implements ConflationResult<samples.Duration> {
+  static [typeid] = '@conflation:duration' as typeid;
 
-    if (N < 2) {
-      return {
-        stat: N === 1 ? [{ index: 0, status: 'consistent' }] : [],
-        ready: false,
-        effectSize: 0,
-      };
-    }
+  static is(x?: any): x is Conflation {
+    return x !== void 0 && x[typeid] === Conflation[typeid];
+  }
 
-    let kw = stats.kruskalWallis(samples);
+  readonly [typeid] = Conflation[typeid];
+  readonly [uuid] = random.newUuid();
 
-    // sort all samples by pairwise-similarity or by average ranking
-    const sorted = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
+  constructor(
+    private opts: DurationOptions,
+    private kwResult: KWConflationResult<samples.Duration>) {
+  }
 
-    const stat = new Map(
-      iterator.map(sorted, (index) => [
-        samples[index],
-        { index, status: 'outlier' as SampleStatus },
-      ])
-    );
+  stat() {
+    return this.kwResult.stat;
+  }
 
-    // consistent subset
-    let subset = samples.slice();
+  effectSize(): number {
+    return this.kwResult.effectSize;
+  }
 
-    if (N > opts.maxCacheSize) {
-      const sortedSamples = sorted.map((idx) => samples[idx]);
+  /** A sufficiently large consistent subset was found */
+  ready(): boolean {
+    return this.kwResult.summary.consistent >= this.opts.minSize;
+  }
 
-      // reject the outlier samples
-      for (const s of sortedSamples.slice(opts.maxCacheSize)) {
-        stat.get(s)!.status = 'rejected';
-      }
-
-      // from the remaining samples, compute KW again.
-      subset = sortedSamples.slice(0, opts.maxCacheSize);
-      kw = stats.kruskalWallis(subset);
-    }
-
-    if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
-      // try to find a cluster of samples which are consistent
-      const cluster = dunnsCluster(kw, opts.maxEffectSize);
-      subset = array.subsetOf(subset, cluster, []);
-
-      if (subset.length > 1) {
-        kw = stats.kruskalWallis(subset);
-      }
-    }
-
-    let ready = false;
-
-    // mark consistent samples
-    if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
-      subset.forEach((sample) => (stat.get(sample)!.status = 'consistent'));
-      ready = subset.length >= opts.minConflationSize;
-    }
-
+  toJson(): wt.ConflationResult {
     return {
-      // indices ordered by best-first
-      stat: iterator.collect(stat.values()),
-      effectSize: kw.effectSize,
-      ready,
-    };
-  }
-}
-
-/**
- * @returns Find the largest, densest cluster of samples
- */
-function dunnsCluster(kw: stats.KruskalWallisResult, minEffectSize: number): number[] {
-  const N = kw.size;
-  const parents = array.fillAscending(new Int32Array(N), 0);
-  // effect-size sums
-  const sums = new Float32Array(N);
-
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      const es = kw.dunnsTest(i, j).effectSize;
-      if (es <= minEffectSize) {
-        partitioning.union(parents, i, j);
-      }
-
-      // The sum of all edges, not just those within components
-      sums[i] += es;
-      sums[j] += es;
+      '@type': this[typeid],
+      '@uuid': this[uuid],
+      samples: this.kwResult.stat.map(
+        s => ({ '@ref': s.sample[uuid], outlier: s.status !== 'consistent' })
+      )
     }
   }
-
-  const cc = partitioning.DisjointSet.build(parents);
-  const groups = iterator.collect(cc.iterateGroups());
-
-  for (const g of groups) {
-    let sum = 0;
-
-    for (const gi of cc.iterateGroup(g)) {
-      sum += sums[gi];
-      sums[gi] = 0;
-    }
-
-    sums[g] = sum;
-  }
-
-  // Sort by component size, then sum of effect sizes
-  groups.sort((a, b) => {
-    const size = cc.groupSize(b) - cc.groupSize(a);
-    return size === 0 ? sums[a] - sums[b] : size;
-  });
-
-  // if the largest connected component is big enough, return it
-  const g = iterator.collect(cc.iterateGroup(groups[0]));
-  return g.length > 1 ? g : [];
-}
-
-/**
- * @return A sorting of the samples based on sum of pair-wise similarities
- */
-function dunnAvgSort(kw: stats.KruskalWallisResult): number[] {
-  const N = kw.size;
-  const sums = new Float64Array(N);
-
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      const a = kw.dunnsTest(i, j).effectSize;
-      sums[i] += a;
-      sums[j] += a;
-    }
-  }
-
-  return array.fillAscending(new Array(N), 0).sort((a, b) => sums[a] - sums[b]);
-}
-
-function kwRankSort(kw: stats.KruskalWallisResult): number[] {
-  // sort all samples by rank (ascending)
-  return array
-    .fillAscending(new Array<number>(kw.size), 0)
-    .sort((a, b) => kw.ranks[a] - kw.ranks[b]);
 }
 
 export const annotations = {
@@ -271,17 +114,15 @@ ann.register('@conflation:duration-annotator' as typeid, {
   },
 
   annotate(
-    confl: Conflation<timer.HrTime>,
+    confl: ConflationResult<samples.Duration>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (!Duration.is(confl)) return Status.value(void 0);
-
-    const analysis = confl.analysis();
+    if (!Conflation.is(confl)) return Status.value(void 0);
 
     let outlier = 0,
       consistent = 0;
 
-    analysis.stat.forEach((x) => {
+    confl.stat().forEach((x) => {
       switch (x.status) {
         case 'consistent':
           consistent++;
@@ -294,11 +135,11 @@ ann.register('@conflation:duration-annotator' as typeid, {
       }
     });
 
-    const summary = `${consistent}/${outlier + consistent} (${analysis.effectSize.toFixed(2)})`;
+    const summary = `${consistent}/${outlier + consistent} (${confl.effectSize().toFixed(2)})`;
 
     const bag = ann.DefaultBag.from([
       [annotations.summaryText, summary],
-      [annotations.isReady, confl.isReady()],
+      [annotations.isReady, confl.ready()],
     ]);
 
     return Status.value(bag);

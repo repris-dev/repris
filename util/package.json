@@ -15,6 +15,9 @@
     "./snapshotResolver.cjs": {
       "default": "./snapshotResolver.cjs"
     },
+    "./cryptoSetup.cjs": {
+      "default": "./cryptoSetup.cjs"
+    },
     "./matchers.cjs": {
       "default": "./matchers.cjs",
       "types": "./matchers.d.ts"

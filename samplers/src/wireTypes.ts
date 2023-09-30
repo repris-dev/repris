@@ -1,4 +1,4 @@
-import { json, typeid } from '@repris/base';
+import { json, typeid, uuid } from '@repris/base';
 
 export type Parameter =
     number | string | boolean | { label: string, value: json.Value };
@@ -8,18 +8,29 @@ export type SamplerInfo = json.Value & {
   parameter?: Parameter[]
 };
 
+// TODO - rename to Sample?
 export type SampleData = json.Value & {
-  '@type': string
+  '@type': string;
+
+  /** Identifier */
+  '@uuid': uuid;
 };
 
-export type Conflation = {
+export type ConflationResult = {
   /** The type of Conflation used */
   '@type': string;
 
+  /** Identifier of this conflation result */
+  '@uuid': uuid;
+
+  /** The samples included in the conflation */
+  samples: { '@ref': uuid, outlier: boolean }[];
+
   /** Annotations of the conflation */
-  annotations: AnnotationBag;
+  annotations?: AnnotationBag;
 };
 
+// TODO - rename to Sampler?
 export type Sample = {
   /**
    * The configuration of the sampler used to create this sample. Usually to be
@@ -38,10 +49,11 @@ export type Sample = {
 export type AnnotationBag = Record<string, json.Value>;
 
 export type FixtureName = {
+  /** hierarchy of names for this fixture */
   title: string[];
+
+  /** Uniquely identifies a fixture in a snapshot with the same title */
   nth: number;
-  description?: string;
-  version?: string;
 };
 
 export type Fixture = {
@@ -56,7 +68,7 @@ export type Fixture = {
   samples: Sample[];
 
   /** Conflation of the samples */
-  conflation?: Conflation
+  conflation?: ConflationResult;
 };
 
 export type Epoch = {

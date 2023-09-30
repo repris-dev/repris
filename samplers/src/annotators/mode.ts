@@ -133,21 +133,21 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.Conflation<unknown>,
+    conflation: conflations.ConflationResult<samples.Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex((id) => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (conflation[typeid] !== conflations.Duration[typeid] as typeid) {
+    if (!conflations.Conflation.is(conflation)) {
       return Status.value(void 0);
     }
 
-    const c = conflation as conflations.Duration;
-    const samples = Array.from(c.samples()).map(
-      s => [s.toF64Array(), s] as [Float64Array, samples.Duration]
-    );
+    // run pooled analysis only on the best samples
+    const samples: [Float64Array, samples.Duration][] = conflation.stat()
+      .filter(s => s.status === 'consistent')
+      .map(s => [s.sample.toF64Array!(), s.sample])   
 
     if (samples.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
@@ -176,7 +176,7 @@ const conflationAnnotator: ann.Annotator = {
       return Status.value(new ann.DefaultBag(result));
     }
 
-    return Status.value(undefined);
+    return Status.value(void 0);
   },
 };
 

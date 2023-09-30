@@ -18,7 +18,7 @@ export type AggregatedFixture<T extends samples.Sample<any>> = {
   }[];
 
   /** An analysis of the samples together */
-  conflation?: wt.Conflation;
+  conflation?: wt.ConflationResult;
 };
 
 export const enum FixtureState {
@@ -68,7 +68,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
         annotations: annotations ? assignDeep({}, annotations) : undefined,
       })),
       conflation: fixture.conflation
-        ? assignDeep({} as wt.Conflation, fixture.conflation)
+        ? assignDeep({} as wt.ConflationResult, fixture.conflation)
         : undefined,
     });
   }

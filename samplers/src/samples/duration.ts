@@ -5,6 +5,8 @@ import {
   timer,
   stats,
   assert,
+  uuid,
+  random,
 } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
@@ -52,6 +54,7 @@ export class Duration implements MutableSample<timer.HrTime> {
 
     const sample = new Duration({ maxCapacity: x.maxSize });
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
+    sample.uuid = x['@uuid'];
 
     if (Array.isArray(x.values)) {
       x.values.forEach((v) => sample.times.push(timer.fromString(v)));
@@ -62,9 +65,15 @@ export class Duration implements MutableSample<timer.HrTime> {
 
   readonly [typeid] = Duration[typeid];
 
+  get [uuid]() {
+    this.uuid ??= random.newUuid();
+    return this.uuid;
+  }
+  
   private opts: DurationOptions;
   private times: stats.ReservoirSample<timer.HrTime>;
   private onlineStats: stats.online.Lognormal;
+  private uuid: uuid | undefined;
 
   constructor(opts: Partial<DurationOptions> = {}) {
     this.opts = Object.assign({}, defaultDurationOptions, opts);
@@ -122,6 +131,7 @@ export class Duration implements MutableSample<timer.HrTime> {
   toJson(): WireType {
     const obj: WireType = {
       '@type': Duration[typeid],
+      '@uuid': this[uuid],
       summary: this.onlineStats.toJson(),
       values: this.times.values.map(timer.toString),
       units: 'microseconds' as quantity.Units,
