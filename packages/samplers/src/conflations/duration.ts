@@ -42,7 +42,8 @@ export class Duration implements Conflator<samples.Duration, KWOptions> {
     this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
 
     const kwAnalysis = this.analysisCache!.conflate(defaultedOpts);
-    const isReady = kwAnalysis.summary.consistent >= defaultedOpts.minSize;
+    const summary = summarize(kwAnalysis.stat);
+    const isReady = summary.consistent >= defaultedOpts.minSize;
 
     return new DurationResult(isReady, kwAnalysis);
   }
@@ -64,18 +65,23 @@ export class DurationResult implements ConflationResult<samples.Duration> {
     obj: wt.ConflationResult,
     refs: Map<uuid, samples.Duration>
   ): Status<DurationResult> {
-    const stat = obj.samples.map(s => ({
-      sample: refs.get(s['@ref'])!,
-      status: (s.outlier ? 'outlier' : 'consistent') as ConflatedSampleStatus,
-    }));
+    let stat = [];
+
+    for (const s of obj.samples) {
+      const ref = s['@ref'];
+
+      if (!refs.has(ref)) {
+        return Status.err(`Unresolved reference to sample: "${ref}"`);
+      }
+
+      stat.push({
+        sample: refs.get(ref)!,
+        status: (s.outlier ? 'outlier' : 'consistent') as ConflatedSampleStatus,
+      });
+    }
 
     const result = new DurationResult(obj.isReady, {
       effectSize: obj.effectSize,
-      summary: {
-        consistent: 0,
-        outlier: 0,
-        rejected: 0,
-      },
       stat,
     });
 
@@ -131,6 +137,17 @@ export class DurationResult implements ConflationResult<samples.Duration> {
       isReady: this._isReady,
     };
   }
+}
+
+function summarize(stat: { sample: any; status: ConflatedSampleStatus }[]) {
+  const result: Record<ConflatedSampleStatus, number> = {
+    consistent: 0,
+    outlier: 0,
+    rejected: 0,
+  };
+
+  for (const s of stat) result[s.status]++;
+  return result;
 }
 
 export const annotations = {

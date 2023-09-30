@@ -86,8 +86,8 @@ export type Snapshot = {
   fixtures: Fixture[];
 
   /**
-   * Fixture titles in this cache which have been deleted because they have
-   * been moved/saved elsewhere.
+   * Fixture titles in this cache which have been deleted. For example the fixture
+   * associated with that title has been moved elsewhere.
    */
   tombstones?: FixtureName[];
 

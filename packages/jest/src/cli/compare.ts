@@ -84,6 +84,7 @@ async function showComparison(
     testRenderer.render(comparisons, process.stderr);
   }
 }
+
 function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
   index?: snapshots.AggregatedFixture<samples.Duration>,

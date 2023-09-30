@@ -9,7 +9,7 @@ import * as samples from './samples.js';
  * When multiple reports are combined together it produces a set of aggregated
  * fixtures which can be summarized by a conflation.
  */
-export type AggregatedFixture<S extends samples.Sample<any>> = {
+export interface AggregatedFixture<S extends samples.Sample<any>> {
   name: wt.FixtureName;
 
   samples: {
@@ -65,7 +65,8 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return iterator.map(this.fixtures.values(), (f) => this.fromJsonFixture(f));
   }
 
-  updateFixture(title: string[], nth: number, fixture: AggregatedFixture<samples.Duration>) {
+  updateFixture(fixture: AggregatedFixture<samples.Duration>) {
+    const { title, nth } = fixture.name;
     const key = cacheKey(title, nth);
     const annotationIndex = {} as Record<string, wt.AnnotationBag>;
 
@@ -109,7 +110,10 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return false;
   }
 
-  /** @returns  */
+  /**
+   * @returns The aggregated fixture for the given title, or an empty fixture if
+   * the name doesn't exist in the snapshot.
+   */
   getOrCreateFixture(title: string[], nth: number): AggregatedFixture<samples.Duration> {
     const fixture = this.fixtures.get(cacheKey(title, nth));
     if (!fixture) {
@@ -181,6 +185,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 }
 
+/** Join the fixtures across two snapshots */
 export function joinSnapshotFixtures(a: Snapshot, b: Snapshot) {
   return iterator.outerJoin(a.allFixtures(), b.allFixtures(), f => cacheKey(f.name.title, f.name.nth))
 }

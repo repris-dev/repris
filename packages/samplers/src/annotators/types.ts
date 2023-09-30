@@ -18,7 +18,7 @@ export interface AnnotationBag extends json.Serializable<wt.AnnotationBag>
     [Symbol.iterator](): IterableIterator<[typeid, Annotation]>;
 
     /** Get the annotation associated with the given type */
-    get(type: typeid, ns?: string[]): Annotation | undefined;
+    get(type: typeid, contextName?: string[]): Annotation | undefined;
   };
 
   union(other: AnnotationBag, contextName?: string): void;
@@ -29,9 +29,9 @@ export interface Annotator
   /** Returns a list of annotations this annotator supports */
   annotations(): typeid[];
 
-  /** Annotate the given item */
+  /** Annotate the given item with the requested annotations */
   annotate(
     item: Annotatable,
-    request: Map<typeid, { /* Options */ }>
+    request: Map<typeid, { /* Options */ }>,
   ): Status<AnnotationBag | undefined>;
 }

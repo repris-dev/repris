@@ -56,7 +56,10 @@ export interface AugmentedTestResult extends TestResult {
       updatedTotal: number;
     };
     epochStat: {
-      /**  */
+      /**
+       * True if the snapshots are being updated and all fixtures have
+       * been committed to their snapshots.
+       */
       complete: boolean;
     };
   };
@@ -143,7 +146,7 @@ export default async function testRunner(
   const stagingAreaMgr = new snapshotManager.SnapshotFileManager(IndexResolver(config));
 
   // index for this test
-  let idxSnapshot: snapshots.Snapshot | undefined;
+  let indexedSnapshot: snapshots.Snapshot | undefined;
 
   if (config.cache) {
     const sCacheFile = await stagingAreaMgr.loadOrCreate(testPath);
@@ -152,12 +155,12 @@ export default async function testRunner(
       throw new Error(`Failed to load staging area for test file:\n${sCacheFile[1]}`);
     }
 
-    idxSnapshot = sCacheFile[0];
+    indexedSnapshot = sCacheFile[0];
   }
 
   // Don't re-run benchmarks which were committed to the snapshot in a previous run
   const skipTest = (title: string[], nth: number) =>
-    idxSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
+    indexedSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
 
   // Sample annotation config
   const sampleAnnotations = reprisConfig.parseAnnotations(reprisCfg.sample.annotations)();
@@ -202,25 +205,26 @@ export default async function testRunner(
             throw new Error('Unknown sample type ' + sample[typeid]);
           }
 
-          const annotations = annotate(sample, sampleAnnotations);
-          const augmentedResult = ar as AugmentedAssertionResult;
+          const sampleBag = annotate(sample, sampleAnnotations);
+          const sampleBagJson = sampleBag.toJson();
 
           // assign annotations to the test case result
-          augmentedResult.repris = { sample: annotations };
+          const augmentedResult = ar as AugmentedAssertionResult;
+          augmentedResult.repris = { sample: sampleBagJson };
 
-          if (idxSnapshot) {
+          if (indexedSnapshot) {
             // load the previous samples of this fixture from the cache
-            const indexedFixture = idxSnapshot.getOrCreateFixture(title, nth);
+            const indexedFixture = indexedSnapshot.getOrCreateFixture(title, nth);
             
             reconflateFixture(
-              { sample, annotations },
+              { sample, annotations: sampleBagJson },
               reprisCfg.conflation.options,
               conflationAnnotationConfig,
               indexedFixture,
             );
 
             // Update the index
-            idxSnapshot.updateFixture(title, nth, indexedFixture);
+            indexedSnapshot.updateFixture(indexedFixture);
 
             // publish the conflation annotations on the current test case result
             augmentedResult.repris.conflation = indexedFixture.conflation?.annotations;
@@ -255,20 +259,20 @@ export default async function testRunner(
     // when --updateSnapshot is specified
     dbg('Updating snapshots for %s', testPath);
 
-    if (!idxSnapshot) {
+    if (!indexedSnapshot) {
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const snapStat = await commitToBaseline(config, testPath, idxSnapshot);
+    const snapStat = await commitToBaseline(config, testPath, indexedSnapshot);
     testResult.snapshot.added += snapStat.added;
     testResult.snapshot.updated += snapStat.updated;
 
     stat.snapshotStat.updated = snapStat.updated + snapStat.added;
     stat.cacheStat.totalFixtures = snapStat.pending;
     stat.epochStat.complete = snapStat.pending === 0;
-  } else if (idxSnapshot) {
+  } else if (indexedSnapshot) {
     // update pending/pendingReady
-    for (const f of idxSnapshot.allFixtures()) {
+    for (const f of indexedSnapshot.allFixtures()) {
       stat.cacheStat.totalFixtures++;
 
       if (f.conflation?.annotations?.[conflations.annotations.isReady]) {
@@ -277,11 +281,11 @@ export default async function testRunner(
     }
   }
 
-  if (idxSnapshot) {
+  if (indexedSnapshot) {
     // total tombstones in the index area is the total moved to snapshot in this epoch
-    stat.snapshotStat.updatedTotal = iter.count(idxSnapshot.allTombstones());
+    stat.snapshotStat.updatedTotal = iter.count(indexedSnapshot.allTombstones());
     // commit the new test run to the cache
-    const e = await stagingAreaMgr.save(idxSnapshot);
+    const e = await stagingAreaMgr.save(indexedSnapshot);
     Status.get(e);
   }
 
@@ -293,9 +297,7 @@ export default async function testRunner(
   return testResult;
 }
 
-/**
- * Move fixtures from the index to the baseline snapshot.
- */
+/** Move fixtures from the index to the baseline snapshot. */
 async function commitToBaseline(
   config: Config.ProjectConfig,
   testPath: string,
@@ -323,7 +325,7 @@ async function commitToBaseline(
       }
 
       // copy the fixture to the snapshot
-      snapshot.updateFixture(title, nth, f);
+      snapshot.updateFixture(f);
       // allow the runner to skip this fixture in future runs
       index.tombstone(title, nth);
     } else {
@@ -340,23 +342,23 @@ async function commitToBaseline(
 
 function annotate(
   newSample: samples.Duration,
-  annotations: Map<typeid, any>
-): wt.AnnotationBag {
-  const [bag, err] = annotators.annotate(newSample, annotations);
+  request: Map<typeid, any>
+): annotators.AnnotationBag {
+  const [bag, err] = annotators.annotate(newSample, request);
   if (err) {
     dbg('Failed to annotate sample %s', err.message);
-    return {};
+    return annotators.DefaultBag.from([]);
   } else {
-    return bag!.toJson();
+    return bag!;
   }
 }
 
 function reconflateFixture(
   newEntry: { sample: samples.Duration, annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
-  annotationCfg: Map<typeid, any>,
+  request: Map<typeid, any>,
   indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
-) {
+): annotators.AnnotationBag {
   // The existing cached samples
   const fixtureIndex = new Map(indexedFixture.samples.map(s => [s.sample, s]));
 
@@ -367,7 +369,7 @@ function reconflateFixture(
   const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
 
   // Annotate this conflation if its ready
-  const [bag, err] = annotators.annotate(newConflation, annotationCfg);
+  const [bag, err] = annotators.annotate(newConflation, request);
 
   if (err) {
     dbg('Failed to annotate conflation %s', err.message);
@@ -386,6 +388,8 @@ function reconflateFixture(
       best => fixtureIndex.get(best.sample)!
     )
   );
+
+  return bag ?? annotators.DefaultBag.from([]);
 }
 
 // Return a string that identifies the test (concat of parent describe block

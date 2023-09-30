@@ -1,4 +1,4 @@
-import { stats, Indexable, array, iterator, partitioning, assert, uuid } from '@repris/base';
+import { stats, Indexable, array, iterator, assert } from '@repris/base';
 
 import { AnalysisOptions, ConflatedSampleStatus } from './types.js';
 
@@ -13,9 +13,6 @@ export interface KWOptions extends AnalysisOptions {
 export type KWConflationResult<T> = {
   /** Status of each sample */
   stat: { sample: T; status: ConflatedSampleStatus }[];
-
-  /** Counts of samples by conflation status */
-  summary: Record<ConflatedSampleStatus, number>;
 
   /** Effect size of the consistent subset */
   effectSize: number;
@@ -47,7 +44,6 @@ export class KWConflation<T> {
 
       return {
         stat,
-        summary: this.summarize(stat),
         effectSize: 0,
       };
     }
@@ -89,20 +85,8 @@ export class KWConflation<T> {
 
     return {
       stat,
-      summary: this.summarize(stat),
       effectSize: kw.effectSize,
     };
-  }
-
-  private summarize(stat: { sample: T; status: ConflatedSampleStatus }[]) {
-    const result: Record<ConflatedSampleStatus, number> = {
-      consistent: 0,
-      outlier: 0,
-      rejected: 0,
-    };
-
-    for (const s of stat) result[s.status]++;
-    return result;
   }
 }
 
