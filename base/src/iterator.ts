@@ -117,3 +117,11 @@ export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n: number): Itera
     yield xs[fromIdx++];
   }
 }
+
+export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iterable<B> {
+  let i = 0;
+
+  for (const x of xs) {
+    yield fn(x, i++)
+  }
+}
