@@ -4,7 +4,7 @@ import HasteMap from 'jest-haste-map';
 import circus from 'jest-circus/runner';
 import type { JestEnvironment } from '@jest/environment';
 import type { Circus, Config } from '@jest/types';
-import type { AssertionResult, TestEvents, TestFileEvent, TestResult } from '@jest/test-result';
+import type { AssertionResult, TestFileEvent, TestResult } from '@jest/test-result';
 
 import { annotators, samples, conflations, wiretypes as wt, snapshots } from '@sampleci/samplers';
 import { typeid, assert, iterator, Status } from '@sampleci/base';
@@ -26,22 +26,30 @@ const dbg = debug('sci:runner');
 
 function initializeEnvironment(
   environment: JestEnvironment,
-  cfg: sciConfig.SCIConfig
-  //onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
+  cfg: sciConfig.SCIConfig,
+  skipTest: (title: string[], nth: number) => boolean,
 ) {
-  let fullTitle: string[] | undefined;
-  const samples: { fullTitle: string[]; sample: samples.Sample<unknown> }[] = [];
+  const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
+  const titleCount = new snapshots.RecordCounter<string>();
+
+  let title: string[] | undefined;
+  let nth = -1;
 
   environment.global.getSamplerOptions = () => cfg.sampler.options;
   environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
-    assert.isDefined(fullTitle, 'No test running');
-    samples.push({ fullTitle, sample });
+    assert.isDefined(title, 'No test running');
+    samples.push({ title, nth, sample });
   };
 
   const hte = environment.handleTestEvent;
   const newe: Circus.EventHandler = (evt, state) => {
     if (evt.name === 'test_start') {
-      fullTitle = getTestID(evt.test);
+      title = getTestID(evt.test);
+      nth = titleCount.increment(JSON.stringify(title));
+
+      if (skipTest(title, nth)) {
+        evt.test.mode = 'skip';
+      }
     }
 
     return hte?.(evt as Circus.SyncEvent, state);
@@ -68,6 +76,7 @@ export default async function testRunner(
   const cacheMgr = new sfm.SnapshotFileManager(HasteResolver(config));
 
   let cacheFile: snapshots.Snapshot | undefined;
+
   if (config.cache) {
     const sCacheFile = await cacheMgr.loadOrCreate(testPath);
 
@@ -78,14 +87,14 @@ export default async function testRunner(
     cacheFile = sCacheFile[0];
   }
 
-  /** Conflation annotation config */
+  // Don't re-run benchmarks which were committed to the snapshot in a previous run
+  const skipTest = (title: string[], nth: number) => cacheFile?.isTombstoned(title, nth) ?? false;
+  // Conflation annotation config
   const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
-  /** Conflation annotation config */
+  // Conflation annotation config
   const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
-  /** Fixture title state */
-  const titleCount = new snapshots.RecordCounter<string>();
-  /** Wire up the environment */
-  const envState = initializeEnvironment(environment, cfg);
+  // Wire up the environment
+  const envState = initializeEnvironment(environment, cfg, skipTest);
 
   const testResult: TestResult = await circus(
     globalConfig,
@@ -97,12 +106,12 @@ export default async function testRunner(
   );
 
   {
-    // pair up samples to their test result from Jest. They must be in the same order
     let i = 0;
     const allTestResults = testResult.testResults;
-
-    for (const { sample, fullTitle } of envState.getSamples()) {
-      const key = JSON.stringify(fullTitle);
+    
+    // pair up samples to their test result from Jest. They must be in the same order
+    for (const { sample, title, nth } of envState.getSamples()) {
+      const key = JSON.stringify(title);
       let matched = false;
 
       while (i < allTestResults.length) {
@@ -122,10 +131,8 @@ export default async function testRunner(
           augmentedResult.sci = { sample: annotate(sample, sampleAnnotations) };
 
           if (cacheFile) {
-            // nth-time in this test run this fixture name has been seen
-            const nth = titleCount.increment(key);
             // load the previous samples of this fixture from the cache
-            const cachedFixture = cacheFile.getOrCreateFixture(fullTitle, nth);
+            const cachedFixture = cacheFile.getOrCreateFixture(title, nth);
             // publish the conflation on the current test case result
             augmentedResult.sci.conflation = conflate(
               sample,
@@ -135,7 +142,7 @@ export default async function testRunner(
             )?.annotations;
 
             // Update the cache
-            cacheFile.updateFixture(fullTitle, nth, cachedFixture);
+            cacheFile.updateFixture(title, nth, cachedFixture);
           }
 
           break;

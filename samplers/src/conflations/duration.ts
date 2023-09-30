@@ -57,8 +57,10 @@ export interface MWUConflationAnalysis {
   /** Sample indices ordered from 'best' to 'worst' depending on the method used. */
   stat: { index: number; status: SampleStatus }[];
 
+  /** Effect size of the 'consistent' subset of samples */
   effectSize: number;
 
+  /** A sufficiently large consistent subset was found */
   ready: boolean;
 }
 
@@ -160,16 +162,19 @@ export class Duration implements Conflation<timer.HrTime> {
       }
     }
 
+    let ready = false;
+
     // mark consistent samples
     if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
       subset.forEach((sample) => (stat.get(sample)!.status = 'consistent'));
+      ready = subset.length >= opts.minConflationSize;
     }
 
     return {
       // indices ordered by best-first
       stat: iterator.collect(stat.values()),
       effectSize: kw.effectSize,
-      ready: subset.length >= opts.minConflationSize,
+      ready,
     };
   }
 }
@@ -282,9 +287,8 @@ ann.register('@conflation:duration-annotator' as typeid, {
     if (!Duration.is(confl)) return Status.value(void 0);
 
     const analysis = confl.analysis();
-  
+
     let outlier = 0,
-      rejected = 0,
       consistent = 0;
 
     analysis.stat.forEach((x) => {
@@ -292,11 +296,10 @@ ann.register('@conflation:duration-annotator' as typeid, {
         case 'consistent':
           consistent++;
           break;
-        case 'rejected':
-          rejected++;
-          break;
         case 'outlier':
           outlier++;
+          break;
+        case 'rejected':
           break;
       }
     });
