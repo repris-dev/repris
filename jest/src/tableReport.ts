@@ -73,9 +73,7 @@ export class TerminalReport<Id> {
    * Multiple samples can have the same id. When rendered, samples by the same id
    * are rendered in the order they were loaded in to the table.
    */
-  load(rowid: Id, sample: wt.AnnotationBag): boolean {
-    const bag = anno.DefaultBag.fromJson(sample);
-
+  load(rowid: Id, bag: anno.AnnotationBag): boolean {
     const cells = this.columns.map((c) => {
       const ann = bag.annotations.get(c.id);
 

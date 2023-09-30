@@ -131,7 +131,8 @@ export default class SampleReporter extends DefaultReporter {
 
           if (aar.sci?.sample) {
             const annotations = { ...aar.sci.sample, ...aar.sci?.conflation };
-            this.table!.load(assertionResult, annotations);
+            const bag = annotators.DefaultBag.fromJson(annotations);
+            this.table!.load(assertionResult, bag);
           }
         }
 
@@ -158,20 +159,20 @@ export default class SampleReporter extends DefaultReporter {
       this.log(moveTo + line.line);
     }
 
-    this._logSuite(path, suite);
+    this._logSuite(suite);
     this._logLine();
   }
 
-  private _logSuite(path: string, suite: TestSuite) {
+  private _logSuite(suite: TestSuite) {
     if (suite.title) {
       this._logLine(suite.title, suite.depth);
     }
 
-    this._logTests(path, suite.items, suite.depth + 1);
-    suite.children.forEach((suite) => this._logSuite(path, suite));
+    this._logTests(suite.items, suite.depth + 1);
+    suite.children.forEach((suite) => this._logSuite(suite));
   }
 
-  private _logTests(path: string, tests: AssertionResult[], indentLevel: number) {
+  private _logTests(tests: AssertionResult[], indentLevel: number) {
     const pending = [] as AssertionResult[];
     const todo = [] as AssertionResult[];
 
@@ -181,7 +182,7 @@ export default class SampleReporter extends DefaultReporter {
       } else if (test.status === 'todo') {
         todo.push(test);
       } else {
-        this._logTest(path, test, indentLevel);
+        this._logTest(test, indentLevel);
       }
     }
 
@@ -189,7 +190,7 @@ export default class SampleReporter extends DefaultReporter {
     todo.forEach((t) => this._logTodoOrPendingTest(t, indentLevel));
   }
 
-  private _logTest(path: string, test: AssertionResult, indentLevel: number) {
+  private _logTest(test: AssertionResult, indentLevel: number) {
     const icon = getIcon(test.status);
     const title = '  '.repeat(indentLevel) + `${icon} ${chalk.dim(test.title)}`;
     const renderedCells = this.table!.renderRow(test);
@@ -231,15 +232,18 @@ function getIcon(status: Status) {
   return chalk.green(ICONS.success);
 }
 
-function createTreeFrom<T>(testResults: T[], titles: (test: T) => string[]): ReportTree<T> {
+function createTreeFrom<T>(
+  items: T[],
+  pathOf: (item: T) => string[]
+): ReportTree<T> {
   const root: ReportTree<T> = { depth: 0, children: [], items: [], title: '' };
 
-  testResults.forEach((testResult) => {
+  items.forEach((testResult) => {
     let targetSuite = root;
     let depth = 1;
     
     // Find the target suite for this test, creating nested suites as necessary.
-    for (const title of titles(testResult)) {
+    for (const title of pathOf(testResult)) {
       let matchingSuite = targetSuite.children.find((s) => s.title === title);
 
       if (!matchingSuite) {
