@@ -108,7 +108,6 @@ importers:
       '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^16
-      gaussian-mixture: ^0.9.1
       jest: ^28
       npm-run-all: 4.1.5
       typescript: ~4.9
@@ -116,7 +115,6 @@ importers:
     dependencies:
       '@repris/base': link:../base
       '@repris/util': link:../util
-      gaussian-mixture: 0.9.1
     devDependencies:
       '@jest/expect': 28.1.2
       '@types/jest': 28.1.4
@@ -1493,17 +1491,6 @@ packages:
   /functions-have-names/1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
     dev: true
-
-  /gaussian-mixture/0.9.1:
-    resolution: {integrity: sha512-FnkbJs2LikCv6fHezS6HH6sRqrsYjtEdoN3ZmZl/UvjPU4rybNwAYwMZPvxsN+nJUJNeBYNMZNF4gxYx6ylY/w==}
-    dependencies:
-      gaussian: 1.1.0
-    dev: false
-
-  /gaussian/1.1.0:
-    resolution: {integrity: sha512-1CKriHDdNT6VetQXLFIXfHoA//qiJkP/xpZdWA2MNuueGkReWKUq0c7jjhpw7NqtRLCMxqxhtMkPkXKJkY4ULg==}
-    engines: {node: '>= 0.6.0'}
-    dev: false
 
   /gensync/1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
