@@ -1,7 +1,7 @@
 import { stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
-import * as conflations from '../conflations.js';
+import * as digests from '../digests.js';
 import { Sample } from '../samples.js';
 import { hypothesis } from '../index.js';
 
@@ -42,7 +42,7 @@ ann.register('@annotator:conflation:mean', {
   },
 
   annotate(
-    conflation: conflations.Digest<Sample<unknown>>,
+    conflation: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     const result = new Map<typeid, ann.Annotation>();
@@ -82,7 +82,7 @@ ann.register('@annotator:hypothesis:mean', {
   },
 
   annotate(
-    hypot: hypothesis.DefaultHypothesis<conflations.Digest<Sample<unknown>>>,
+    hypot: hypothesis.DefaultHypothesis<digests.Digest<Sample<unknown>>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (!hypothesis.DefaultHypothesis.is(hypot)) {

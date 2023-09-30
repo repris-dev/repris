@@ -1,7 +1,7 @@
 import type { typeid } from '@repris/base';
 
-export * from './conflations/types.js';
-export * as duration from './conflations/samplingDistribution.js';
+export * from './digests/types.js';
+export * as duration from './digests/samplingDistribution.js';
 
 export const defaults = {
   duration: {
@@ -9,5 +9,5 @@ export const defaults = {
     maxSize: 30,
     maxUncertainty: 0.025,
     locationEstimationType: 'sample:hsm' as typeid,
-  } as const satisfies import('./conflations/samplingDistribution.js').Options
+  } as const satisfies import('./digests/samplingDistribution.js').Options
 };

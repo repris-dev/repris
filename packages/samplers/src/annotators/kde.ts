@@ -2,7 +2,7 @@ import { Indexable, stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
-import * as conflations from '../conflations.js';
+import * as digests from '../digests.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
@@ -58,7 +58,7 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.Digest<Sample<unknown>>,
+    conflation: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (!conflation.ready()) {

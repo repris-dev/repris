@@ -1,5 +1,5 @@
 import { typeid, uuid, random, Status } from '@repris/base';
-import { Digest } from './conflations.js';
+import { Digest } from './digests.js';
 import * as anno from './annotators.js';
 
 export interface PooledHypothesisTest<T extends Digest<any>> {
@@ -41,7 +41,7 @@ export function compare<C extends Digest<any>>(
   annotations: Map<typeid, any>
 ): Status<BenchmarkComparison<C>> {
   if (!a.ready() || !b.ready()) {
-    return Status.err('Conflations(s) are not ready for comparison');
+    return Status.err('Digests(s) are not ready for comparison');
   }
 
   const h = new DefaultHypothesis(a, b);

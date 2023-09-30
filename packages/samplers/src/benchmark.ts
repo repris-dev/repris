@@ -2,7 +2,7 @@ import { json, assignDeep, iterator, uuid, typeid, random, assert, Status } from
 
 import * as ann from './annotators.js';
 import * as wt from './wireTypes.js';
-import * as conflations from './conflations.js';
+import * as digests from './digests.js';
 import { duration, Sample } from './samples.js';
 
 /**
@@ -23,13 +23,13 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   samples(): IterableIterator<{ sample: S; run: number }>;
 
-  digest(): conflations.Digest<S> | undefined;
+  digest(): digests.Digest<S> | undefined;
 
   annotations(): ReadonlyMap<uuid, wt.AnnotationBag>;
 
   totalRuns(): number;
 
-  addRun(digest: conflations.Digest<S>): DefaultBenchmark;
+  addRun(digest: digests.Digest<S>): DefaultBenchmark;
 }
 
 export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> {
@@ -60,10 +60,10 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       }
     }
 
-    let c: conflations.duration.Digest | undefined;
+    let c: digests.duration.Digest | undefined;
 
     if (benchmark.digest) {
-      const cTmp = conflations.duration.Digest.fromJson(benchmark.digest, sampleMap);
+      const cTmp = digests.duration.Digest.fromJson(benchmark.digest, sampleMap);
 
       if (Status.isErr(cTmp)) {
         return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
@@ -100,14 +100,14 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
   private _uuid!: uuid;
   private _samples: Map<duration.Duration, { sample: duration.Duration; run: number }>;
-  private _conflation?: conflations.Digest<duration.Duration>;
+  private _conflation?: digests.Digest<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
     samples: Iterable<{ sample: duration.Duration; run: number }>,
-    conflation?: conflations.Digest<duration.Duration>,
+    conflation?: digests.Digest<duration.Duration>,
     totalRuns = 0
   ) {
     this._samples = new Map(iterator.map(samples, s => [s.sample, s]));
@@ -137,7 +137,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._samples.values();
   }
 
-  digest(): conflations.Digest<duration.Duration> | undefined {
+  digest(): digests.Digest<duration.Duration> | undefined {
     return this._conflation;
   }
 
@@ -145,7 +145,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._annotations;
   }
 
-  addRun(conflation: conflations.Digest<duration.Duration>): DefaultBenchmark {
+  addRun(conflation: digests.Digest<duration.Duration>): DefaultBenchmark {
     const nextRun = this.totalRuns() + 1;
 
     // Create a new benchmark

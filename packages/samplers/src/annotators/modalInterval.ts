@@ -2,7 +2,7 @@ import { array, Indexable, quantity, stats, Status, typeid } from '@repris/base'
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
-import * as conflations from '../conflations.js';
+import * as digests from '../digests.js';
 
 const SampleAnnotations = Object.freeze({
   /** Sample shorth robust mode estimator */
@@ -125,7 +125,7 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.Digest<Sample<unknown>>,
+    conflation: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (!conflation.ready()) {

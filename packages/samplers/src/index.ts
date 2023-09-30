@@ -1,6 +1,6 @@
 export * from './types.js';
 export * as samples from './samples.js';
-export * as conflations from './conflations.js';
+export * as digests from './digests.js';
 export * as wiretypes from './wireTypes.js';
 export * as samplers from './samplers.js';
 export * as annotators from './annotators.js';
