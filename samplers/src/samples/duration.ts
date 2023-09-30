@@ -18,7 +18,7 @@ export type DurationOptions = typeof defaultDurationOptions;
 
 export const defaultDurationOptions = {
   maxCapacity: Number.MAX_SAFE_INTEGER,
-  significanceThreshold: 0.01,
+  significanceThreshold: 0.025,
 };
 
 /** Json representation of a duration sample */

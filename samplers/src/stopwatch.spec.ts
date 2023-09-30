@@ -59,12 +59,12 @@ var opts: Partial<stopwatch.Options> = {
 }
 
 describe('Sampler', () => {
-  test('run (synchronous)', () => {
+  test('run (synchronous)', async () => {
     let n = 0;
   
     const fn = () => { n++ };
     const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = s.run();
+    const result = await s.run();
   
     expect(result).toEqual(Status.ok);
 
@@ -72,7 +72,7 @@ describe('Sampler', () => {
     expect(k > 0 && k <= n).toBeTruthy();
   });
   
-  test('run (synchronous) passes arbitrary arguments', () => {
+  test('run (synchronous) passes arbitrary arguments', async () => {
     let n = 0;
   
     const fn = (_: any, x: number, msg: string) => {
@@ -82,14 +82,14 @@ describe('Sampler', () => {
     }
   
     const result =
-        new stopwatch.Sampler<[number, string]>(fn, [], opts)
+        await new stopwatch.Sampler<[number, string]>(fn, [], opts)
           .run(1337, 'hello');
   
     expect(result).toEqual(Status.ok);
     expect(n).toBeGreaterThanOrEqual(0);
   });
   
-  test('run (synchronous) passes values', () => {
+  test('run (synchronous) passes values', async () => {
     let n = 0;
   
     const fn = (state: stopwatch.StopwatchState) => {
@@ -98,12 +98,12 @@ describe('Sampler', () => {
       n++;
     }
   
-    const result = new stopwatch.Sampler<[]>(fn, [345, 678], opts).run();
+    const result = await new stopwatch.Sampler<[]>(fn, [345, 678], opts).run();
     expect(result).toEqual(Status.ok);
     expect(n).toBeGreaterThanOrEqual(0);
   });
   
-  test('run (synchronous) catches exceptions', () => {
+  test('run (synchronous) catches exceptions', async () => {
     let n = 0;
   
     const fn = () => {
@@ -111,39 +111,39 @@ describe('Sampler', () => {
     }
   
     const sw = new stopwatch.Sampler<[]>(fn, []);
-    const result = sw.run();
+    const result = await sw.run();
 
     expect(n).toBeGreaterThan(0);
     expect(Status.isErr(result as Status)).toBe(true);
     expect(sw.sample().observationCount()).toBe(0);
   });
   
-  test('run (synchronous) manual observations', () => {
+  test('run (synchronous) manual observations', async () => {
     const fn = (state: stopwatch.StopwatchState) => {
       // manually set the observation for this iteration
       state.set(56_000_000n as timer.HrTime);
     }
   
     const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = s.run();
+    const result = await s.run();
   
     expect(result).toEqual(Status.ok);
   
     for (let val of s.sample().values()) {
-      expect(val).toBe(56_000_000n as timer.HrTime);
+      expect(val).toBe(56_000 /* us */);
     }
   });
   
-  test('run (synchronous) skips observations', () => {
+  test('run (synchronous) skips observations', async () => {
     const fn = (state: stopwatch.StopwatchState) => { state.skip(); }
     const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = s.run();
+    const result = await s.run();
   
     expect(result).toEqual(Status.ok);
     expect(s.sample().observationCount()).toBe(0);
   });
   
-  test('run (synchronous) for-of', () => {
+  test('run (synchronous) for-of', async () => {
     let n = 0;
     let m = 0;
   
@@ -155,14 +155,14 @@ describe('Sampler', () => {
     }
   
     const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = s.run();
+    const result = await s.run();
   
     expect(result).toEqual(Status.ok);
     expect(m).toEqual(1);
     expect(n).toBeGreaterThan(m);
   });
 
-  test('run for-of (synchronous, manual observations)', () => {
+  test('run for-of (synchronous, manual observations)', async () => {
     let n = 0;
     let m = 0;
   
@@ -175,14 +175,14 @@ describe('Sampler', () => {
     }
   
     const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = s.run();
+    const result = await s.run();
   
     expect(result).toEqual(Status.ok);
     expect(m).toEqual(1);
     expect(n).toBeGreaterThan(m);
 
     for (let v of s.sample().values()) {
-      expect(v).toBe(31n);
+      expect(v).toBe(0.031 /* us */);
     }
   });
   

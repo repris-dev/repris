@@ -14,8 +14,8 @@ export interface SamplerFn<O, State extends SamplerState<O>, Args extends any[]>
 /** Used to build a Sample<V> */
 export interface Sampler<V> extends json.Serializable<wt.Sample>
 {
-  /** build the sample */
-  run(): Status | Promise<Status>;
+  /** build the sample asynchronously */
+  run(): Promise<Status>;
 
   /** get the sample */
   sample(): samples.Sample<V>;

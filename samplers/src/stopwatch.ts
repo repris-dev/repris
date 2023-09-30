@@ -20,7 +20,7 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
 
 const defaultSamplerOptions = {
   /* Time to spend collecting the sample (ms) */
-  'duration.min': 500,
+  'duration.min': 250,
   'duration.max': 7_500,
 
   /* The range of observations to take for the sample */
@@ -28,7 +28,7 @@ const defaultSamplerOptions = {
   'sampleSize.max': 1000,
 
   /**
-   * The maximum size of the returned sample, using reservoir sampling.
+   * The maximum size of the collected sample, using reservoir sampling.
    * A value < 0 disables reservoir sampling and the returned sample
    * will contain all observations.
    * 
@@ -39,13 +39,14 @@ const defaultSamplerOptions = {
   /** warmup options */
   'warmup.duration.min': 100,
   'warmup.duration.max': 1_000,
-  'warmup.sampleSize.min': 10,
+  'warmup.sampleSize.min': 1,
 }
 
 const enum Phase {
   Ready = 0,
   Warmup = 1,
-  Sampling = 2
+  Sampling = 2,
+  Complete = 3
 }
 
 const SECOND = timer.HrTime.from(q.create('second', 1));
@@ -103,19 +104,16 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
   }
 
   /** Start capturing samples */
-  run(...args: Args): Status | Promise<Status> {
+  run(...args: Args): Promise<Status> {
     if (this.phase !== Phase.Ready) { throw new Error('The stopwatch is already running'); }
 
     // TODO: measure the overhead of .apply()
     const applyParams = [this.state, ...args];
 
-    try {
-      this.phase = Phase.Warmup;
-      this.timeSource.start();
-      return this.tryRunSync(applyParams);
-    } catch (e: any) {
-      return Status.err(e);
-    }
+    this.phase = Phase.Warmup;
+    this.timeSource.start();
+
+    return this.runAsync(applyParams);
   }
   
   toJson(): wt.Sample {
@@ -128,44 +126,22 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     }
   }
 
-  private runAsync(args: any[], baton: PromiseLike<void>): Promise<Status> {
+  /** Attempt to run the fixture asynchronously */
+  private async runAsync(args: any[]): Promise<Status> {
     const fn = this.fn as Function;
     const clock = this.clock;
 
-    function loop(onComplete: (s: Status) => void, tickId: number, baton: PromiseLike<void>) {
-      baton.then(() => {
-        if (clock.tock(tickId)) {
-          loop(onComplete, clock.tick(), fn.apply(void 0, args));
-        } else {
-          onComplete(Status.ok);
-        }
-      }, err => {
-        onComplete(Status.err(err));
-      });
-    }
-
-    return new Promise<Status>(resolve => {
-      loop(resolve, -1, baton);
-    });
-  }
-
-  /** Attempt to run the fixture synchronously, or continue asynchronously */
-  private tryRunSync(args: any[]): Status | Promise<Status> {
-    const fn = this.fn as Function;
-    const clock = this.clock;
-
-    // in for-of fixtures (sync or async), this tick will be invalidated
-    let tickId = clock.tick();
-
-    const p = fn.apply(null, args);
-    if (isPromise(p)) {
-      return this.runAsync(args, p);
-    }
-
-    // main sampling loop
-    while (clock.tock(tickId)) {
-      tickId = clock.tick();
-      fn.apply(null, args);
+    try {
+      // main sampling loop
+      while (this.phase !== Phase.Complete) {
+        const tickId = clock.tick();
+        // Run one iteration
+        await fn.apply(null, args);
+        // in for-of fixtures (sync or async), this tick will be invalidated
+        clock.tock(tickId);
+      }
+    } catch (e) {
+      return Status.err(e as Error);
     }
 
     return Status.ok;
@@ -177,8 +153,8 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
    */
   private onObservation(valid: boolean, duration: timer.HrTime): boolean {
     assert.is(this.phase !== Phase.Ready);
-    const { result, opts, durationBounds } = this;
 
+    const { result, opts, durationBounds } = this;
     const e1 = this.totalElapsed, e2 = this.totalElapsed += duration;
 
     if (valid) {
@@ -214,6 +190,10 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
       (n >= opts['sampleSize.min'] && elapsed >= durMin && checkSignificance && result.significant())
       // maximum criteria
       || (n >= opts['sampleSize.max'] || elapsed >= durMax);
+
+    if (complete) {
+      this.phase = Phase.Complete;
+    }
 
     return !complete;
   }
