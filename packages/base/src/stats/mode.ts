@@ -217,7 +217,8 @@ export function hsmDifferenceTest(
 
 /**
  * A studentized bootstrapped paired HSM difference test of two samples. x0 - x1
- * @reference https://www.samlau.me/test-textbook/ch/18/hyp_studentized.html
+ * @reference https://olebo.github.io/textbook/ch/18/hyp_studentized.html
+ * @reference http://bebi103.caltech.edu.s3-website-us-east-1.amazonaws.com/2019a/content/recitations/bootstrapping.html
  */
 export function studentizedHsmDifferenceTest(
   x0: Indexable<number>,

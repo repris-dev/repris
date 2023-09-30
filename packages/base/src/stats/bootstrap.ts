@@ -10,7 +10,7 @@ export function resampler(
   sample: Indexable<number>,
   entropy = random.PRNGi32(),
   smoothing = 0,
-): () => Indexable<number> {
+): () => Float64Array {
   const N = sample.length,
     rng = random.uniformi(0, N - 1, entropy),
     smoother = smoothing > 0 ? random.uniform(-smoothing, smoothing, entropy) : () => 0,
@@ -54,27 +54,26 @@ export function studentizedResampler(
   secondResampleSize = 50,
   entropy = random.PRNGi32()
 ): () => StudentizedResample {
-  const N = sample.length;
-  const resample = resampler(sample, entropy);
-  const bootBootBuff = new Float64Array(N);
-  const bootBoot = resampler(bootBootBuff, entropy);
-  const bootBootStat = new online.Gaussian();
-  const est = estimator(sample);
+  const N = sample.length,
+    resample = resampler(sample, entropy),
+    innerBuff = new Float64Array(N),
+    innerBoot = resampler(innerBuff, entropy),
+    innerReplicateStat = new online.Gaussian(),
+    est = estimator(sample);
 
   return () => {
     const replicate = resample();
+    const esti = estimator(replicate);
 
-    bootBootStat.reset();
-
-    // Bootstrap the bootstrap sample to estimate the std. error of the replicate.
-    copyTo(replicate, bootBootBuff);
+    // Bootstrap the bootstrap sample to estimate its std. error.
+    copyTo(replicate, innerBuff);
+    innerReplicateStat.reset();
 
     for (let k = 0; k < secondResampleSize; k++) {
-      bootBootStat.push(estimator(bootBoot()));
+      innerReplicateStat.push(estimator(innerBoot()));
     }
 
-    const esti = estimator(replicate);
-    const stdErr = bootBootStat.std();
+    const stdErr = innerReplicateStat.std();
     const pivotalQuantity = (esti - est) / stdErr;
 
     return {
@@ -90,7 +89,7 @@ export function pairedStudentizedResampler(
   sample0: Indexable<number>,
   sample1: Indexable<number>,
   estimator: (xs0: Indexable<number>, xs1: Indexable<number>) => number,
-  secondResampleSize = 50,
+  innerResampleSize = 50,
   entropy = random.PRNGi32()
 ): () => StudentizedResample {
   const N0 = sample0.length;
@@ -99,31 +98,31 @@ export function pairedStudentizedResampler(
   const resample0 = resampler(sample0, entropy);
   const resample1 = resampler(sample1, entropy);
 
-  const bootBootBuff0 = new Float64Array(N0);
-  const bootBootBuff1 = new Float64Array(N1);
+  const innerBuff0 = new Float64Array(N0);
+  const innerBuff1 = new Float64Array(N1);
 
-  const bootBoot0 = resampler(bootBootBuff0, entropy);
-  const bootBoot1 = resampler(bootBootBuff1, entropy);
+  const innerBoot0 = resampler(innerBuff0, entropy);
+  const innerBoot1 = resampler(innerBuff1, entropy);
 
-  const bootBootStat = new online.Gaussian();
+  const innerBootStat = new online.Gaussian();
   const est = estimator(sample0, sample1);
 
   return () => {
     const replicate0 = resample0();
     const replicate1 = resample1();
 
-    bootBootStat.reset();
+    innerBootStat.reset();
 
-    // Bootstrap the bootstrap sample to estimate the std. error of the replicate.
-    copyTo(replicate0, bootBootBuff0);
-    copyTo(replicate1, bootBootBuff1);
+    // Bootstrap the bootstrap sample to estimate its std. error.
+    copyTo(replicate0, innerBuff0);
+    copyTo(replicate1, innerBuff1);
 
-    for (let k = 0; k < secondResampleSize; k++) {
-      bootBootStat.push(estimator(bootBoot0(), bootBoot1()));
+    for (let k = 0; k < innerResampleSize; k++) {
+      innerBootStat.push(estimator(innerBoot0(), innerBoot1()));
     }
 
     const esti = estimator(replicate0, replicate1);
-    const stdErr = bootBootStat.std();
+    const stdErr = innerBootStat.std();
     const pivotalQuantity = (esti - est) / stdErr;
 
     return {

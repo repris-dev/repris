@@ -56,6 +56,7 @@ test('uniformi distribution', () => {
   for (let i = 0; i < N; i++) {
     const x = rng();
     expect(Math.floor(x)).toBe(x);
+    expect(x).toBeInRange(0, 9);
     histogram[x]++;
   }
 
