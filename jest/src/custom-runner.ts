@@ -70,11 +70,10 @@ export default async function testRunner(
           const cachedFixture = cacheFile.getFixture(title, nth);
 
           if (cachedFixture.samples.length > 0) {
-            // conflate previous and current samples
-            const conflation = conflate(s, cachedFixture, conflationAnnotations);
-
             // publish the conflation on the current test case result
-            (assertionResult as any).conflation = conflation;
+            (assertionResult as any).conflation = conflate(
+              s, cachedFixture, conflationAnnotations, cfg.conflation.options,
+            );
           } else {
             cachedFixture.samples.push({
               sample: s,
@@ -116,6 +115,7 @@ function conflate(
   newSample: samples.duration.Duration,
   cacheState: AggregatedFixture<samples.duration.Duration>,
   conflationAnnotations: Map<typeid, any>,
+  opts?: samples.duration.ConflationOptions,
 ): wt.SampleConflation | undefined {
   let result: wt.SampleConflation | undefined;
 
@@ -125,7 +125,7 @@ function conflate(
   index.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the current and previous samples together
-  const newConflation = new samples.duration.Conflation(index.keys());
+  const newConflation = new samples.duration.Conflation(index.keys(), opts);
 
   // annotate this conflation
   if (conflationAnnotations.size > 0) {
