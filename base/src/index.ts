@@ -9,6 +9,5 @@ export * as random from './random.js';
 export * as partitioning from './partitioning.js';
 export * as quantity from './quantity.js';
 
-export * from './multimap.js';
 export * from './util.js';
 export * from './assignDeep.js';
