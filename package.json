@@ -1,6 +1,6 @@
 {
-  "name": "@repris/vite-monorepo",
-  "author": "Adi Unnithan",
+  "name": "@repris/monorepo",
+  "author": "repris",
   "version": "0.1.0",
   "main": "index.js",
   "engines": {
