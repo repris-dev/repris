@@ -203,6 +203,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
         result.reset();
         timeSource.start();
       }
+
       return true;
     }
 
@@ -211,15 +212,11 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
     const complete =
       // minimum criteria
-      (n >= opts['sampleSize.min'] && elapsed >= durMin && checkSignificance && this.isSignificant())
+      (n >= opts['sampleSize.min'] && elapsed >= durMin && checkSignificance && result.significant())
       // maximum criteria
       || (n >= opts['sampleSize.max'] || elapsed >= durMax);
 
     return !complete;
-  }
-
-  private isSignificant() {
-    return this.result.significant();
   }
 }
 
