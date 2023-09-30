@@ -16,5 +16,6 @@ export default {
   testRunner: '@sampleci/jest/custom-runner',
   maxWorkers: 1,
   maxConcurrency: 1,
+  testTimeout: 10000,
 };
 

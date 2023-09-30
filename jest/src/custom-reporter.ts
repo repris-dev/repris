@@ -8,35 +8,33 @@ import type {
   TestResult,
 } from '@jest/test-result';
 import type { Config } from '@jest/types';
-import { specialChars } from 'jest-util';
-import { DefaultReporter } from '@jest/reporters';
-import { wiretypes as wt } from '@sampleci/samplers';
-import { typeid } from '@sampleci/base';
+import { specialChars, preRunMessage } from 'jest-util';
+import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
+import { annotators, wiretypes as wt } from '@sampleci/samplers';
 import { TerminalReport, Column } from './durationReport.js';
 
+export type ReporterConfig = {
+  columns?: Column[]
+}
+
 const { ICONS } = specialChars;
-
-const columns: Column[] = [
-  { id: 'duration:n' as typeid, displayName: 'n' },
-
-  { id: 'duration:min' as typeid, displayName: 'min' },
-
-  { id: 'mode:kde' as typeid, displayName: 'kde' },
-  { id: 'mode:kde:dispersion' as typeid, displayName: 'kde-d' },
-
-  { id: 'mode:hsm' as typeid, displayName: 'hsm' },
-];
+const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
 export default class SampleReporter extends DefaultReporter {
   static override readonly filename = import.meta.url;
 
   protected override _globalConfig: Config.GlobalConfig;
 
-  table = new TerminalReport<string>(columns);
+  table: TerminalReport<string>;
   consoleWidth!: { columns: number };
 
-  constructor(globalConfig: Config.GlobalConfig) {
+  constructor(
+    globalConfig: Config.GlobalConfig,
+    private config?: ReporterConfig
+  ) {
     super(globalConfig);
+
+    this.table = new TerminalReport<string>(config?.columns ?? []);
     this._globalConfig = globalConfig;
   }
 
@@ -50,7 +48,7 @@ export default class SampleReporter extends DefaultReporter {
   static filterTestResults(
     testResults: Array<AssertionResult>,
   ): Array<AssertionResult> {
-    return testResults.filter(({status}) => status !== 'pending');
+    return testResults.filter(({ status }) => status !== 'pending');
   }
 
   static groupTestsBySuites(testResults: Array<AssertionResult>): Suite {
@@ -75,6 +73,32 @@ export default class SampleReporter extends DefaultReporter {
     });
 
     return root;
+  }
+
+  override onRunStart(
+    aggregatedResults: AggregatedResult,
+    options: ReporterOnStartOptions,
+  ): void {
+    // always show the status/progress bar since benchmarks are usually long running
+    super.onRunStart(aggregatedResults, { ...options, showStatus: true });
+    preRunMessage.remove(process.stderr);
+
+    // configuration warnings
+    if (!this.config || !this.config.columns || this.config.columns.length === 0) {
+      this.log(WARN + ' No annotations are configured');
+    } else {
+      // report unknown annotations
+      const missing = [];
+      for (const c of this.config.columns) {
+        if (!c.id || !annotators.supports(c.id)) {
+          missing.push(c.id);
+        }
+      }
+
+      if (missing.length > 0) {
+        this.log(WARN + ' Unrecognized annotation(s): ' + missing.join(', '));
+      }
+    }
   }
 
   override onTestResult(
@@ -115,6 +139,8 @@ export default class SampleReporter extends DefaultReporter {
     test: Test,
     tcr: TestCaseResult & { sample?: wt.SampleData },
   ) {
+    super.onTestCaseResult(test, tcr);
+
     if (tcr.sample) {
       this.table.load(tcr.fullName, tcr.sample)
     }

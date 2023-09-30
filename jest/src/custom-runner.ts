@@ -8,8 +8,7 @@ function initializeEnvironment(
   environment: JestEnvironment,
   onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
 ) {
-  const g = environment.global;
-  g.onSample = onSample;
+  environment.global.onSample = onSample;
 }
 
 export default async function testRunner(
