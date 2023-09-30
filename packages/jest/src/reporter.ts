@@ -70,6 +70,19 @@ export default class SampleReporter extends DefaultReporter {
     return testResults.filter(({ status }) => status !== 'pending');
   }
 
+  protected override __wrapStdio(
+    stream: NodeJS.WritableStream | NodeJS.WriteStream,
+  ): void {
+    const write = stream.write.bind(stream);
+
+    stream.write = (chunk: string) => {
+      this.__clearStatus();
+      write(chunk);
+      this.__printStatus();
+      return true;
+    };
+  }
+
   override async onRunStart(
     aggregatedResults: AggregatedResult,
     options: ReporterOnStartOptions
