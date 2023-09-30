@@ -123,6 +123,19 @@ describe('kruskalWallis', () => {
     expect(result.pValue()).toBeCloseTo(0.65523, 4);
   });
 
+  test('4 samples, ties, repeats', () => {
+    const result = kruskalWallis([
+      [0, 1, 1, 3],
+      [1, 2, 3, 6],
+      [0, 1, 2, 6],
+      [0, 3, 3, 8],
+    ]);
+
+    expect(result.H).toBeCloseTo(2.1502, 4);
+    expect(result.effectSize).toBeCloseTo(0.1433, 4);
+    expect(result.pValue()).toBeCloseTo(0.5418, 4);
+  });
+
   test('2 samples, separated', () => {
     const result = kruskalWallis([
       [5, 4, 3, 2, 1],

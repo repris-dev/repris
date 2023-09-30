@@ -138,10 +138,8 @@ export function kruskalWallis<T extends Indexable<number>>(samples: T[]): Kruska
     ranks[i] = i + 1;
   }
 
-  // resolve tied ranks...
-
-  // count sizes of the tied ranks to correct for ties later
-  const tieSizes = [] as number[];
+  // resolve tied ranks and tally total ties for later correction
+  let ties = 0;
 
   for (let i = 0; i < N; ) {
     const idx = idxs[i];
@@ -154,9 +152,11 @@ export function kruskalWallis<T extends Indexable<number>>(samples: T[]): Kruska
     }
 
     if (j > i) {
-      tieSizes.push(1 + (j - i));
-      const rank = 1 + (j + i) / 2;
+      // A correction for ties if using the short-cut formula
+      const tieSize = 1 + (j - i);
+      ties += tieSize ** 3 - tieSize;
 
+      const rank = 1 + (j + i) / 2;
       while (i <= j) {
         ranks[i++] = rank;
       }
@@ -186,14 +186,7 @@ export function kruskalWallis<T extends Indexable<number>>(samples: T[]): Kruska
   H *= 12 / (N * (N + 1));
   H -= 3 * (N + 1);
 
-  let ties = 0;
-
   {
-    // A correction for ties if using the short-cut formula
-    for (let i = 0; i < tieSizes.length; i++) {
-      ties += tieSizes[i] ** 3 - tieSizes[i];
-    }
-
     const correction = 1 - ties / (N ** 3 - N);
     // correction is zero when all samples are identical
     if (correction !== 0) {
@@ -242,6 +235,6 @@ export function kruskalWallis<T extends Indexable<number>>(samples: T[]): Kruska
     ranks: rankSums.map((sum, i) => sum / samples[i].length),
     pValue,
     dunnsTest,
-    dunnsTest2
+    dunnsTest2,
   };
 }
