@@ -1,5 +1,42 @@
 import * as array from './array.js';
 
+describe('lowerBound', () => {
+  const arr = [1, 3, 5, 7, 9];
+  const lt = (needle: number, x: number) => needle < x;
+
+  it('returns the correct index when the value is found', () => {
+    for (let i = 0; i < arr.length; i++) {
+      const x = arr[i];
+      const idx = array.lowerBound(arr, x, lt);
+      expect(idx).toEqual(i);
+    }
+  });
+
+  it('returns the index of the first element greater than the value', () => {
+    const index = array.lowerBound(arr, 6, lt);
+    expect(index).toEqual(3);
+  });
+
+  it('returns the index of the first element greater than the value (b)', () => {
+    const index = array.lowerBound([1, 2, 2, 2, 3], 2, lt);
+    expect(index).toEqual(1);
+  });
+
+  it('returns the index beyond last element when the value is greater than all elements', () => {
+    const index = array.lowerBound(arr, 10, lt);
+    expect(index).toEqual(5);
+  });
+
+  it('returns the index of the first element when the value is less than all elements', () => {
+    const index = array.lowerBound(arr, 0, lt);
+    expect(index).toEqual(0);
+  });
+
+  it('handles an empty array', () => {
+    expect(array.lowerBound([], 0, lt)).toEqual(0)
+  });
+});
+
 describe('partitionEqual', () => {
   test('moves one value', () => {
     const arr = [5, -1, 4, 3, 2];
