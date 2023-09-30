@@ -67,11 +67,13 @@ export function uniform(min = 0, max = 1, generator = mathRand): Distribution {
  * See: https://en.wikipedia.org/wiki/Marsaglia_polar_method
  */
 export function gaussian(mean = 0, stdDev = 1, generator = mathRand): Distribution {
+  const uni = uniform(-1, 1, generator);
+
   const fn = () => {
     let u, v, s;
     do {
-      u = generator() * 2 - 1;
-      v = generator() * 2 - 1;
+      u = uni();
+      v = uni();
       s = (u * u) + (v * v);
     } while (s >= 1 || s === 0);
 
