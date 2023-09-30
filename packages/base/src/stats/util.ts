@@ -26,7 +26,7 @@ export function median(sample: Indexable<number>): number {
 }
 
 /** median absolute deviation of the given sample */
-export function mad(sample: Indexable<number>, x: number, p = 0.5): MADResult {
+export function mad(sample: Indexable<number>, x: number = median(sample), p = 0.5): MADResult {
   const devs = new Float64Array(sample.length);
 
   for (let i = 0; i < devs.length; i++) {

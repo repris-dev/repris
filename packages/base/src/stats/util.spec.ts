@@ -83,6 +83,16 @@ describe('percentile', () => {
   });
 });
 
+describe('mad', () => {
+  test('small sample', () => {
+    const arr = [1, 2, 3, 4, 5, 6, 7];
+    const { mad, normMad } = util.mad(arr);
+    
+    expect(mad).toEqual(2);
+    expect(normMad).toBeCloseTo(2 * 1.4826, 2);
+  });
+})
+
 describe('qcd', () => {
   test('qcd of a normal distribution', () => {
     const rng = random.gaussian(1000, 250, random.PRNGi32(41));
