@@ -154,4 +154,3 @@ describe('removeAtIndices', () => {
     expect(a).toEqual([]);
   });
 });
-

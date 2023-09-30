@@ -86,22 +86,6 @@ export function swap<T>(arr: Indexable<T>, adx: number, bdx: number) {
   arr[bdx] = tmp;
 }
 
-export function shift<T>(values: Indexable<T>, from: number, to: number) {
-  assert.gt(values.length, from);
-  assert.gt(values.length, to);
-
-  const direction = from > to ? -1 : 1;
-
-  let i = values.length - 1;
-  let last = values[from];
-
-  while (i !== to) {
-    values[i - 1] = values[i];
-    i += direction;
-  }
-  values[i] = last;
-}
-
 export function concat<T>(arrs: Indexable<Indexable<T>>, dest: T[] = []): T[] {
   for (let i = 0; i < arrs.length; i++) {
     const arr = arrs[i];
