@@ -17,3 +17,20 @@ describe('gss', () => {
     expect(min).toBeCloseTo(-0.86, 3);
   });
 });
+
+describe('lerp', () => {
+  test('alpha = 0', () => {
+    expect(math.lerp(3, 4, 0)).toBe(3);
+    expect(math.lerp(4, 3, 0)).toBe(4);
+  });
+
+  test('alpha = 0.5', () => {
+    expect(math.lerp(3, 4, 0.5)).toBe(3.5);
+    expect(math.lerp(4, 3, 0.5)).toBe(3.5);
+  });
+
+  test('alpha = 1', () => {
+    expect(math.lerp(3, 4, 1)).toBe(4);
+    expect(math.lerp(4, 3, 1)).toBe(3);
+  });
+});

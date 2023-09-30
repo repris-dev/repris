@@ -80,3 +80,9 @@ export function gss(
 
   return yc < yd ? [a, d] : [c, b];
 }
+
+export function lerp(x1: number, x2: number, alpha: number) {
+  assert.inRange(alpha, 0, 1);
+
+  return (x1 * (1 - alpha)) + (x2 * alpha);
+}

@@ -1,11 +1,21 @@
+import * as random from '../random.js';
 import * as util from './util.js';
 
 describe('iqr', () => {
+  /**
+   * Equivalent:
+   * ```py
+   * import numpy as np
+   * a = np.array([0, 2, 1, 4, 3,   5, 7, 6, 9, 8])
+   * [np.percentile(a, 25), np.percentile(a, 75)]
+   * ```
+   * 
+   */
   test('finds range (even sample size)', () => {
     const arr = [0, 2, 1, 4, 3,   5, 7, 6, 9, 8];
     const range = util.iqr(arr);
 
-    expect(range).toEqual([2, 7]);
+    expect(range).toEqual([2.25, 6.75]);
   });
 
   test('finds range (odd sample size)', () => {
@@ -57,5 +67,33 @@ describe('median', () => {
     const m = util.median(arr);
 
     expect(m).toEqual(100);
+  });
+});
+
+describe('percentile', () => {
+  test('Interpolates correctly', () => {
+    const arr = [2, 0, 3, 1]; // 0, 1, 2, 3
+
+    expect(util.percentile(arr, 0)).toEqual(0);
+    expect(util.percentile(arr, 1)).toEqual(3);
+    expect(util.percentile(arr, 0.5)).toEqual(1.5);
+    expect(util.percentile(arr, 0.3333)).toBeCloseTo(1, 3);
+    expect(util.percentile(arr, 0.6666)).toBeCloseTo(2, 3);
+  });
+});
+
+describe('qcd', () => {
+  test('qcd of a normal distribution', () => {
+    const rng = random.gaussian(100, 100, random.PRNGi32(43));
+    const sample = new Float32Array(1e4);
+
+    for (let i = 0; i < 1e4; i++) {
+      sample[i] = rng();
+    }
+
+    const iqr = util.iqr(sample);
+    const qcd = util.qcd(iqr);
+
+    expect(qcd).toBeCloseTo(0.673, 3);
   });
 });
