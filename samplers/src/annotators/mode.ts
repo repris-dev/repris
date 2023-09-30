@@ -47,7 +47,7 @@ const SampleAnnotations = Object.freeze({
    */
   hsmCIRME: {
     id: 'mode:hsm:ci-rme' as typeid,
-    opts: { level: 0.95 },
+    opts: { level: 0.95, resamples: 500 },
   },
 });
 
@@ -136,7 +136,7 @@ const sampleAnnotator: ann.Annotator = {
 
       if (request.has(SampleAnnotations.hsmCIRME.id)) {
         const opts = { ...SampleAnnotations.hsmCIRME.opts, ...request.get(SampleAnnotations.hsmCIRME.id) }
-        const hsmCI = stats.mode.hsmConfidence(data, opts.level);
+        const hsmCI = stats.mode.hsmConfidence(data, opts.level, opts.resamples);
 
         result.set(
           SampleAnnotations.hsmCIRME.id,
@@ -230,7 +230,7 @@ const hypothesisAnnotator: ann.Annotator = {
 
     const hsm0 = hsmConflation(x0);
     const hsm1 = hsmConflation(x1);
-    const relChange = (hsm0.mode - hsm1.mode) / hsm0.mode;
+    const relChange = (hsm0.mode - hsm1.mode) / hsm1.mode;
 
     const result = new Map<typeid, ann.Annotation>();
     result.set(HypothesisAnnotations.hsmDifference, relChange);
@@ -243,11 +243,12 @@ const hypothesisAnnotator: ann.Annotator = {
         ...request.get(HypothesisAnnotations.hsmDifferenceCI.id)
       };
 
-      // For smaller sample sizes, perform a Studentized difference test to 
-      // overcome bias in (typically) heavily-skewed distributions
-      ci = (x0.length + x1.length) / 2 <= 100
-        ? stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 50)
-        : stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples);
+      const smoothing0 = bootstrapSmoothing(x0, opts.smoothing);
+      const smoothing1 = bootstrapSmoothing(x1, opts.smoothing);
+
+      ci = stats.mode.hsmDifferenceTest(
+        x0, x1, opts.level, opts.resamples, void 0, [smoothing0, smoothing1]
+      );
 
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
@@ -257,8 +258,8 @@ const hypothesisAnnotator: ann.Annotator = {
       let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
 
       if (ci) {
-        const lo = ci[0] / hsm0.mode;
-        const hi = ci[1] / hsm0.mode;
+        const lo = ci[0] / hsm1.mode;
+        const hi = ci[1] / hsm1.mode;
 
         summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
       }
@@ -268,8 +269,9 @@ const hypothesisAnnotator: ann.Annotator = {
 
     if (request.has(HypothesisAnnotations.hsmSignificantDifference)) {
       if (ci) {
-        const significant = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
-        result.set(HypothesisAnnotations.hsmSignificantDifference, significant ? relChange : 0);
+        // Accept the null hypothesis if the interval includes 0, otherwise reject 
+        const reject = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
+        result.set(HypothesisAnnotations.hsmSignificantDifference, reject ? relChange : 0);
       }
     }
 
@@ -291,6 +293,20 @@ interface KDEAnalysis {
 
   /** The full-width of the half-sample located at the mode */
   dispersion: number;
+}
+
+/**
+ * Bootstrap smoothing. This is especially important when bootstrapping
+ * confidence intervals of rank-based point estimates (median, HSM, etc.)
+ * since these tend to produce non-normal sampling distributions.
+ * However, an optimal smoothing parameter is hard to calculate. Instead
+ * it is estimated here.
+ */
+function bootstrapSmoothing(xs: Float64Array, level: number) {
+  // Estimate standard deviation
+  const std = stats.mode.estimateStdDev(xs, 0.33);
+  // Use Scott's estimate
+  return (std / (xs.length ** (-1 / 5))) * level;
 }
 
 function tof64Samples(conflation: conflations.ConflationResult<samples.Duration>) {
@@ -324,12 +340,13 @@ function kdeMode(
 function hsmConflation(
   pooledSample: Float64Array,
   ciLevel?: number,
-  resamples?: number,
+  resamples = 500,
 ) {
-  const mode = stats.mode.hsm(pooledSample).mode;
+  const { mode, variation } = stats.mode.hsm(pooledSample);
 
   return {
     mode,
+    variation,
     rme: ciLevel !== void 0
       ? rme(stats.mode.hsmConfidence(pooledSample, ciLevel, resamples), mode)
       : void 0,
@@ -372,6 +389,7 @@ function kdeModeConflation(
   };
 }
 
+/** Relative error */
 function rme(ci: [number, number], estimate: number) {
   return (ci[1] - ci[0]) / 2 / estimate;
 }
