@@ -90,14 +90,14 @@ async function showIndexSummary(
 
       let benchmarkCount = 0;
       let sampleCount = 0;
-      let tombstoneCount = 0;
 
       for (const benchmark of snapshot!.allBenchmarks()) {
         benchmarkCount++;
         sampleCount += iterator.count(benchmark.samples());
       }
 
-      tombstoneCount += iterator.count(snapshot!.allTombstones())
+      const tombstoneCount = iterator.count(snapshot!.allTombstones());
+      benchmarkCount += tombstoneCount;
 
       if (benchmarkCount > 0 || tombstoneCount > 0) {
         pending.push({ testPath: t.path, benchmarkCount, sampleCount, tombstoneCount });
