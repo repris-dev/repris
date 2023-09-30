@@ -1,4 +1,5 @@
 import { Indexable } from './array.js';
+import { assert } from './index.js';
 
 export const empty = (function* (): IterableIterator<any> { })();
 
@@ -95,10 +96,24 @@ export function* gen<T>(fn: () => T): Iterable<T> {
 }
 
 /**
- * Create a range of numbers [from to)
+ * Create a range of n numbers from start
  */
-export function* range(from: number, to: number): Iterable<number> {
-  while (from < to) {
+export function* range(from: number, n: number): Iterable<number> {
+  while (n-- > 0) {
     yield from++;
+  }
+}
+
+/**
+ * Iterate a subspan of values
+ */
+export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n: number) {
+  if (n <= 0) return;
+
+  assert.bounds(xs, fromIdx);
+  assert.bounds(xs, fromIdx + (n - 1));
+
+  while (n-- > 0) {
+    yield xs[fromIdx++];
   }
 }
