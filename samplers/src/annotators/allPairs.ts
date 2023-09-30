@@ -25,11 +25,11 @@ const annotator = {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== (samples.Duration[typeid] as typeid)) {
+    if (!samples.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const data = (sample as samples.Duration).toF64Array();
+    const data = sample.toF64Array();
     const result = new Map<typeid, ann.Annotation>();
 
     if (request.has(Annotations.qn)) {

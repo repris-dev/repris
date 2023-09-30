@@ -63,15 +63,12 @@ export default async function testRunner(
     if (evt === 'test-case-result') {
       const [_testPath, assertionResult] = args as TestEvents[typeof evt];
 
-      if (assertionResult
-        && pendingSample?.[typeid] === samples.Duration[typeid]
-      ) {
-        const s = pendingSample as samples.Duration;
+      if (assertionResult && samples.Duration.is(pendingSample)) {
         const augmentedResult = assertionResult as AugmentedAssertionResult;
         
         // assign serialized sample generated during the most recent test case
         // to this test case result
-        augmentedResult.sci = { sample: annotate(s, sampleAnnotations) };
+        augmentedResult.sci = { sample: annotate(pendingSample, sampleAnnotations) };
 
         if (config.cache) {
           const title = assertionResult.ancestorTitles.concat(assertionResult.title);
@@ -81,7 +78,7 @@ export default async function testRunner(
           const cachedFixture = cacheFile.getFixture(title, nth);
           // publish the conflation on the current test case result
           augmentedResult.sci.conflation = conflate(
-            s,cachedFixture, conflationAnnotations, cfg.conflation.options,
+            pendingSample, cachedFixture, conflationAnnotations, cfg.conflation.options,
           )?.annotations;
 
           cacheFile.updateFixture(title, nth, cachedFixture);

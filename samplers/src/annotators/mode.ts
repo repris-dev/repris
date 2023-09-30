@@ -78,13 +78,12 @@ const sampleAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== (samples.Duration[typeid] as typeid)) {
+    if (!samples.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const d = sample as samples.Duration;
-    const data = d.toF64Array();
-    const kdeResult = kdeMode(data, d.summary());
+    const data = sample.toF64Array();
+    const kdeResult = kdeMode(data, sample.summary());
 
     const result = new Map<typeid, ann.Annotation>([
       [SampleAnnotations.kdeMode, kdeResult.mode],

@@ -30,11 +30,11 @@ const annotator = {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== samples.Duration[typeid]) {
+    if (!samples.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const data = (sample as samples.Duration).toF64Array();
+    const data = sample.toF64Array();
     const iqr = stats.iqr(data);
 
     const bag = ann.DefaultBag.from([

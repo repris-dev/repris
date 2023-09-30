@@ -40,8 +40,8 @@ function isDurationSampleWT(x: unknown): x is WireType {
 /** A sample of HrTime durations in nanoseconds */
 export class Duration implements MutableSample<timer.HrTime> {
   static [typeid] = '@sample:duration' as typeid;
-  static is(x: any): x is Duration {
-    return x[typeid] === Duration[typeid];
+  static is(x?: any): x is Duration {
+    return x !== void 0 && x[typeid] === Duration[typeid];
   }
 
   readonly [typeid] = Duration[typeid];
@@ -181,16 +181,14 @@ ann.register('@sample:duration-annotator' as typeid, {
     sample: Sample<unknown>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (sample[typeid] !== Duration[typeid]) {
+    if (!Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const d = sample as Duration;
-    const s = d.summary();
-
+    const s = sample.summary();
     const bag = ann.DefaultBag.from([
-      [annotations.iter, d.observationCount()],
-      [annotations.k, d.sampleSize()],
+      [annotations.iter, sample.observationCount()],
+      [annotations.k, sample.sampleSize()],
       [annotations.mean, s.mean()],
       [annotations.skew, s.skewness()],
       [annotations.std, s.std()],
