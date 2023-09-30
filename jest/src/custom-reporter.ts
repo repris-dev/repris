@@ -1,60 +1,3 @@
-/*
-import type { Config } from '@jest/types';
-import type { Test, TestResult, TestCaseResult } from '@jest/test-result';
-import { samples, stopwatch } from '@sampleci/samplers';
-
-class CustomReporter {
-  constructor(
-      private globalConfig: Config.GlobalConfig,
-      private reporterOptions: unknown,
-      private reporterContext: unknown)
-  {
-  }
-
-  onRunComplete(testContexts: unknown, results: unknown) {
-  }
-
-  onTestStart(test: unknown) {
-  }
-
-  onTestResult(test: Test, testResult: TestResult, aggregatedResult: unknown) {
-  }
-
-  onTestCaseResult(
-    test: Test,
-    testCaseResult: TestCaseResult & { sample?: any },
-  ) {
-    if (testCaseResult.sample) {
-      samples.Duration.fromJson(testCaseResult.sample)
-      console.info('>', testCaseResult.title, testCaseResult.sample);
-    }
-  }
-
-  onRunStart (
-    results: unknown,
-    options: unknown,
-  ) {
-  }
-
-  onTestCaseStart(test: unknown) {
-  }
-
-  // Optionally, reporters can force Jest to exit with non zero code by returning
-  // an `Error` from `getLastError()` method.
-  getLastError() {
-  }
-}
-
-export default CustomReporter;
-*/
-
-/**
- * Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 import chalk from 'chalk';
 import type {
   AggregatedResult,
@@ -65,19 +8,31 @@ import type {
   TestResult,
 } from '@jest/test-result';
 import type { Config } from '@jest/types';
-import { formatTime, specialChars } from 'jest-util';
+import { specialChars } from 'jest-util';
 import { DefaultReporter } from '@jest/reporters';
-import { samples, wiretypes as wt } from '@sampleci/samplers';
-import { Status, typeid, assert } from '@sampleci/base';
+import { wiretypes as wt } from '@sampleci/samplers';
+import { typeid } from '@sampleci/base';
+import { TerminalReport, Column } from './durationReport.js';
 
 const { ICONS } = specialChars;
 
-export default class VerboseReporter extends DefaultReporter {
+const columns: Column[] = [
+  { id: 'duration:n' as typeid, displayName: 'n' },
+
+  { id: 'duration:min' as typeid, displayName: 'min' },
+
+  { id: 'mode:kde' as typeid, displayName: 'kde' },
+  { id: 'mode:kde:dispersion' as typeid, displayName: 'kde-d' },
+
+  { id: 'mode:hsm' as typeid, displayName: 'hsm' },
+];
+
+export default class SampleReporter extends DefaultReporter {
   static override readonly filename = import.meta.url;
 
   protected override _globalConfig: Config.GlobalConfig;
 
-  table = new StopwatchTableReporter<string>();
+  table = new TerminalReport<string>(columns);
   consoleWidth!: { columns: number };
 
   constructor(globalConfig: Config.GlobalConfig) {
@@ -138,7 +93,10 @@ export default class VerboseReporter extends DefaultReporter {
 
       if (!result.testExecError && !result.skipped) {
         if (this.table.count() > 0) {
-          this.log(this.table.renderTitles().padStart(this.consoleWidth.columns, ' '));
+          const w = this.consoleWidth.columns;
+          const line = this.table.renderTitles();
+          const moveTo = `\x1b[${ (w - line.columns) + 1 }G`;
+          this.log(moveTo + line.line);
         }
         this._logTestResults(result.testResults);
       }
@@ -163,7 +121,7 @@ export default class VerboseReporter extends DefaultReporter {
   }
 
   private _logTestResults(testResults: Array<AssertionResult>) {
-    const suite = VerboseReporter.groupTestsBySuites(testResults);
+    const suite = SampleReporter.groupTestsBySuites(testResults);
 
     this._logSuite(suite, 0);
     this._logLine();
@@ -221,17 +179,16 @@ export default class VerboseReporter extends DefaultReporter {
   
   private _logTest(test: AssertionResult & { sample?: any }, indentLevel: number) {
     const status = this._getIcon(test.status);
-    const sample = this.table.renderRow(test.fullName);
     const title = chalk.dim(test.title);
     const prefix = '  '.repeat(indentLevel || 0) + `${status} ${title}`;
+    const renderedCells = this.table.renderRow(test.fullName);
 
-    if (sample) {
-      const row = this.table.renderRow(test.fullName);
+    if (renderedCells) {
+      // move to terminal column to right-align the table
       const w = this.consoleWidth.columns;
-      //const gap = ' '.repeat(this.consoleWidth.columns - (prefix.length + row.length))
-      const moveTo = `\x1b[${ (w - row.length) + 1 }G`;
+      const moveTo = `\x1b[${ (w - renderedCells.columns) + 1 }G`;
  
-      this.log(prefix + moveTo + row);
+      this.log(prefix + moveTo + renderedCells.line);
     } else {
       this.log(prefix);
     }
@@ -252,84 +209,3 @@ export default class VerboseReporter extends DefaultReporter {
     this.log(indentation + (str || ''));
   }
 }
-
-
-const fmtUSecond = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
-const fmtCoeff = new Intl.NumberFormat(void 0, { maximumFractionDigits: 2 });
-
-class StopwatchTableReporter<Id> {
-  constructor() { this.reset() }
-
-  columns = [
-    { title: 'min',   units: 'μs',      format: (s: samples.Duration) => fmtUSecond.format(s.summary().range()[0]) },
-    { title: 'mean',  units: 'μs',      format: (s: samples.Duration) => fmtUSecond.format(s.summary().mean()) },
-    { title: 's.d.',  units: undefined, format: (s: samples.Duration) => fmtUSecond.format(s.summary().std()) },
-    { title: 'skew',  units: undefined, format: (s: samples.Duration) => fmtCoeff.format(s.summary().skewness()) },
-    { title: 'N',     units: undefined, format: (s: samples.Duration) => fmtUSecond.format(s.count()) }
-  ];
-
-  margin = 2;
-  rowIndex = new Map<Id, string[]>();
-  columnWidths!: number[];
-  titleCells!: string[];
-
-  count() { return this.rowIndex.size; }
-
-  load(rowid: Id, sample: wt.SampleData): boolean {
-    const d = samples.Duration.fromJson(sample);
-    if (Status.isErr(d)) { return false; }
-
-    const duration = d[0];
-    const cells = this.columns.map(c => c.format(duration));
-
-    this.columnWidths.forEach((w, i) => this.columnWidths[i] = Math.max(w, cells[i].length));
-    this.rowIndex.set(rowid, cells);
-
-    return true;  
-  }
-
-  reset() {
-    this.rowIndex.clear();
-    this.titleCells = this.columns.map(
-      c => c.title + (c.units ? ` (${ c.units })` : '')
-    );
-    this.columnWidths = this.titleCells.map(c => c.length);
-  }
-
-  _renderRow(cells: string[]) {
-    assert.eq(cells.length, this.columns.length);
-  
-    const margin = ' '.repeat(this.margin);
-    let row = [];
-
-    for (let i = 0; i < cells.length; i++) {
-      const w = this.columnWidths[i];
-      row.push(cells[i].padStart(w, ' '));
-    }
-
-    return row.join(margin);
-  }
-
-  renderTitles(): string {
-    return this._renderRow(this.titleCells);
-  }
-
-  renderRow(rowid: Id): string {
-    assert.eq(this.rowIndex.has(rowid), true);
-    return this._renderRow(this.rowIndex.get(rowid)!);
-  }
-}
-
-/*
-
- PASS  .tsc/sync.js (6.302 s)        
-                                     mean (ns)       s.d.    n      
-  Set<T>
-    ✓ .add()                            71,422  76,059.71  500
-    ✓ .forEach()                        15,512   6,940.93  500
-  Map<K, V>
-    .set()                              87,991  70,268.53  500
-      ✓ 32:1024                      4,352,352       ±0.5    3
-      ✓ 62:1024                      4,352,352       ±0.5    3
-
-*/

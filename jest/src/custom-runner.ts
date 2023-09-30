@@ -2,26 +2,7 @@ import type { JestEnvironment } from '@jest/environment';
 import type { Config } from '@jest/types';
 import type { TestEvents, TestFileEvent } from '@jest/test-result';
 import { samples } from '@sampleci/samplers';
-
 import circus from 'jest-circus/runner';
-
-
-//function runStopwatch(
-//  sw: stopwatch.Sampler<[]>,
-//  onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
-//): Promise<void> | void {
-//  const result = sw.run();
-//
-//  if (result instanceof Promise) {
-//    return result.then((s: Status) => {
-//      Status.get(s);
-//      onSample(null, sw.sample());
-//    });
-//  }
-//
-//  Status.get(result);
-//  onSample(null, sw.sample());
-//}
 
 function initializeEnvironment(
   environment: JestEnvironment,
