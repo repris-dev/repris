@@ -2,15 +2,24 @@ import { assert, Status, typeid } from '@sampleci/base';
 import { samples, wiretypes as wt, annotators as anno } from '@sampleci/samplers';
 import chalk from 'chalk';
 
-export type Column = {
-  id: typeid,
-  displayName?: string,
-  units?: string,
+export interface ColumnQuality {
+  id: typeid;
+  thresholds: number[];
+}
+
+export interface Column {
+  id: typeid;
+  displayName?: string;
+  units?: string;
+  quality?: ColumnQuality;
 };
 
-export type RenderedLine = { line: string, columns: number };
+export interface RenderedLine {
+  line: string;
+  length: number;
+};
 
-type Cell = string | readonly [cell: string, len: number]
+type Cell = string | readonly [text: string, len: number]
 
 const Cell = {
   pad(c: Cell, columnWidth: number) {
@@ -30,6 +39,10 @@ const Cell = {
     return typeof c === 'string' ? c.length : c[1];
   },
 
+  text(c: Cell) {
+    return typeof c === 'string' ? c : c[0];
+  },
+
   join(a: Cell, b: Cell): Cell {
     const at = typeof a === 'string' ? a : a[0];
     const bt = typeof b === 'string' ? b : b[0];
@@ -38,14 +51,21 @@ const Cell = {
       at + bt,
       Cell.length(a) + Cell.length(b)
     ];
-  }
+  },
 }
 
 export class TerminalReport<Id> {
   constructor(private columns: Column[]) { this.reset() }
 
   annotationRequest = this.columns.reduce(
-    (req, c) => (req.set(c.id, {}), req), new Map<typeid, {}>()
+    (req, c) => {
+      req.set(c.id, {} /* options */);
+      if (c.quality !== void 0) {
+        req.set(c.quality.id, {} /* options */);
+      }
+      return req;
+    },
+    new Map<typeid, {}>()
   );
 
   fmt = new ValueFormatter();
@@ -65,18 +85,25 @@ export class TerminalReport<Id> {
     const duration = d[0];
 
     // annotate the sample, create the cells for the row
-    const [as, err] = anno.annotate(duration, this.annotationRequest);
+    const [bag, err] = anno.annotate(duration, this.annotationRequest);
 
     if (err) {
       this.rowIndex.set(rowid, { cells: [], duration });  
     } else {
       const cells = this.columns.map(c => {
-        for (const bag of as!) {
-          const ann = bag.annotations.get(c.id);
+        const ann = bag!.annotations.get(c.id);
 
-          if (ann !== undefined) {
-            return this.fmt.format(ann);
+        if (ann !== undefined) {
+          let cell = this.fmt.format(ann);
+          if (c.quality !== void 0) {
+            cell = this._colorizeByQuality(
+              cell,
+              c.quality,
+              bag!,
+            );
           }
+
+          return cell;
         }
   
         // The annotation for this sample wasn't found 
@@ -92,6 +119,39 @@ export class TerminalReport<Id> {
     }
 
     return true;
+  }
+
+  /**
+   * @param cell The cell to colorize
+   * @param config Configuration of the quality annotation
+   * @param bag A bag of annotations containing the quality annotation
+   */
+  _colorizeByQuality(cell: Cell, config: ColumnQuality, bag: anno.AnnotationBag): Cell {
+    const ann = bag.annotations.get(config.id);
+    const colors = [chalk.green, chalk.yellow, chalk.red];
+
+    if (typeof ann === 'number') {
+      let k = -1;
+
+      for (let t of config.thresholds) {
+        if (ann >= t) {
+          k++;
+        } else {
+          break;
+        }
+      }
+
+      if (k >= 0 && k < colors.length) {
+        return [colors[k](Cell.text(cell)), Cell.length(cell)];
+      }
+    }
+
+    //  Either:
+    //   - the annotation wasn't found
+    //   - the annotation wasn't a number,
+    //   - the number was outside the minimum thresholds of the
+    //     quality config
+    return cell;
   }
 
   reset() {
@@ -117,7 +177,7 @@ export class TerminalReport<Id> {
 
     return {
       line: row.join(margin),
-      columns: cols + ((cells.length - 1) * this.colMargin)
+      length: cols + ((cells.length - 1) * this.colMargin)
     };
   }
 
@@ -127,7 +187,7 @@ export class TerminalReport<Id> {
 
   renderRow(rowid: Id): RenderedLine {
     if (!this.rowIndex.has(rowid)) {
-      return { line: '', columns: 0 };
+      return { line: '', length: 0 };
     }
 
     return this._renderRow(this.rowIndex.get(rowid)!.cells);

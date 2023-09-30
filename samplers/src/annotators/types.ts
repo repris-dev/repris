@@ -11,7 +11,6 @@ export type Annotation = Value | Value[] | { units: Units, quantity: Value };
 /** Annotations associated with a sample from an annotator */
 export interface AnnotationBag
 {
-  name: string;
   annotations: Map<typeid, Annotation>
 }
 

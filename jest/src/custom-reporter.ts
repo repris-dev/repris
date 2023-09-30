@@ -119,7 +119,7 @@ export default class SampleReporter extends DefaultReporter {
         if (this.table.count() > 0) {
           const w = this.consoleWidth.columns;
           const line = this.table.renderTitles();
-          const moveTo = `\x1b[${ (w - line.columns) + 1 }G`;
+          const moveTo = `\x1b[${ (w - line.length) + 1 }G`;
           this.log(moveTo + line.line);
         }
         this._logTestResults(result.testResults);
@@ -212,7 +212,7 @@ export default class SampleReporter extends DefaultReporter {
     if (renderedCells) {
       // move to terminal column to right-align the table
       const w = this.consoleWidth.columns;
-      const moveTo = `\x1b[${ (w - renderedCells.columns) + 1 }G`;
+      const moveTo = `\x1b[${ (w - renderedCells.length) + 1 }G`;
  
       this.log(prefix + moveTo + renderedCells.line);
     } else {
