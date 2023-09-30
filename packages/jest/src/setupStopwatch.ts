@@ -18,9 +18,7 @@ declare function getSampleOptions(): samples.duration.Options;
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
 const getGC = () => global.gc as samplers.stopwatch.V8GC | undefined;
 
-async function runStopwatch(
-  sw: samplers.stopwatch.Sampler<[]>,
-): Promise<void> {
+async function runStopwatch(sw: samplers.stopwatch.Sampler<[]>): Promise<void> {
   // Give jest reporters an opportunity to render when running in-band
   await delay(0);
 
@@ -37,12 +35,25 @@ async function runStopwatch(
   return delay(0);
 }
 
-(globalThis as any).sample = function(testName: string, fn: samplers.stopwatch.SamplerFn<[]>, timeout?: number) {
+function createTestFn(fn: samplers.stopwatch.SamplerFn<[]>) {
   const gc = getGC();
   const sample = new samples.duration.Duration(getSampleOptions());
   const sw = new samplers.stopwatch.Sampler(fn, [], getSamplerOptions(), sample, void 0, gc);
-  const f = runStopwatch.bind(null, sw) as jest.ProvidesCallback;
-
-  // create the jest test-case
-  return test(testName, f, timeout);
+  return runStopwatch.bind(null, sw) as jest.ProvidesCallback;
 }
+
+(globalThis as any).bench = function (
+  testName: string,
+  fn: samplers.stopwatch.SamplerFn<[]>,
+  timeout?: number
+) {
+  return test(testName, createTestFn(fn), timeout);
+};
+
+(globalThis as any).bench.only = function (
+  testName: string,
+  fn: samplers.stopwatch.SamplerFn<[]>,
+  timeout?: number
+) {
+  return test.only(testName, createTestFn(fn), timeout);
+};

@@ -1,5 +1,5 @@
 describe('Set<T>', () => {
-  sample('.add()', (s) => {
+  bench('.add()', (s) => {
     for (let _ of s) {
       const set = new Set()
       for (let i = 0; i < 10000; i++) {
@@ -9,7 +9,7 @@ describe('Set<T>', () => {
     }
   });
 
-  sample('.forEach()', (s) => {
+  bench('.forEach()', (s) => {
     const set = new Set<number>()
     for (let i = 0; i < 50000; i++) {
       set.add(i);

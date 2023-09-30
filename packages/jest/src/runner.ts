@@ -164,7 +164,7 @@ export default async function testRunner(
     indexedSnapshot = sCacheFile[0];
   }
 
-  // Don't re-run benchmarks which were committed to the snapshot in a previous run
+  // Don't re-run benchmarks which were committed to the baseline in a previous run
   const skipTest = (title: string[], nth: number) =>
     indexedSnapshot?.benchmarkState(title, nth) ?? snapshots.BenchmarkState.Unknown;
 
@@ -195,8 +195,8 @@ export default async function testRunner(
 
       while (i < allTestResults.length) {
         const ar = allTestResults[i++];
-
         const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
+
         if (key === arKey) {
           matched = true;
 
@@ -433,7 +433,7 @@ function getTestID(test: Circus.TestEntry): string[] {
 }
 
 /** A set which counts the number of times an item has been added */
-export class RecordCounter<T> {
+class RecordCounter<T> {
   index = new Map<T, number>();
 
   increment(item: T): number {
