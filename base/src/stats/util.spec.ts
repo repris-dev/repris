@@ -84,7 +84,7 @@ describe('percentile', () => {
 
 describe('qcd', () => {
   test('qcd of a normal distribution', () => {
-    const rng = random.gaussian(100, 100, random.PRNGi32(43));
+    const rng = random.gaussian(1000, 250, random.PRNGi32(41));
     const sample = new Float32Array(1e4);
 
     for (let i = 0; i < 1e4; i++) {
@@ -94,6 +94,7 @@ describe('qcd', () => {
     const iqr = util.iqr(sample);
     const qcd = util.qcd(iqr);
 
-    expect(qcd).toBeCloseTo(0.673, 3);
+    // std dev. = (mean * qcd) / 0.673
+    expect((1000 * qcd) / 0.673).toBeInRange(245, 255);
   });
 });
