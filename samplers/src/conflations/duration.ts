@@ -115,9 +115,54 @@ export class Duration implements Conflation<timer.HrTime> {
       };
     }
 
-    return opts.exclusionMethod === 'outliers'
-      ? analyzeByOutliers(samples, opts)
-      : analyzeByFastest(samples, opts);
+    const N = samples.length;
+    let kw = stats.kruskalWallis(samples);
+
+    // sort all samples by pairwise-similarity or by average ranking
+    const sorted = opts.exclusionMethod === 'outliers' ? dunnSort(kw) : kwRankSort(kw);
+
+    const stat = new Map(
+      iterator.map(sorted, (index) => [
+        samples[index],
+        { index, status: 'outlier' as SampleStatus },
+      ])
+    );
+
+    // initial subset
+    let subset = sorted.map((idx) => samples[idx]);
+
+    if (N > opts.maxCacheSize) {
+      // reject the outlier samples
+      for (const sample of iterator.subSpan(subset, opts.maxCacheSize)) {
+        stat.get(sample)!.status = 'rejected';
+      }
+
+      // from the remaining samples, compute KW again. ensure the samples
+      // are in the original order
+      subset = subset.slice(0, opts.maxCacheSize);
+      kw = stats.kruskalWallis(subset);
+    }
+
+    if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
+      // try to find a cluster of samples which are consistent
+      const cluster = dunnsCluster(kw, opts.minConflationSize);
+      subset = array.subsetOf(samples, cluster, []);
+
+      if (subset.length > 0) {
+        kw = stats.kruskalWallis(subset);
+      }
+    }
+
+    // mark consistent samples
+    if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
+      subset.forEach((sample) => (stat.get(sample)!.status = 'consistent'));
+    }
+
+    return {
+      // indices ordered by best-first
+      stat: iterator.collect(stat.values()),
+      effectSize: kw.effectSize,
+    };
   }
 }
 
@@ -166,9 +211,9 @@ function dunnsCluster(kw: stats.KruskalWallisResult, minSize: number): number[] 
 }
 
 /**
- * @return A sorting of the samples based on strength
+ * @return A sorting of the samples based on pair-wise similarity
  */
-function dunnsOutliers(kw: stats.KruskalWallisResult): number[] {
+function dunnSort(kw: stats.KruskalWallisResult): number[] {
   const N = kw.size;
   const edges = [] as [number, number, number][];
 
@@ -197,113 +242,11 @@ function dunnsOutliers(kw: stats.KruskalWallisResult): number[] {
   return order;
 }
 
-function analyzeByOutliers(
-  samples: Indexable<number>[],
-  opts: DurationOptions
-): MWUConflationAnalysis {
-  const N = samples.length;
-  let kw = stats.kruskalWallis(samples);
-
-  // sort all samples by strength of edges
-  const dunnSort = dunnsOutliers(kw);
-
-  const stat = new Map(
-    iterator.map(dunnSort, (index) => [
-      samples[index],
-      { index, status: 'outlier' as SampleStatus },
-    ])
-  );
-
-  // sorted samples
-  let subset = dunnSort.map((idx) => samples[idx]);
-
-  if (N > opts.maxCacheSize) {
-    // reject the outlier samples
-    for (const sample of iterator.subSpan(subset, opts.maxCacheSize)) {
-      stat.get(sample)!.status = 'rejected';
-    }
-
-    // from the remaining samples, compute KW again. ensure the samples
-    // are in the original order
-    subset = subset.slice(0, opts.maxCacheSize);
-    kw = stats.kruskalWallis(subset);
-  }
-
-  if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
-    // try to find a cluster of samples which are consistent
-    const cluster = dunnsCluster(kw, opts.minConflationSize);
-    subset = array.subsetOf(samples, cluster, []);
-
-    if (subset.length > 0) {
-      kw = stats.kruskalWallis(subset);
-    }
-  }
-
-  // mark consistent samples
-  if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
-    subset.forEach((sample) => (stat.get(sample)!.status = 'consistent'));
-  }
-
-  return {
-    // indices ordered by best-first
-    stat: iterator.collect(stat.values()),
-    effectSize: kw.effectSize,
-  };
-}
-
-function analyzeByFastest(
-  samples: Indexable<number>[],
-  opts: DurationOptions
-): MWUConflationAnalysis {
-  const N = samples.length;
-  let kw = stats.kruskalWallis(samples);
-
-  // sort all samples by rank
-  const orderByRank = array
-    .fillAscending(new Array<number>(N), 0)
+function kwRankSort(kw: stats.KruskalWallisResult): number[] {
+  // sort all samples by rank (ascending)
+  return array
+    .fillAscending(new Array<number>(kw.size), 0)
     .sort((a, b) => kw.ranks[a] - kw.ranks[b]);
-
-  const stat = new Map(
-    iterator.map(orderByRank, (index) => [
-      samples[index],
-      { index, status: 'outlier' as SampleStatus },
-    ])
-  );
-
-  let subset = orderByRank.map((idx) => samples[idx]);
-
-  if (N > opts.maxCacheSize) {
-    // reject the slowest samples
-    for (const sample of iterator.subSpan(subset, opts.maxCacheSize)) {
-      stat.get(sample)!.status = 'rejected';
-    }
-
-    // from the remaining samples, compute KW again. ensure the samples
-    // are in the original order
-    subset = subset.slice(0, opts.maxCacheSize);
-    kw = stats.kruskalWallis(subset);
-  }
-
-  if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
-    // try to find a cluster of samples which are consistent
-    const cluster = dunnsCluster(kw, opts.minConflationSize);
-    subset = array.subsetOf(samples, cluster, []);
-
-    if (subset.length > 0) {
-      kw = stats.kruskalWallis(subset);
-    }
-  }
-
-  // mark consistent samples
-  if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
-    subset.forEach((idx) => (stat.get(idx)!.status = 'consistent'));
-  }
-
-  return {
-    // indices ordered by fastest-first
-    stat: iterator.collect(stat.values()),
-    effectSize: kw.effectSize,
-  };
 }
 
 const annotations = {
