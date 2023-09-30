@@ -27,7 +27,7 @@ export type Sample = {
   annotations?: AnnotationBag;
 };
 
-export type AnnotationBag = Record<typeid, json.Value>;
+export type AnnotationBag = Record<string, json.Value>;
 
 export type FixtureName = {
   title: string[];

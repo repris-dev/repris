@@ -2,11 +2,11 @@ import { Status, typeid, json } from '@sampleci/base';
 import { Units } from '../quantity.js';
 import * as wt from '../wireTypes.js';
 
-/** Possible values for a sample annotation */
-export type Value = number | bigint | string | boolean;
+/** Possible values for an annotation */
+export type Value = number | bigint | string | boolean | Array<Value>;
 
 /** An annotation */
-export type Annotation = Value | Value[] | { units: Units, quantity: Value };
+export type Annotation = Value | { units: Units, quantity: Value };
 
 /** An object which can be annotated */
 export type Annotatable = { readonly [typeid]: typeid; };

@@ -82,10 +82,12 @@ export class TerminalReport<Id> {
    * Multiple samples can have the same id. When rendered, samples by the same id
    * are rendered in the order they were loaded in to the table.
    */
-  load(rowid: Id, sample: wt.SampleData): boolean {
+  load(rowid: Id, sample: wt.SampleData, conflation?: wt.SampleConflation): boolean {
     const d = samples.Duration.fromJson(sample);
     if (Status.isErr(d)) { return false; }
 
+    // conflated stats
+    const conflationAnnotations = anno.DefaultBag.fromJson(conflation?.annotations ?? {});
     const duration = d[0];
 
     // annotate the sample, create the cells for the row
@@ -96,7 +98,7 @@ export class TerminalReport<Id> {
       this.rowIndex.set(rowid, [{ cells: [], duration }]);  
     } else {
       const cells = this.columns.map(c => {
-        const ann = bag!.annotations.get(c.id);
+        const ann = bag!.annotations.get(c.id) ?? conflationAnnotations.annotations.get(c.id);
 
         if (ann !== undefined) {
           let cell = this.fmt.format(ann);
