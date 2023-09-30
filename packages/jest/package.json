@@ -19,7 +19,7 @@
     },
     "./summaryReporter": {
       "development": "./.tsc/summaryReporter.js",
-      "default":  "./lib/summaryReporter.js"
+      "default": "./lib/summaryReporter.js"
     },
     "./runner": {
       "development": "./.tsc/runner.js",
@@ -37,29 +37,29 @@
     "./jest-preset": "./jest-preset.js"
   },
   "dependencies": {
+    "@jest/core": "^29",
+    "@jest/environment": "^29",
+    "@jest/reporters": "^29",
+    "@jest/test-result": "^29",
+    "@jest/transform": "^29",
     "@repris/base": "workspace:*",
     "@repris/samplers": "workspace:*",
     "@repris/util": "workspace:*",
-    "@jest/core": "^29",
-    "@jest/reporters": "^29", 
-    "@jest/test-result": "^29", 
-    "@jest/environment": "^29",
-    "@jest/transform": "^29",
-    "jest": "^29",
-    "jest-util": "^29",
-    "jest-config": "^29",
-    "jest-circus": "^29",
-    "jest-runtime": "^29",
     "chalk": "^5.0.1",
+    "commander": "^10.0.0",
+    "jest": "^29",
+    "jest-circus": "^29",
+    "jest-config": "^29",
     "jest-haste-map": "^29",
-    "lilconfig": "^2.0",
-    "commander": "^10.0.0"
+    "jest-runtime": "^29",
+    "jest-util": "^29",
+    "lilconfig": "^2.0"
   },
   "devDependencies": {
-    "@types/jest": "^29",
-    "@types/node": "^18",
     "@jest/expect": "^29",
     "@jest/types": "^29",
+    "@types/jest": "^29",
+    "@types/node": "^18",
     "npm-run-all": "4.1.5",
     "typescript": "^5.1",
     "vite": "^4.4"
