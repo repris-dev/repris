@@ -22,8 +22,13 @@ function runStopwatch(
   onSample(matcherState, sw.sample());
 }
 
+function getGC(): (() => void) | undefined {
+  return global.gc;
+}
+
 (globalThis as any).sample = function(testName: string, fn: stopwatch.SamplerFn<[]>) {
-  const sw = new stopwatch.Sampler(fn, []);
+  const gc = getGC();
+  const sw = new stopwatch.Sampler(fn, [], void 0, void 0, gc);
   const f = runStopwatch.bind(null, sw) as jest.ProvidesCallback;
 
   test(testName, f);

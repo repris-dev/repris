@@ -19,7 +19,7 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
 
 export const defaultSamplerOptions = {
   // Time to spend collecting the sample (ms)
-  'duration.min': 1000,
+  'duration.min': 500,
   'duration.max': 5000,
 
   // The number of observations to take for the sample
@@ -41,6 +41,9 @@ const enum Phase {
   Sampling = 2
 }
 
+/**
+ * Implementation of a micro-benchmarking sampler
+ */
 export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrTime> {
   static readonly [typeid] = '@sampler:stopwatch' as typeid;
   
@@ -56,10 +59,12 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
       private readonly fn: SamplerFn<Args>,
       parameter: number[],
       opts: Partial<SamplerOptions> = { },
-      time = timer.create())
+      time = timer.create(),
+      private readonly gc: () => void = (() => {})
+      )
   {
     this.hand = timer.createHand(time, this.onObservation.bind(this));
-    this.opts = Object.assign(defaultSamplerOptions, opts);
+    this.opts = Object.assign({}, defaultSamplerOptions, opts);
     this.state = new DefaultState(this.hand, parameter);
     this.progress = time.clone();
 
@@ -151,6 +156,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
             || dur < opts['warmup.duration.max'];
 
       if (!keepWarming) {
+        this.gc();
         this.phase = Phase.Sampling;
         result.reset();
         progress.start();
@@ -227,7 +233,8 @@ export class Builder<Args extends any[]>
     mul: null   as number | null,
     args: []    as number[][],
     units: null as timer.UnitType | 'auto' | null,
-    timer: timer.create()
+    timer: timer.create(),
+    gc: void 0  as (() => undefined) | undefined,  
   };
 
   opt(key: keyof SamplerOptions, value: any): this {
@@ -279,9 +286,15 @@ export class Builder<Args extends any[]>
     return this;
   }
 
+  gc(collect: () => undefined): this {
+    this.params.gc = collect;
+    return this;
+  }
+
+  /** Create the samplers based on the current configuration */
   build(): Sampler<Args>[] {
     assert.is(this.params.fn !== null);
-    const { fn, timer } = this.params;
+    const { fn, timer, gc } = this.params;
 
     if (fn !== null) {
       const inputs = this.parameterFamily();
@@ -290,7 +303,7 @@ export class Builder<Args extends any[]>
       if (inputs.length === 0) inputs.push([]);
       
       return inputs.map((values: number[]) =>
-          new Sampler<Args>(fn, values, this.options, timer));
+          new Sampler<Args>(fn, values, this.options, timer, gc));
     }
     return [];
   }
