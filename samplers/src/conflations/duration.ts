@@ -129,7 +129,7 @@ export class Duration implements Conflation<timer.HrTime> {
     let kw = stats.kruskalWallis(samples);
 
     // sort all samples by pairwise-similarity or by average ranking
-    const sorted = opts.exclusionMethod === 'outliers' ? dunnSort(kw) : kwRankSort(kw);
+    const sorted = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
 
     const stat = new Map(
       iterator.map(sorted, (index) => [
@@ -226,9 +226,27 @@ function dunnsCluster(kw: stats.KruskalWallisResult, minSize: number): number[] 
 }
 
 /**
- * @return A sorting of the samples based on pair-wise similarity
+ * @return A sorting of the samples based on sum of pair-wise similarities
  */
-function dunnSort(kw: stats.KruskalWallisResult): number[] {
+function dunnAvgSort(kw: stats.KruskalWallisResult): number[] {
+  const N = kw.size;
+  const sum = new Float64Array(N);
+
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const a = kw.dunnsTest(i, j);
+      sum[i] += a;
+      sum[j] += a;
+    }
+  }
+
+  return array.fillAscending(new Array(N), 0).sort((a, b) => sum[b] - sum[a]);
+}
+
+/**
+ * @return A sorting of the samples based on the pair-wise similarity
+ */
+function dunnGreedySort(kw: stats.KruskalWallisResult): number[] {
   const N = kw.size;
   const edges = [] as [number, number, number][];
 
