@@ -1,5 +1,5 @@
 import { sort } from '../array.js';
-import { assert, Indexable, random, stats } from '../index.js';
+import { assert, Indexable, stats } from '../index.js';
 import { resampler } from './bootstrap.js';
 import { percentile, qcd } from './util.js';
 
