@@ -12,5 +12,8 @@
     "*.ts": "$(capture).spec.*, $(capture).snap.*, $(capture).d.ts",
     "*.tsx": "$(capture).spec.*, $(capture).snap.*",
     "package.json": "pnpm-lock.yaml",
+  },
+  "explorer.autoRevealExclude": {
+    "**/node_modules": true
   }
 }
