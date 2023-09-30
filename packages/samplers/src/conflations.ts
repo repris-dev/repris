@@ -5,8 +5,8 @@ export * as duration from './conflations/duration.js';
 export const defaults = {
   duration: {
     minSize: 5,
-    maxSize: 5,
-    maxEffectSize: 0.05,
+    maxSize: 25,
+    maxEffectSize: 0.06,
     exclusionMethod: 'slowest' as const,
     inputOrder: 'oldestFirst',
   } as const satisfies import('./conflations/duration.js').Options

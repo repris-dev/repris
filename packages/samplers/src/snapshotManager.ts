@@ -42,7 +42,11 @@ export class SnapshotFileManager {
         return cacheFile;
       }
 
-      snapshot = snapshots.Snapshot.fromJson(Status.get(cacheFile).snapshot);
+      try {
+        snapshot = snapshots.Snapshot.fromJson(Status.get(cacheFile).snapshot);
+      } catch (e) {
+        return Status.err(e as string);
+      }
     } else {
       // begin a new cache file
       snapshot = new snapshots.Snapshot();
@@ -50,6 +54,7 @@ export class SnapshotFileManager {
 
     assert.is(snapshot !== undefined);
     this.activeSnapshots.set(snapshot, { testPath, cachePath });
+
     return Status.value(snapshot);
   }
 

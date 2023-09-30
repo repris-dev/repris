@@ -36,7 +36,7 @@ export class KWConflation<T> {
   }
 
   conflate(opts: KWOptions): KWConflationResult<T> {
-    const concordanceThres = 0.05;
+//    const concordanceThres = 0.05;
     let { taggedSamples: samples, raw: rawSamples, kw } = this;
 
     const N = samples.length;
@@ -55,6 +55,7 @@ export class KWConflation<T> {
 
     // sort all samples by pairwise-similarity or by average ranking
     const sortedIndices = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
+    const sortedSamples = sortedIndices.map(idx => rawSamples[idx]);
 
     const statIndex = new Map(
       iterator.map(sortedIndices, index => [
@@ -67,8 +68,6 @@ export class KWConflation<T> {
     let subset = rawSamples.slice();
 
     if (N > opts.maxSize) {
-      const sortedSamples = sortedIndices.map(idx => rawSamples[idx]);
-
       // reject the outlier samples
       for (const s of sortedSamples.slice(opts.maxSize)) {
         statIndex.get(s)!.status = 'rejected';
@@ -82,23 +81,39 @@ export class KWConflation<T> {
 
       // reject the oldest sample if it is fastest and doing so gives a sufficiently
       // small effect-size
-      if (kw.effectSize > concordanceThres && opts.inputOrder === 'oldestFirst' && sortedIndices[0] === 0) {
-        const kwPrev = kw.effectSize;
-        
-        const subset1 = rawSamples.slice(N - opts.maxSize);
-        const kw1 = stats.kruskalWallis(subset1);
+//      if (kw.effectSize > concordanceThres && opts.inputOrder === 'oldestFirst' && sortedIndices[0] === 0) {
+//        const kwPrev = kw.effectSize;
+//        
+//        const subset1 = rawSamples.slice(N - opts.maxSize);
+//        const kw1 = stats.kruskalWallis(subset1);
+//
+//        if (kw1.effectSize < concordanceThres) {
+//          subset = subset1;
+//          kw = kw1;
+//        }
+//
+//        console.info('>>', kwPrev, kw1.effectSize);
+//      }
+    }
 
-        if (kw1.effectSize < concordanceThres) {
-          subset = subset1;
+    if (kw.effectSize > opts.maxEffectSize && N > opts.minSize) {
+      console.info('>>', kw.effectSize, N, opts.minSize);
+      for (let i = 0; i < N - opts.minSize; i++) {
+        const s = sortedSamples.slice(i, i + opts.minSize);
+        const kw1 = stats.kruskalWallis(s);
+
+        console.info('kw1', i, N - opts.minSize, kw1.effectSize);
+
+        if (kw1.effectSize <= opts.maxEffectSize) {
+          subset = s;
           kw = kw1;
+          break;
         }
-
-        console.info('>>', kwPrev, kw1.effectSize);
       }
     }
 
     // mark consistent samples
-    if (subset.length > 1 && kw.effectSize <= opts.maxEffectSize) {
+    if (subset.length >= opts.minSize && kw.effectSize <= opts.maxEffectSize) {
       subset.forEach(sample => (statIndex.get(sample)!.status = 'consistent'));
     }
 
