@@ -9,6 +9,9 @@
     ".tsc"
   ],
   "type": "module",
+  "bin": {
+    "repris": "./script/cli.mjs"
+  },
   "exports": {
     "./reporter": "./.tsc/reporter.js",
     "./summaryReporter": "./.tsc/summaryReporter.js",
@@ -19,23 +22,27 @@
       "types": "./env/stopwatch-env.d.ts",
       "default": "./.tsc/setupStopwatch.js"
     },
-    "./jest-preset": "./jest-preset.js"
+    "./jest-preset": "./jest-preset.js",
+    "./cli": "./.tsc/cli.js"
   },
   "dependencies": {
     "@sampleci/base": "workspace:*",
     "@sampleci/samplers": "workspace:*",
     "@sampleci/util": "workspace:*",
+    "@jest/core": "^28",
     "@jest/reporters": "^28.1.3", 
     "@jest/test-result": "^28", 
     "@jest/environment": "^28",
     "@jest/transform": "^28",
     "jest": "^28",
     "jest-util": "^28.1.3",
+    "jest-config": "^28",
     "jest-circus": "^28",
     "jest-runtime": "^28",
     "chalk": "^5.0.1",
     "jest-haste-map": "^28",
-    "lilconfig": "^2.0"
+    "lilconfig": "^2.0",
+    "commander": "^10.0.0"
   },
   "devDependencies": {
     "@types/jest": "^28",

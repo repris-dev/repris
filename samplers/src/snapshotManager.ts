@@ -22,6 +22,11 @@ export class SnapshotFileManager {
 
   constructor(private paths: PathResolver) {}
 
+  async exists(testPath: string): Promise<boolean> {
+    const cachePath = this.paths(testPath);
+    return await pathExists(cachePath);
+  }
+
   /** Load an existing snapshot for the given test path, or create a new one */
   async loadOrCreate(testPath: string): Promise<Status<snapshots.Snapshot>> {
     const cachePath = this.paths(testPath);
