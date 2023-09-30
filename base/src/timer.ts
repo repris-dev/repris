@@ -1,25 +1,14 @@
 import * as json from './json.js';
-import { divRounded } from './math.js';
+import * as q from './quantity.js';
 import { As } from './util.js';
 
-export enum Unit {
-  nanosecond  = 'ns',
-  microsecond = '\u03bcs',
-  millisecond = 'ms',
-  second      = 's',
-  hz          = ' ops/sec'
-}
-
-export type UnitType = keyof typeof Unit;
-
 /** A measure of time in nanoseconds */
-export type HrTime = As<bigint>
+export type HrTime = As<bigint>;
 
 /**
  * Raw source of timing data
  */
-export interface TimeSource
-{
+export interface TimeSource {
   /** Begin or restart the timer. Returns the current time */
   start(): HrTime;
 
@@ -33,12 +22,11 @@ export interface TimeSource
 /**
  * A Clock which emits durations between a 'tick' and its
  * corresponding 'tock'.
- * 
+ *
  * @param emit A function which when called with a duration returns
  * whether the consumer should stop polling
  */
-export interface Clock
-{
+export interface Clock {
   /** Begin the timer, returning a timer id */
   tick(): number;
 
@@ -49,51 +37,38 @@ export interface Clock
   cancel(duration?: HrTime): void;
 }
 
-/** Convert a HrTime to a numeric value in the given units */
-export function cvtTo(time: HrTime, units: UnitType): bigint {
-  switch (units) {
-    case 'nanosecond':  return time;
-    case 'microsecond': return divRounded(time, 1000n);
-    case 'millisecond': return divRounded(time, 1000_000n);
-    case 'second':      return divRounded(time, 1000_000_000n);
-    case 'hz':          return divRounded(time, 1000_000_000_000n);
-  }
-  throw new Error(`Unknown Unit '${ units }'`);
-}
+export const HrTime = {
+  toQuantity(time: HrTime): q.Quantity {
+    return q.create('microsecond', this.toMicroseconds(time));
+  },
+  toMicroseconds(time: HrTime): number {
+    const whole = Number(time / 1000n);
+    const frac = Number(time % 1000n) / 1000;
 
-/** Convert a value in the given units to a HrTime */
-export function cvtFrom(time: number | string | bigint, units: UnitType): HrTime {
-  // TODO - big-decimal required to accurately convert floating point values
-  //   to the nearest bigint
-  const t = typeof time === 'number'
-    ? BigInt(Math.round(time))
-    : typeof time === 'string'
-    ? BigInt(time.replace(/\..*/, '')) // remove decimals
-    : time;
+    return whole + frac;
+  },
+  from(quantity: q.Quantity): HrTime {
+    const us = q.convert(quantity[q.UnitTag]).to(quantity.scalar, 'microsecond').scalar;
+    const whole = Math.trunc(us);
+    const frac = us - whole;
 
-  switch (units) {
-    case 'nanosecond':  return t as HrTime;
-    case 'microsecond': return t * 1000n as HrTime;
-    case 'millisecond': return t * 1000_000n as HrTime;
-    case 'second':      return t * 1000_000_000n as HrTime;
-    case 'hz':          return t * 1000_000_000_000n as HrTime;
-  }
-  throw new Error(`Unknown Unit '${ units }'`);
-}
+    return (BigInt(whole) * 1000n + BigInt(Math.round(frac * 1000))) as HrTime;
+  },
+};
 
 /**
  * Returns the string representation of a HrTime time in nanoseconds
  */
 export function toString(t: HrTime) {
   return json.bigint.toJson(t);
-};
+}
 
 /**
  * Returns the HrTime from the given string
  */
- export function fromString(t: string): HrTime {
+export function fromString(t: string): HrTime {
   return json.bigint.fromJson(t) as HrTime;
-};
+}
 
 /** Returns a high-resolution timer for the current runtime */
 export function create(): TimeSource {
@@ -119,13 +94,15 @@ export function createClock(
       return emit(id === tickId && tickId >= 0, timer.current());
     },
     cancel(duration?: HrTime) {
-      if (duration !== void 0) { emit(true, duration); }
+      if (duration !== void 0) {
+        emit(true, duration);
+      }
       tickId++;
-    }
+    },
   };
 }
 
-declare const process: { hrtime: { bigint(): bigint }};
+declare const process: { hrtime: { bigint(): bigint } };
 
 function nodeJSTimer(now = 0n as HrTime): TimeSource {
   function start() {
@@ -134,7 +111,7 @@ function nodeJSTimer(now = 0n as HrTime): TimeSource {
   }
 
   function current() {
-    return process.hrtime.bigint() - now as HrTime;
+    return (process.hrtime.bigint() - now) as HrTime;
   }
 
   function clone() {

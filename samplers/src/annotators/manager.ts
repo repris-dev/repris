@@ -1,5 +1,4 @@
-import { assert, json, Status, typeid } from '@repris/base';
-import { Units } from '../quantity.js';
+import { assert, isObject, json, Status, typeid, quantity as q } from '@repris/base';
 import * as wt from '../wireTypes.js';
 import type { Annotator, AnnotationBag, Annotation, Annotatable, Value } from './types.js';
 
@@ -18,38 +17,38 @@ export function register(name: string, annotator: Annotator): Status {
   return Status.ok;
 }
 
-function isQuantity(ann: any): ann is { units: any; quantity: any } {
-  return (
-    typeof ann === 'object' &&
-    !Array.isArray(ann) &&
-    ann.units !== void 0 &&
-    ann.quantity !== void 0
-  );
-}
-
 /** Serialize an annotation to json. This simply takes account of bigints */
 export function toJson(ann: Annotation): json.Value {
-  return isQuantity(ann)
-    ? { units: ann.units, quantity: toJson(ann.quantity) }
-    : typeof ann === 'bigint'
-    ? json.bigint.toJson(ann)
-    : Array.isArray(ann)
-    ? ann.map(x => toJson(x))
-    : (ann as json.Value);
+  function toJsonValue(val: Value): json.Value {
+    return typeof val === 'bigint'
+      ? json.bigint.toJson(val)
+      : Array.isArray(val)
+      ? val.map(x => toJsonValue(x))
+      : (val as json.Value);
+  }
+
+  if (q.isQuantity(ann)) {
+    return { ['@unit']: ann[q.UnitTag], scalar: ann.scalar };
+  }
+
+  return toJsonValue(ann);
 }
 
 export function fromJson(val: json.Value): Annotation {
-  function valFromJson(v: json.Value): Value {
+  function fromJsonValue(v: json.Value): Value {
     return json.bigint.isJsonBigint(v)
       ? json.bigint.fromJson(v)
       : Array.isArray(v)
-      ? v.map(x => valFromJson(x))
+      ? v.map(x => fromJsonValue(x))
       : (v as Value);
   }
 
-  return isQuantity(val)
-    ? { units: val.units as Units, quantity: valFromJson(val.quantity) }
-    : valFromJson(val);
+  function fromJsonQuantity(v: json.Value): q.Quantity | undefined {
+    if (!isObject(v) || !('@unit' in v)) return undefined;
+    return { [q.UnitTag]: v['@unit'] as q.Unit, scalar: Number(v.scalar) };
+  }
+
+  return fromJsonQuantity(val) ?? fromJsonValue(val);
 }
 
 /** Default bag implementation */

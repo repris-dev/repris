@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { assert, typeid } from '@repris/base';
+import { assert, typeid, quantity as q } from '@repris/base';
 import { annotators as anno } from '@repris/samplers';
 import type * as config from './config.js';
 import * as cli from './cli.js';
@@ -57,7 +57,7 @@ export class TerminalReport<Id> {
     this.reset();
   }
 
-  fmt = new ValueFormatter();
+  fmt = new AnnotationFormatter();
   colMargin = 2;
   emptyCell = [chalk.dim('?'), 1] as Cell;
   rowIndex = new Map<Id, { cells: Cell[]; bag: anno.AnnotationBag }[]>();
@@ -189,31 +189,37 @@ export class TerminalReport<Id> {
   }
 }
 
-class ValueFormatter {
-  fmtInt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
-  fmtNumber = new Intl.NumberFormat(void 0, { maximumFractionDigits: 3 });
+class AnnotationFormatter {
+  private numeric = {
+    int: new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 }),
+    number: new Intl.NumberFormat(void 0, { maximumFractionDigits: 3 }),
+  }
 
-  format(val: anno.Annotation): Cell {
-    switch (typeof val) {
+  private quantities = new Map<q.Unit, q.Formatter>()
+
+  format(a: anno.Annotation): Cell {
+    const formatters = this.numeric;
+
+    switch (typeof a) {
       case 'string':
-        return val;
+        return a;
 
       case 'bigint':
-        return this.fmtInt.format(val);
+        return formatters.int.format(a);
 
       case 'boolean':
-        return val ? 'T' : 'F';
+        return a ? 'T' : 'F';
 
       case 'number':
-        return Math.round(val) === val ? this.fmtInt.format(val) : this.fmtNumber.format(val);
+        return Math.round(a) === a ? formatters.int.format(a) : formatters.number.format(a);
 
       case 'object': {
-        if (Array.isArray(val)) {
+        if (Array.isArray(a)) {
           let cell: Cell = [chalk.dim('['), 1],
-            k = val.length;
+            k = a.length;
 
           for (let i = 0; i < k; i++) {
-            const subCell = this.format(val[i]);
+            const subCell = this.format(a[i]);
             cell = Cell.join(cell, subCell);
 
             if (i < k - 1) {
@@ -224,12 +230,23 @@ class ValueFormatter {
           return Cell.join(cell, [chalk.dim(']'), 1]);
         }
 
-        // TODO - quantity unit conversions
-        return this.format(val.quantity);
+        return this.formatQuantity(a);
       }
     }
 
-    assert.is(false, `Failed to format value ${val}`);
+    assert.is(false, `Failed to format value ${a}`);
+  }
+
+  formatQuantity(quantity: q.Quantity): string {
+    const unit = quantity[q.UnitTag];
+    let formatter = this.quantities.get(unit);
+
+    if (formatter === void 0) {
+      // cache the formatter for this unit
+      this.quantities.set(unit, (formatter = q.formatter(q.getKind(unit))));
+    }
+
+    return formatter.format(quantity);
   }
 }
 

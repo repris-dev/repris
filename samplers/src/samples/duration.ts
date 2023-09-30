@@ -7,9 +7,10 @@ import {
   assert,
   uuid,
   random,
+  array,
+  quantity as q
 } from '@repris/base';
 import * as ann from '../annotators.js';
-import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
 import { Sample, MutableSample } from './types.js';
 
@@ -23,8 +24,8 @@ export const defaultDurationOptions = {
 /** Json representation of a duration sample */
 type WireType = wt.SampleData & {
   summary: ReturnType<stats.online.Lognormal['toJson']>;
-  units: quantity.Units;
-  values?: string[];
+  units: q.UnitsOf<'time'>;
+  values?: number[];
   maxSize?: number;
 };
 
@@ -39,8 +40,10 @@ function isDurationSampleWT(x: unknown): x is WireType {
   );
 }
 
-/** A sample of HrTime durations in nanoseconds */
-export class Duration implements MutableSample<timer.HrTime> {
+const UNIT: q.UnitsOf<'time'> = 'microsecond'; 
+
+/** A sample of durations in microseconds */
+export class Duration implements MutableSample<timer.HrTime, number> {
   static [typeid] = '@sample:duration' as typeid;
 
   static is(x?: any): x is Duration {
@@ -52,12 +55,16 @@ export class Duration implements MutableSample<timer.HrTime> {
       return Status.err(`Invalid ${Duration[typeid]} sample`);
     }
 
+    if (x.units !== UNIT) {
+      return Status.err(`Sample values are not in expected units. Got ${ x.units } but expected ${ UNIT }`);
+    }
+
     const sample = new Duration({ maxCapacity: x.maxSize });
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
     sample.uuid = x['@uuid'];
 
     if (Array.isArray(x.values)) {
-      x.values.forEach((v) => sample.times.push(timer.fromString(v)));
+      x.values.forEach(v => sample.times.push(v));
     }
 
     return Status.value(sample);
@@ -70,7 +77,7 @@ export class Duration implements MutableSample<timer.HrTime> {
   }
   
   private opts: DurationOptions;
-  private times: stats.ReservoirSample<timer.HrTime>;
+  private times: stats.ReservoirSample<number>;
   private onlineStats: stats.online.Lognormal;
   private uuid: uuid | undefined;
 
@@ -92,6 +99,10 @@ export class Duration implements MutableSample<timer.HrTime> {
     return this.times.values.values();
   }
 
+  asQuantity(value: number): q.Quantity {
+    return { [q.UnitTag]: UNIT, scalar: value };
+  }
+
   summary(): stats.online.Lognormal {
     return this.onlineStats;
   }
@@ -102,8 +113,12 @@ export class Duration implements MutableSample<timer.HrTime> {
   }
 
   push(duration: timer.HrTime) {
-    this.times.push(duration);
-    this.onlineStats.push(Number(duration));
+    // convert duration (ns) to microseconds. Note the possibility lose precision
+    // for durations > 104 days
+    const us = timer.HrTime.toMicroseconds(duration);
+
+    this.times.push(us);
+    this.onlineStats.push(us);
   }
 
   significant(): boolean {
@@ -117,13 +132,7 @@ export class Duration implements MutableSample<timer.HrTime> {
 
   toF64Array(dst = new Float64Array(this.times.N())) {
     assert.gte(dst.length, this.times.N());
-
-    let idx = 0;
-    for (const t of this.times.values) {
-      dst[idx++] = Number(t);
-    }
-
-    assert.eq(idx, dst.length);
+    array.copyTo(this.times.values, dst);
     return dst;
   }
 
@@ -132,8 +141,8 @@ export class Duration implements MutableSample<timer.HrTime> {
       '@type': Duration[typeid],
       '@uuid': this[uuid],
       summary: this.onlineStats.toJson(),
-      values: this.times.values.map(timer.toString),
-      units: 'microseconds' as quantity.Units,
+      values: this.times.values,
+      units: 'microsecond',
     };
 
     if (this.opts.maxCapacity !== void 0) {
@@ -199,7 +208,7 @@ ann.register('@sample:duration-annotator' as typeid, {
     const bag = ann.DefaultBag.from([
       [annotations.iter, sample.observationCount()],
       [annotations.k, sample.sampleSize()],
-      [annotations.mean, s.mean()],
+      [annotations.mean, sample.asQuantity(s.mean())],
       [annotations.skew, s.skewness()],
       [annotations.std, s.std()],
       [annotations.cov, s.cov()],

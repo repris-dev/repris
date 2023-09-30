@@ -1,4 +1,4 @@
-import { typeid, json, uuid } from '@repris/base';
+import { typeid, json, uuid, quantity as q } from '@repris/base';
 import * as wt from '../wireTypes.js';
 
 /**
@@ -32,6 +32,9 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
    * its configured purpose
    */
   significant(): boolean;
+
+  /** Convert a sample value as a quantity */
+  asQuantity(value: V): q.Quantity;
 }
 
 /**

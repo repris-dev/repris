@@ -1,4 +1,4 @@
-import { Status, isPromise, typeid, assert, array, timer, iterator } from '@repris/base';
+import { Status, isPromise, typeid, assert, array, timer, iterator, quantity as q } from '@repris/base';
 import * as types from './types.js';
 import * as samples from './samples.js';
 import * as wt from './wireTypes.js';
@@ -48,18 +48,18 @@ const enum Phase {
   Sampling = 2
 }
 
-const SECOND = timer.cvtFrom(1, 'second');
+const SECOND = timer.HrTime.from(q.create('second', 1));
 
 /**
  * Implementation of a micro-benchmarking sampler
  */
-export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrTime> {
+export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
   static readonly [typeid] = '@sampler:stopwatch' as typeid;
   
   readonly opts: Options;
   readonly state: StopwatchState;
   readonly clock: timer.Clock;
-  readonly result: samples.MutableSample<timer.HrTime>;
+  readonly result: samples.MutableSample<timer.HrTime, number>;
   readonly durationBounds: {
     main: [min: timer.HrTime, max: timer.HrTime],
     warmup: [min: timer.HrTime, max: timer.HrTime]
@@ -88,17 +88,17 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
     this.durationBounds = {
       main: [
-        timer.cvtFrom(this.opts['duration.min'], 'millisecond'),
-        timer.cvtFrom(this.opts['duration.max'], 'millisecond'),
+        timer.HrTime.from(q.create('millisecond', this.opts['duration.min'])),
+        timer.HrTime.from(q.create('millisecond', this.opts['duration.max'])),
       ],
       warmup: [
-        timer.cvtFrom(this.opts['warmup.duration.min'], 'millisecond'),
-        timer.cvtFrom(this.opts['warmup.duration.max'], 'millisecond'),
+        timer.HrTime.from(q.create('millisecond', this.opts['warmup.duration.min'])),
+        timer.HrTime.from(q.create('millisecond', this.opts['warmup.duration.max'])),
       ]
     }
   }
 
-  sample(): samples.Sample<timer.HrTime> {
+  sample(): samples.Sample<number> {
     return this.result;
   }
 
@@ -273,7 +273,7 @@ class DefaultState implements StopwatchState {
 
 /** Create a sampler or a family of samplers for a single fixture */
 export class Builder<Args extends any[]>
-    implements types.Builder<timer.HrTime, Sampler<Args>>
+    implements types.Builder<number, Sampler<Args>>
 {
   private options: Options = Object.assign({ } as Record<string, any>,
       defaultSamplerOptions);
@@ -283,7 +283,7 @@ export class Builder<Args extends any[]>
     ranges: []  as [number, number][],
     mul: 8      as number,
     args: []    as number[][],
-    units: null as timer.UnitType | 'auto' | null,
+    units: null as q.UnitsOf<'time'> | 'auto' | null,
     timer: timer.create(),
     gc: void 0  as (() => undefined) | undefined,  
   };
@@ -327,7 +327,7 @@ export class Builder<Args extends any[]>
     return this;
   }
 
-  report(units: timer.UnitType | 'auto'): this {
+  report(units: q.UnitsOf<'time'> | 'auto'): this {
     this.params.units = units;
     return this;
   }

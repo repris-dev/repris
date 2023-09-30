@@ -1,12 +1,11 @@
-import { Status, typeid, json } from '@repris/base';
-import { Units } from '../quantity.js';
+import { Status, typeid, json, quantity as q } from '@repris/base';
 import * as wt from '../wireTypes.js';
 
 /** Possible values for an annotation */
 export type Value = number | bigint | string | boolean | Array<Value>;
 
 /** An annotation */
-export type Annotation = Value | { units: Units, quantity: Value };
+export type Annotation = Value | q.Quantity;
 
 /** An object which can be annotated */
 export type Annotatable = { readonly [typeid]: typeid; };
