@@ -1,5 +1,5 @@
 import { assert } from './index.js';
-import { Status } from './util.js';
+import { Status, uuid } from './util.js';
 
 /** A valid Json value */
 export type Value = number | string | boolean | { [x: string]: Value } | Array<Value>;
@@ -11,7 +11,7 @@ export interface Serializable<J extends Value = Value> {
 
 /** deserializing an object of type T */
 export interface Deserializer<T extends Serializable, J extends Value = Value> {
-  fromJson(json: J): Status<T>;
+  fromJson(json: J, refs?: Record<uuid, any>): Status<T>;
 }
 
 /** Gets the serialized type of T */
