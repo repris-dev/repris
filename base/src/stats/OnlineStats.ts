@@ -97,12 +97,9 @@ export class Gaussian implements OnlineStat<number> {
     return stat;
   }
 
-  static fromValues(sample: Indexable<number>) {
+  static fromValues(sample: Iterable<number>) {
     const os = new Gaussian();
-
-    for (let i = 0; i < sample.length; i++) {
-      os.push(sample[i]);
-    }
+    for (const x of sample) os.push(x);
 
     return os;
   }
@@ -190,12 +187,9 @@ export class Lognormal implements SimpleSummary<number> {
     return stat;
   }
 
-  static fromValues(sample: Indexable<number>) {
-    const os = new Lognormal();
-
-    for (let i = 0; i < sample.length; i++) {
-      os.push(sample[i]);
-    }
+  static fromValues(sample: Iterable<number>) {
+    const os = new Gaussian();
+    for (const x of sample) os.push(x);
 
     return os;
   }

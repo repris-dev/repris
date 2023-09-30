@@ -50,12 +50,27 @@ export function PRNGi32(seed = mathRand()): Generator {
 
 /**
  * @returns A function which generates random 64-bit floating-point numbers between
- * @param min and @param max inclusive. Note: this function provides a maximum of
+ * @param min (inclusive) and @param max (exclusive). Note: this function provides a maximum of
  * 32-bits of randomness over the given range, not 64.
  */
 export function uniform(min = 0, max = 1, generator = mathRand): Distribution {
   const range = max - min;
   const fn = () => min + range * (generator() / randMax);
+
+  fn.rng = generator;
+  return fn;
+}
+
+/**
+ * @returns A function which generates random 64-bit floating-point numbers between
+ * @param min (inclusive) and @param max (inclusive).
+ */
+export function uniformi(min = 0, max = 1, generator = mathRand): Distribution {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+
+  const range = max - min + 1;
+  const fn = () => min + Math.floor(range * (generator() / randMax));
 
   fn.rng = generator;
   return fn;
