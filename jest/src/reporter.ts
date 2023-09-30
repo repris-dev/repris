@@ -10,6 +10,7 @@ import type { Config } from '@jest/types';
 import { specialChars, preRunMessage } from 'jest-util';
 import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 
+import { typeid } from '@repris/base';
 import { annotators } from '@repris/samplers';
 
 import { Column, TableTreeReporter } from './tableReport.js';
@@ -88,7 +89,7 @@ export default class SampleReporter extends DefaultReporter {
       this.log(WARN + ' No annotations are configured');
     } else {
       // report unknown annotations
-      const missing = [];
+      const missing = [] as typeid[];
       for (const c of columns) {
         if (!c.type || !annotators.supports(c.type)) {
           missing.push(c.type);

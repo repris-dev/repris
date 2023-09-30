@@ -162,7 +162,7 @@ export default async function testRunner(
   // Conflation annotation config
   const sampleAnnotations = createAnnotationRequest(reprisCfg.sample.annotations);
   // Conflation annotation config
-  const conflationAnnotations = createAnnotationRequest(reprisCfg.conflation.annotations);
+  const conflationAnnotationConfig = createAnnotationRequest(reprisCfg.conflation.annotations);
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, skipTest);
 
@@ -197,6 +197,7 @@ export default async function testRunner(
             continue;
           }
 
+          // Only duration samples supported
           if (!samples.Duration.is(sample)) {
             throw new Error('Unknown sample type ' + sample[typeid]);
           }
@@ -214,7 +215,7 @@ export default async function testRunner(
             reconflateFixture(
               { sample, annotations },
               reprisCfg.conflation.options,
-              conflationAnnotations,
+              conflationAnnotationConfig,
               indexedFixture,
             );
 
@@ -315,7 +316,6 @@ async function commitToSnapshot(
 
     if (bag[conflations.annotations.isReady]) {
       const { title, nth } = f.name;
-
       if (snapshot.fixtureState(title, nth) === snapshots.FixtureState.Stored) {
         stat.updated++;
       } else {
@@ -366,26 +366,26 @@ function annotate(
 function reconflateFixture(
   newEntry: { sample: samples.Duration, annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
-  annotations: Map<typeid, any>,
+  annotationCfg: Map<typeid, any>,
   indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
 ) {
   // The existing cached samples
   const fixtureIndex = new Map(indexedFixture.samples.map(s => [s.sample, s]));
 
-  // the new sample and its annotations
+  // Add the new sample and its annotations
   fixtureIndex.set(newEntry.sample, newEntry);
 
-  // conflate the new and previous samples together
+  // Conflate the new and previous samples together
   const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
 
-  // annotate this conflation
-  const [bag, err] = annotators.annotate(newConflation, annotations);
+  // Annotate this conflation if its ready
+  const [bag, err] = annotators.annotate(newConflation, annotationCfg);
 
   if (err) {
     dbg('Failed to annotate conflation %s', err.message);
   }
 
-  // overwrite the previous conflation annotations
+  // Overwrite the previous conflation annotations
   indexedFixture.conflation = {
     result: newConflation.toJson(),
     annotations: bag?.toJson() ?? {}

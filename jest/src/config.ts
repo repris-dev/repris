@@ -1,6 +1,6 @@
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
-import { assignDeep, iterator, RecursivePartial, typeid } from '@repris/base';
+import { assignDeep, RecursivePartial } from '@repris/base';
 
 const dbg = debug('repris:config');
 
@@ -15,7 +15,7 @@ export interface SCIConfig {
     options: RecursivePartial<import('@repris/samplers').samples.DurationOptions>;
 
     /** The annotations to compute for each sample */
-    annotations: (string | [id: string, config: AnnotationConfig])[];
+    annotations: AnnotationRequest[];
   };
 
   conflation: {
@@ -23,8 +23,19 @@ export interface SCIConfig {
     options: RecursivePartial<import('@repris/samplers').conflations.DurationOptions>;
 
     /** The annotations to compute for each conflation */
-    annotations: (string | [id: string, config: AnnotationConfig])[];
+    annotations: AnnotationRequest[];
   };
+
+  comparison: {
+    options: unknown,
+
+    /** The annotations to compute for each conflation */
+    annotations: {
+      '@index': AnnotationRequest[],
+      '@snapshot': AnnotationRequest[],
+      '@test': AnnotationRequest[],
+    }
+  }
 }
 
 export interface GradingConfig {
@@ -39,6 +50,7 @@ export interface GradingConfig {
 }
 
 export interface AnnotationConfig {
+  /** Optionally show the annotation from the UI (default: true) */
   display?: boolean;
 
   /** The title to display in reports */
@@ -56,6 +68,11 @@ export interface AnnotationConfig {
    */
   grading?: [id: string, config: GradingConfig] | GradingConfig;
 }
+
+export type AnnotationRequest = string | [type: string, config: AnnotationConfig];
+
+export type NestedAnnotationRequest =
+  { [context: `@${string}`]: (NestedAnnotationRequest | AnnotationRequest)[] } | AnnotationRequest[];
 
 const defaultConfig: SCIConfig = {
   sampler: {
@@ -81,7 +98,7 @@ const defaultConfig: SCIConfig = {
           },
         },
       ],
-    ],
+    ] satisfies NestedAnnotationRequest,
   },
 
   conflation: {
@@ -102,8 +119,20 @@ const defaultConfig: SCIConfig = {
         },
       ],
       ['duration:conflation:summaryText', { displayName: 'index¹' }],
-    ],
+    ] satisfies NestedAnnotationRequest,
   },
+
+  comparison: {
+    options: {},
+    annotations: {
+      '@index': [['mode:hsm:conflation', { displayName: 'avg (index)' }]  ],
+      '@test': [
+        ['mode:hsm:hypothesis:summaryText', { displayName: 'change (95% CI)' }],
+        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.95 } }]
+      ],
+      '@snapshot': [['mode:hsm:conflation', { displayName: 'avg (snapshot)' }]],
+    } satisfies NestedAnnotationRequest
+  }
 };
 
 export const normalize = {
