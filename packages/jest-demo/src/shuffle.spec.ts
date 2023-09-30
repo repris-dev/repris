@@ -1,7 +1,7 @@
 import { random, array } from '@repris/base';
 
 function shuffle(array: Int32Array, rng: random.Generator) {
-  const dist = random.uniform(0, 1, rng)
+  const dist = random.uniform(0, 1, rng);
   let currentIdx = array.length;
 
   while (currentIdx !== 0) {
@@ -18,27 +18,9 @@ function shuffle(array: Int32Array, rng: random.Generator) {
 }
 
 describe('shuffle() (PRNG)', () => {
-  bench('numbers', (s) => {
+  bench.each([[10], [1e5], [5e5]])('n=%s', (s, n) => {
     const rng = random.PRNGi32(67);
-    const arr = array.fillAscending(new Int32Array(5e5), 0);
-
-    for (let _ of s) shuffle(arr, rng);
-
-    expect(arr[0]).toBeGreaterThan(-1);
-  });
-
-  bench('numbers', (s) => {
-    const rng = random.PRNGi32(67);
-    const arr = array.fillAscending(new Int32Array(1e5), 0);
-
-    for (let _ of s) shuffle(arr, rng);
-
-    expect(arr[0]).toBeGreaterThan(-1);
-  });
-
-  bench('numbers', (s) => {
-    const rng = random.PRNGi32(67);
-    const arr = array.fillAscending(new Int32Array(10), 0);
+    const arr = array.fillAscending(new Int32Array(n), 0);
 
     for (let _ of s) shuffle(arr, rng);
 
