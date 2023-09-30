@@ -5,6 +5,7 @@ export type Parameter =
 
 export type SamplerInfo = json.Value & {
   '@type': string;
+
   parameter?: Parameter[]
 };
 
@@ -25,6 +26,12 @@ export type ConflationResult = {
 
   /** The samples included in the conflation */
   samples: { '@ref': uuid, outlier: boolean }[];
+
+  /** */
+  effectSize: number;
+
+  /** */
+  isReady: boolean;
 };
 
 // TODO - rename to Sampler?

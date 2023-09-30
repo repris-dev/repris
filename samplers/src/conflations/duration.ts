@@ -79,11 +79,20 @@ export class DurationResult implements ConflationResult<samples.Duration> {
       stat,
     });
 
-    return Status.value(result);;
+    result._uuid = obj['@uuid'];
+
+    return Status.value(result);
   }
 
   readonly [typeid] = DurationResult[typeid];
-  readonly [uuid] = random.newUuid();
+  _uuid!: uuid;
+
+  get [uuid]() {
+    if (!this._uuid) {
+      this._uuid = random.newUuid();
+    }
+    return this._uuid;
+  }
 
   constructor(private _isReady: boolean, private _kwResult: KWConflationResult<samples.Duration>) {}
 

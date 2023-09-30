@@ -14,7 +14,15 @@ export type Annotatable = { readonly [typeid]: typeid; };
 /** Annotations associated with a sample from an annotator */
 export interface AnnotationBag extends json.Serializable<wt.AnnotationBag>
 {
-  annotations: Map<typeid, Annotation>
+  annotations: {
+    /** Returns an iterable of entries in the map. */
+    [Symbol.iterator](): IterableIterator<[typeid, Annotation]>;
+
+    /** Get the annotation associated with the given type */
+    get(type: typeid, ns?: string[]): Annotation | undefined;
+  };
+
+  union(context: string, child: AnnotationBag): void;
 }
 
 export interface Annotator

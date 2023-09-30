@@ -1,4 +1,4 @@
-import { json, Status, typeid } from '@repris/base';
+import { assert, json, Status, typeid } from '@repris/base';
 import { Units } from '../quantity.js';
 import * as wt from '../wireTypes.js';
 import type { Annotator, AnnotationBag, Annotation, Annotatable, Value } from './types.js';
@@ -13,16 +13,18 @@ export function register(name: string, annotator: Annotator): Status {
   }
 
   annotators.set(name, annotator);
-  annotator.annotations().forEach((a) => annotatorMap.set(a, name));
+  annotator.annotations().forEach(a => annotatorMap.set(a, name));
 
   return Status.ok;
 }
 
-function isQuantity(ann: any): ann is { units: any, quantity: any } {
-  return typeof ann === 'object'
-    && !Array.isArray(ann)
-    && ann.units !== void 0
-    && ann.quantity !== void 0;
+function isQuantity(ann: any): ann is { units: any; quantity: any } {
+  return (
+    typeof ann === 'object' &&
+    !Array.isArray(ann) &&
+    ann.units !== void 0 &&
+    ann.quantity !== void 0
+  );
 }
 
 /** Serialize an annotation to json. This simply takes account of bigints */
@@ -32,7 +34,7 @@ export function toJson(ann: Annotation): json.Value {
     : typeof ann === 'bigint'
     ? json.bigint.toJson(ann)
     : Array.isArray(ann)
-    ? ann.map(x => toJson(x)) 
+    ? ann.map(x => toJson(x))
     : (ann as json.Value);
 }
 
@@ -47,7 +49,7 @@ export function fromJson(val: json.Value): Annotation {
 
   return isQuantity(val)
     ? { units: val.units as Units, quantity: valFromJson(val.quantity) }
-    : valFromJson(val); 
+    : valFromJson(val);
 }
 
 /** Default bag implementation */
@@ -59,16 +61,44 @@ export class DefaultBag implements AnnotationBag {
   static fromJson(bag: wt.AnnotationBag): DefaultBag {
     const m = new Map<typeid, Annotation>();
     for (const [name, value] of Object.entries(bag)) {
-      m.set(name as typeid, fromJson(value))
+      m.set(name as typeid, fromJson(value));
     }
     return new DefaultBag(m);
   }
 
-  constructor(public annotations: Map<typeid, Annotation>) {}
+  readonly annotations: AnnotationBag['annotations'];
+
+  private index = new Map<typeid, Annotation>();
+  private contexts = new Map<`@${string}`, AnnotationBag>();
+
+  private constructor(annotations: Map<typeid, Annotation>) {
+    const _this = this;
+
+    this.index = annotations;
+    this.annotations = {
+      [Symbol.iterator]() {
+        return _this.index[Symbol.iterator]() as IterableIterator<[typeid, Annotation]>;
+      },
+      get(type: typeid, context?: `@${string}`[]): Annotation | undefined {
+        if (context !== void 0 && context.length > 0) {
+          return _this.contexts.get(context[0])?.annotations.get(type, context.slice(1));
+        }
+
+        return _this.index.get(type);
+      },
+    };
+  }
+
+  union(context: `@${string}`, child: AnnotationBag): void {
+    assert.eq(this.contexts.has(context), false);
+    this.contexts.set(context, child);
+  }
 
   toJson(): wt.AnnotationBag {
+    assert.eq(this.contexts.size, 0, 'Serializing contexts not supported');
+
     const r = {} as Record<string, json.Value>;
-    for (const [k, a] of this.annotations.entries()) {
+    for (const [k, a] of this.annotations) {
       r[k] = toJson(a);
     }
     return r;

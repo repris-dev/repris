@@ -2,6 +2,7 @@ import { Indexable, stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 import * as conflations from '../conflations.js';
+import { hypothesis } from '../index.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
@@ -46,7 +47,7 @@ const SampleAnnotations = Object.freeze({
    */
   hsmCIRME: {
     id: 'mode:hsm:ci-rme' as typeid,
-    opts: { level: 0.9 },
+    opts: { level: 0.95 },
   },
 });
 
@@ -61,8 +62,19 @@ const ConflationAnnotations = Object.freeze({
 
   hsmCIRME: {
     id: 'mode:hsm:conflation:ci-rme' as typeid,
-    opts: { level: 0.9 },
+    opts: { level: 0.95, resamples: 100 },
   }
+});
+
+const HypothesisAnnotations = Object.freeze({
+  hsmDifference: 'mode:hsm:hypothesis:difference' as typeid,
+
+  hsmDifferenceCI: {
+    id: 'mode:hsm:hypothesis:difference-ci' as typeid,
+    opts: { level: 0.95, resamples: 1000 },
+  },
+
+  hsmDifferenceSummary: 'mode:hsm:hypothesis:summaryText' as typeid,
 });
 
 const sampleAnnotator: ann.Annotator = {
@@ -140,29 +152,26 @@ const conflationAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    if (!conflations.DurationResult.is(conflation)) {
+    if (!conflations.DurationResult.is(conflation) || !conflation.ready()) {
       return Status.value(void 0);
     }
 
     // run pooled analysis only on the best samples
-    const samples: [Float64Array, samples.Duration][] = conflation.stat()
-      .filter(s => s.status === 'consistent')
-      .map(s => [s.sample.toF64Array!(), s.sample])   
+    const samples = tof64Samples(conflation)
 
     if (samples.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
 
-      if (request.has(ConflationAnnotations.hsmMode) || request.has(ConflationAnnotations.hsmCIRME.id)) {
-        let level: number | undefined;
+      if (request.has(ConflationAnnotations.hsmMode) || request.has(ConflationAnnotations.hsmCIRME.id)) {        
+        const opts = request.has(ConflationAnnotations.hsmCIRME.id)
+          ? { ...ConflationAnnotations.hsmCIRME.opts, ...request.get(ConflationAnnotations.hsmCIRME.id) }
+          : void 0;
 
-        if (request.has(ConflationAnnotations.hsmCIRME.id)) {
-          const opts = { ...ConflationAnnotations.hsmCIRME.opts, ...request.get(ConflationAnnotations.hsmCIRME.id) };
-          level = opts.level;
-        }
-
-        const hsmAnalysis = hsmConflation(samples, level);
+        const pooledSample = concatSamples(samples);
+        const hsmAnalysis = hsmConflation(pooledSample, opts?.level, opts?.resamples);
     
         result.set(ConflationAnnotations.hsmMode, hsmAnalysis.mode);
+
         if (request.has(ConflationAnnotations.hsmCIRME.id)) {
           result.set(ConflationAnnotations.hsmCIRME.id, hsmAnalysis.rme!);
         }
@@ -182,6 +191,70 @@ const conflationAnnotator: ann.Annotator = {
 
 ann.register('@annotator:conflation:mode', conflationAnnotator);
 
+const hypothesisAnnotator: ann.Annotator = {
+  annotations() {
+    return Object.values(HypothesisAnnotations).map((x) => (typeof x === 'object' ? x.id : x));
+  },
+
+  annotate(
+    hypot: hypothesis.DefaultHypothesis<conflations.ConflationResult<samples.Duration>>,
+    request: Map<typeid, {}>
+  ): Status<ann.AnnotationBag | undefined> {
+    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
+      return Status.value(void 0);
+    }
+
+    if (!hypothesis.DefaultHypothesis.is(hypot)) {
+      return Status.value(void 0);
+    }
+
+    const [c0, c1] = hypot.operands(); 
+
+    const xs0 = tof64Samples(c0);
+    const x0 = concatSamples(xs0);
+
+    const xs1 = tof64Samples(c1);
+    const x1 = concatSamples(xs1);
+
+    const hsm0 = hsmConflation(x0);
+    const hsm1 = hsmConflation(x1);
+    const relChange = (hsm0.mode - hsm1.mode) / hsm0.mode;
+
+    const result = new Map<typeid, ann.Annotation>();
+    result.set(HypothesisAnnotations.hsmDifference, relChange);
+
+    let ci: [lo: number, hi: number] | undefined;
+
+    if (request.has(HypothesisAnnotations.hsmDifferenceCI.id)) {
+      const opts = {
+        ...HypothesisAnnotations.hsmDifferenceCI.opts,
+        ...request.get(HypothesisAnnotations.hsmDifferenceCI.id)
+      };
+
+      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples);
+      result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
+    }
+
+    if (request.has(HypothesisAnnotations.hsmDifferenceSummary)) {
+      const fmt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 1 });
+      let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
+
+      if (ci) {
+        const lo = ci[0] / hsm0.mode;
+        const hi = ci[1] / hsm0.mode;
+
+        summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
+      }
+
+      result.set(HypothesisAnnotations.hsmDifferenceSummary, summary);
+    }
+
+    return Status.value(ann.DefaultBag.from(result));
+  },
+};
+
+ann.register('@annotator:hypothesis:mode', hypothesisAnnotator);
+
 interface KDEAnalysis {
   /** value where the density function is globally maximized */
   mode: number;
@@ -194,6 +267,12 @@ interface KDEAnalysis {
 
   /** The full-width of the half-sample located at the mode */
   dispersion: number;
+}
+
+function tof64Samples(conflation: conflations.ConflationResult<samples.Duration>) {
+  return conflation.stat()
+    .filter(s => s.status === 'consistent')
+    .map(s => [s.sample.toF64Array!(), s.sample] as const);
 }
 
 function kdeMode(
@@ -219,30 +298,35 @@ function kdeMode(
 }
 
 function hsmConflation(
-  samples: [Float64Array, samples.Duration][],
+  pooledSample: Float64Array,
   ciLevel?: number,
+  resamples?: number,
 ) {
+  const mode = stats.mode.hsm(pooledSample).mode;
+
+  return {
+    mode,
+    rme: ciLevel !== void 0
+      ? rme(stats.mode.hsmConfidence(pooledSample, ciLevel, resamples), mode)
+      : void 0,
+  };
+}
+
+function concatSamples(samples: (readonly [Float64Array, samples.Duration])[]) {
   const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
   const concatSample = new Float64Array(N);
 
   for (let i = 0, off = 0; i < samples.length; i++) {
     const [raw] = samples[i];
-    concatSample.set(raw, off)
+    concatSample.set(raw, off);
     off += raw.length;
   }
 
-  const mode = stats.mode.hsm(concatSample).mode;
-
-  return {
-    mode,
-    rme: ciLevel !== void 0
-      ? rme(stats.mode.hsmConfidence(concatSample, ciLevel), mode)
-      : void 0,
-  };
+  return concatSample;
 }
 
 function kdeModeConflation(
-  samples: [Float64Array, samples.Duration][],
+  samples: (readonly [Float64Array, samples.Duration])[],
 ) {  
   // MISE-optimized bandwidth
   const hs: [raw: Float64Array, h: number][] = [];

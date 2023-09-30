@@ -9,11 +9,11 @@ import * as samples from './samples.js';
  * When multiple reports are combined together it produces a set of aggregated
  * fixtures which can be summarized by a conflation.
  */
-export type AggregatedFixture<T extends samples.Sample<any>> = {
+export type AggregatedFixture<S extends samples.Sample<any>> = {
   name: wt.FixtureName;
 
   samples: {
-    sample: T;
+    sample: S;
     annotations: wt.AnnotationBag;
   }[];
 
