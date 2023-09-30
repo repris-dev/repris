@@ -7,6 +7,7 @@ import type { TestEvents, TestFileEvent } from '@jest/test-result';
 
 import { annotators, samples, wiretypes as wt } from '@sampleci/samplers';
 import { typeid, assert, iterator } from '@sampleci/base';
+
 import { SampleCacheManager, RecordCounter, AggregatedFixture } from './cacheManager.js';
 import * as sciConfig from './config.js';
 
@@ -29,9 +30,9 @@ export default async function testRunner(
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ) {
-  const cfg = await sciConfig.load(globalConfig.rootDir);
-  const cacheFile = new SampleCacheManager(config, testPath);
-  const counter = new RecordCounter<string>();
+  const cfg = await sciConfig.load(globalConfig.rootDir),
+    cacheFile = new SampleCacheManager(config, testPath),
+    counter = new RecordCounter<string>();
 
   let pendingSample: samples.Sample<unknown> | undefined;
 
@@ -45,8 +46,9 @@ export default async function testRunner(
   }
 
   /** Conflation annotation config */
-  const conflationAnnotations = new Map(iterator.map(cfg.conflation.annotations,
-    c => typeof c === 'string' ? [c as typeid, {}] : [c[0] as typeid , c[1].opts ?? {}]));
+  const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
+  /** Conflation annotation config */
+  const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
 
   function sendMessageWrapper(evt: keyof TestEvents, args: any) {
     if (evt === 'test-case-result') {
@@ -59,11 +61,10 @@ export default async function testRunner(
         
         // assign serialized sample generated during the most recent test case
         // to this test case result
-        (assertionResult as any).sample = s.toJson();
-
-        const title = assertionResult.ancestorTitles.concat(assertionResult.title)        
+        (assertionResult as any).sample = annotate(s, sampleAnnotations);
 
         if (config.cache) {
+          const title = assertionResult.ancestorTitles.concat(assertionResult.title);
           // nth-time in this test run this fixture name has been seen
           const nth = counter.increment(JSON.stringify(title));
           // load the previous samples of this fixture from the cache
@@ -73,7 +74,7 @@ export default async function testRunner(
             // publish the conflation on the current test case result
             (assertionResult as any).conflation = conflate(
               s, cachedFixture, conflationAnnotations, cfg.conflation.options,
-            );
+            )?.annotations;
           } else {
             cachedFixture.samples.push({
               sample: s,
@@ -111,25 +112,45 @@ export default async function testRunner(
   return testResult;
 }
 
+function normaliseAnnotationCfg(
+  annotations: (string | [id: string, config: sciConfig.AnnotationConfig])[]
+): Map<typeid, any> {
+  return new Map(iterator.map(annotations,
+    c => typeof c === 'string' ? [c as typeid, {}] : [c[0] as typeid , c[1].options ?? {}]));
+}
+
+function annotate(
+  newSample: samples.duration.Duration,
+  annotations: Map<typeid, any>,
+): wt.AnnotationBag | undefined {
+  const [bag, err] = annotators.annotate(newSample, annotations);
+  if (err) {
+    dbg('Failed to annotate sample %s', err.message);
+  } else {
+    return bag!.toJson();
+  }
+}
+
 function conflate(
   newSample: samples.duration.Duration,
   cacheState: AggregatedFixture<samples.duration.Duration>,
-  conflationAnnotations: Map<typeid, any>,
-  opts?: samples.duration.ConflationOptions,
+  annotations: Map<typeid, any>,
+  opts?: Partial<samples.duration.ConflationOptions>,
 ): wt.SampleConflation | undefined {
-  let result: wt.SampleConflation | undefined;
-
+  // The existing cached samples
   const index = new Map(cacheState.samples.map(s => [s.sample, s]));
 
-  // load the current sample and its annotations
+  // load the new sample and its annotations
   index.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the current and previous samples together
   const newConflation = new samples.duration.Conflation(index.keys(), opts);
 
+  let result: wt.SampleConflation | undefined;
+
   // annotate this conflation
-  if (conflationAnnotations.size > 0) {
-    const [bag, err] = annotators.annotate(newConflation, conflationAnnotations);
+  if (annotations.size > 0) {
+    const [bag, err] = annotators.annotate(newConflation, annotations);
 
     if (err) {
       dbg('Failed to annotate conflation %s', err.message);

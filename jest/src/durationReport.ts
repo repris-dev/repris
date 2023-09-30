@@ -1,25 +1,26 @@
 import chalk from 'chalk';
-import { assert, Status, typeid } from '@sampleci/base';
-import { samples, wiretypes as wt, annotators as anno } from '@sampleci/samplers';
+import { assert, typeid } from '@sampleci/base';
+import { wiretypes as wt, annotators as anno } from '@sampleci/samplers';
+import type * as config from './config.js';
 
 export interface ColumnQuality {
   id: typeid;
-  thresholds: number[];
+  thresholds?: number[];
 }
 
 export interface Column {
   id: typeid;
   displayName?: string;
   units?: string;
-  quality?: ColumnQuality;
-};
+  grading?: { id: typeid; thresholds?: config.GradingConfig['thresholds'] };
+}
 
 export interface RenderedLine {
   line: string;
   length: number;
-};
+}
 
-type Cell = string | readonly [text: string, len: number]
+type Cell = string | readonly [text: string, len: number];
 
 const Cell = {
   pad(c: Cell, columnWidth: number) {
@@ -47,88 +48,61 @@ const Cell = {
     const at = typeof a === 'string' ? a : a[0];
     const bt = typeof b === 'string' ? b : b[0];
 
-    return [
-      at + bt,
-      Cell.length(a) + Cell.length(b)
-    ];
+    return [at + bt, Cell.length(a) + Cell.length(b)];
   },
-}
+};
 
 export class TerminalReport<Id> {
-  constructor(private columns: Column[]) { this.reset() }
-
-  annotationRequest = this.columns.reduce(
-    (req, c) => {
-      req.set(c.id, {} /* options */);
-      if (c.quality !== void 0) {
-        req.set(c.quality.id, {} /* options */);
-      }
-      return req;
-    },
-    new Map<typeid, {}>()
-  );
+  constructor(public readonly columns: Column[]) {
+    this.reset();
+  }
 
   fmt = new ValueFormatter();
   colMargin = 2;
   emptyCell = [chalk.dim('?'), 1] as Cell;
-  rowIndex = new Map<Id, { cells: Cell[], duration: samples.duration.Duration }[]>();
+  rowIndex = new Map<Id, { cells: Cell[]; bag: anno.AnnotationBag }[]>();
   columnWidths!: number[];
   titleCells!: string[];
 
-  count() { return this.rowIndex.size; }
+  count() {
+    return this.rowIndex.size;
+  }
 
   /**
    * Load a sample in to the table.
    * Multiple samples can have the same id. When rendered, samples by the same id
    * are rendered in the order they were loaded in to the table.
    */
-  load(rowid: Id, sample: wt.SampleData, conflation?: wt.SampleConflation): boolean {
-    const d = samples.duration.Duration.fromJson(sample);
-    if (Status.isErr(d)) { return false; }
+  load(rowid: Id, sample: wt.AnnotationBag, conflation?: wt.AnnotationBag): boolean {
+    const bag = anno.DefaultBag.fromJson(sample);
+    const conflationAnnotations = anno.DefaultBag.fromJson(conflation ?? {});
 
-    // conflated stats
-    const conflationAnnotations = anno.DefaultBag.fromJson(conflation?.annotations ?? {});
-    const duration = d[0];
+    const cells = this.columns.map((c) => {
+      const selectedBag = bag!.annotations.has(c.id) ? bag! : conflationAnnotations;
+      const ann = selectedBag.annotations.get(c.id);
 
-    // annotate the sample, create the cells for the row
-    const [bag, err] = anno.annotate(duration, this.annotationRequest);
-
-    if (err) {
-      // Render as an empty row
-      this.rowIndex.set(rowid, [{ cells: [], duration }]);  
-    } else {
-      const cells = this.columns.map(c => {
-        const selectedBag = bag!.annotations.has(c.id) ? bag! : conflationAnnotations;
-        const ann = selectedBag.annotations.get(c.id);
-
-        if (ann !== undefined) {
-          let cell = this.fmt.format(ann);
-          if (c.quality !== void 0) {
-            cell = this._colorizeByQuality(
-              cell,
-              c.quality,
-              selectedBag,
-            );
-          }
-
-          return cell;
+      if (ann !== undefined) {
+        let cell = this.fmt.format(ann);
+        if (c.grading !== void 0) {
+          cell = this._colorizeByQuality(cell, c.grading, selectedBag);
         }
-  
-        // The annotation for this sample wasn't found 
-        return this.emptyCell;
-      });
-  
-      // update column widths
-      this.columnWidths.forEach((w, i) =>
-        this.columnWidths[i] = Math.max(w, Cell.length(cells[i]))
-      );
 
-      const entry = this.rowIndex.get(rowid) ?? []
-      entry.push({ cells, duration });
+        return cell;
+      }
 
-      this.rowIndex.set(rowid, entry);
-    }
+      // The annotation for this sample wasn't found
+      return this.emptyCell;
+    });
 
+    // update column widths
+    this.columnWidths.forEach(
+      (w, i) => (this.columnWidths[i] = Math.max(w, Cell.length(cells[i])))
+    );
+
+    const entry = this.rowIndex.get(rowid) ?? [];
+    entry.push({ cells, bag });
+
+    this.rowIndex.set(rowid, entry);
     return true;
   }
 
@@ -141,7 +115,7 @@ export class TerminalReport<Id> {
     const ann = bag.annotations.get(config.id);
     const colors = [chalk.green, chalk.yellow, chalk.red];
 
-    if (typeof ann === 'number') {
+    if (typeof ann === 'number' && Array.isArray(config.thresholds)) {
       let k = -1;
 
       for (let t of config.thresholds) {
@@ -157,9 +131,15 @@ export class TerminalReport<Id> {
       }
     }
 
+    // Hex color
+    if (typeof ann === 'string' && ann.length > 0 && ann[0] === '#') {
+      return [chalk.hex(ann)(Cell.text(cell)), Cell.length(cell)];
+    }
+
     //  Either:
     //   - the annotation wasn't found
     //   - the annotation wasn't a number,
+    //   - the annotation wasn't a valid hexadecimal color
     //   - the number was outside the minimum thresholds of the
     //     quality config
     return cell;
@@ -168,14 +148,14 @@ export class TerminalReport<Id> {
   reset() {
     this.rowIndex.clear();
     this.titleCells = this.columns.map(
-      c => (c.displayName ?? c.id) + (c.units ? ` (${ c.units })` : '')
+      (c) => (c.displayName ?? c.id) + (c.units ? ` (${c.units})` : '')
     );
-    this.columnWidths = this.titleCells.map(c => c.length);
+    this.columnWidths = this.titleCells.map((c) => c.length);
   }
 
   _renderRow(cells: Cell[]): RenderedLine {
     assert.eq(cells.length, this.columns.length);
-  
+
     const margin = ' '.repeat(this.colMargin);
     let row = [];
     let cols = 0;
@@ -188,7 +168,7 @@ export class TerminalReport<Id> {
 
     return {
       line: row.join(margin),
-      length: cols + ((cells.length - 1) * this.colMargin)
+      length: cols + (cells.length - 1) * this.colMargin,
     };
   }
 
@@ -213,8 +193,7 @@ export class TerminalReport<Id> {
   }
 }
 
-class ValueFormatter
-{  
+class ValueFormatter {
   fmtInt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
   fmtNumber = new Intl.NumberFormat(void 0, { maximumSignificantDigits: 2 });
 
@@ -230,14 +209,12 @@ class ValueFormatter
         return val ? 'T' : 'F';
 
       case 'number':
-        return Math.round(val) === val
-            ? this.fmtInt.format(val)
-            : this.fmtNumber.format(val);
+        return Math.round(val) === val ? this.fmtInt.format(val) : this.fmtNumber.format(val);
 
       case 'object': {
         if (Array.isArray(val)) {
           let cell: Cell = [chalk.dim('['), 1],
-              k = val.length;
+            k = val.length;
 
           for (let i = 0; i < k; i++) {
             const subCell = this.format(val[i]);

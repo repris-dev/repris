@@ -10,34 +10,75 @@ import type {
 import type { Config } from '@jest/types';
 import { specialChars, preRunMessage } from 'jest-util';
 import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
-import { annotators, wiretypes as wt } from '@sampleci/samplers';
-import { TerminalReport, Column } from './durationReport.js';
 
-export type ReporterConfig = {
-  columns?: Column[]
-}
+import { typeid } from '@sampleci/base';
+import { annotators, wiretypes as wt } from '@sampleci/samplers';
+
+import { TerminalReport, Column } from './durationReport.js';
+import * as config from './config.js';
 
 type TableRowKey = `${ string }-${ string }`;
 
 const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
+async function loadReporter(rootDir: string): Promise<TerminalReport<TableRowKey>> {
+  const cfg = await config.load(rootDir);
+
+  // groups of annotations to report
+  const annotationGroups = [
+    cfg.sample.annotations,
+    cfg.conflation.annotations,
+  ];
+
+  const columns: Column[] = [];
+
+  // one column for each visible annotation
+  for (const g of annotationGroups) {
+    for (const ann of g) {
+      const a = typeof ann !== 'string'
+          ? { id: ann[0], ...ann[1] }
+          : { id: ann };
+  
+      if (typeof a.display === 'undefined' || a.display) {
+        const grading = a.grading !== undefined
+            ? Array.isArray(a.grading)
+              ? { id: a.grading[0] as typeid, thresholds: a.grading[1].thresholds }
+              : { id: a.id as typeid, thresholds: a.grading?.thresholds }
+            : undefined;
+    
+        columns.push({
+          id: a.id as typeid,
+          displayName: a.displayName ?? a.id,
+          grading
+        });
+      }
+    }
+  }
+
+  return new TerminalReport<TableRowKey>(columns);
+}
+
 export default class SampleReporter extends DefaultReporter {
   static override readonly filename = import.meta.url;
 
   protected override _globalConfig: Config.GlobalConfig;
 
-  table: TerminalReport<TableRowKey>;
+  // resolves when the configuration has loaded
+  loadingMutex: Promise<void>;
+  table: TerminalReport<TableRowKey> | undefined;
   consoleWidth!: { columns: number };
 
   constructor(
     globalConfig: Config.GlobalConfig,
-    private config?: ReporterConfig
+    private _config?: unknown
   ) {
     super(globalConfig);
-
-    this.table = new TerminalReport<TableRowKey>(config?.columns ?? []);
     this._globalConfig = globalConfig;
+
+    this.loadingMutex = loadReporter(globalConfig.rootDir).then((table) => {
+      this.table = table;
+    });
   }
 
   protected override __wrapStdio(
@@ -77,21 +118,25 @@ export default class SampleReporter extends DefaultReporter {
     return root;
   }
 
-  override onRunStart(
+  override async onRunStart(
     aggregatedResults: AggregatedResult,
     options: ReporterOnStartOptions,
-  ): void {
+  ): Promise<void> {
     // always show the status/progress bar since benchmarks are usually long running
     super.onRunStart(aggregatedResults, { ...options, showStatus: true });
     preRunMessage.remove(process.stderr);
 
+    // Throws if there is a configuration error
+    await this.loadingMutex;
+    const columns = this.table!.columns;
+
     // configuration warnings
-    if (!this.config || !this.config.columns || this.config.columns.length === 0) {
+    if (columns.length === 0) {
       this.log(WARN + ' No annotations are configured');
     } else {
       // report unknown annotations
       const missing = [];
-      for (const c of this.config.columns) {
+      for (const c of columns) {
         if (!c.id || !annotators.supports(c.id)) {
           missing.push(c.id);
         }
@@ -118,9 +163,9 @@ export default class SampleReporter extends DefaultReporter {
       );
 
       if (!result.testExecError && !result.skipped) {
-        if (this.table.count() > 0) {
+        if (this.table!.count() > 0) {
           const w = this.consoleWidth.columns;
-          const line = this.table.renderTitles();
+          const line = this.table!.renderTitles();
           const moveTo = `\x1b[${ (w - line.length) + 1 }G`;
           this.log(moveTo + line.line);
         }
@@ -139,12 +184,12 @@ export default class SampleReporter extends DefaultReporter {
 
   override onTestCaseResult(
     test: Test,
-    tcr: TestCaseResult & { sample?: wt.SampleData; conflation?: wt.SampleConflation },
+    tcr: TestCaseResult & { sample?: wt.AnnotationBag; conflation?: wt.AnnotationBag },
   ) {
     super.onTestCaseResult(test, tcr);
 
     if (tcr.sample) {
-      this.table.load(`${ test.path }-${ tcr.fullName }`, tcr.sample, tcr.conflation);
+      this.table!.load(`${ test.path }-${ tcr.fullName }`, tcr.sample, tcr.conflation);
     }
   }
 
@@ -209,7 +254,7 @@ export default class SampleReporter extends DefaultReporter {
     const status = this._getIcon(test.status);
     const title = chalk.dim(test.title);
     const prefix = '  '.repeat(indentLevel || 0) + `${status} ${title}`;
-    const renderedCells = this.table.renderRow(`${ path }-${ test.fullName }`);
+    const renderedCells = this.table!.renderRow(`${ path }-${ test.fullName }`);
 
     if (renderedCells) {
       // move to terminal column to right-align the table
