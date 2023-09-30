@@ -229,11 +229,11 @@ export default async function testRunner(
               indexedSnapshot.getBenchmark(title, nth) ?? f.DefaultBenchmark.empty({ title, nth });
 
             const newBenchmark = reconflateBenchmark(
+              indexedBenchmark,
               { sample, annotations: sampleBagJson },
               reprisCfg.conflation.options,
               conflationAnnotationConfig,
               benchmarkAnnotationConfig,
-              indexedBenchmark,
             );
 
             // Update the index
@@ -243,7 +243,7 @@ export default async function testRunner(
             augmentedResult.repris.conflation = newBenchmark
               .annotations().get(newBenchmark.conflation()?.[uuid]!);
 
-            // publish the conflation annotations on the current test case result
+            // publish the current annotations on the current test case result
             augmentedResult.repris.benchmark = newBenchmark
               .annotations().get(newBenchmark[uuid]);
           }
@@ -373,32 +373,24 @@ function annotate(
 }
 
 function reconflateBenchmark(
+  bench: f.AggregatedBenchmark<samples.Duration>,
   newEntry: { sample: samples.Duration; annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
   conflationRequest: Map<typeid, any>,
   benchmarkRequest: Map<typeid, any>,
-  indexedBenchmark: f.AggregatedBenchmark<samples.Duration>
 ): f.AggregatedBenchmark<samples.Duration> {
-  // The existing cached samples
-  const benchmarkIndex = new Map(
-    iter.map(indexedBenchmark.samples(), s => [s, indexedBenchmark.annotations().get(s[uuid])])
-  );
-
-  // Add the new sample and its annotations
-  benchmarkIndex.set(newEntry.sample, newEntry.annotations);
+  const allSamples = iter.concat([bench.samples(), [newEntry.sample]]);
 
   // Conflate the new and previous samples together
-  const newConflation = new conflations.Duration(benchmarkIndex.keys()).analyze(opts);
+  const newConflation = new conflations.Duration(allSamples).analyze(opts);
 
-  // Update the aggregated benchmark, discarding sample(s) rejected in the conflation analysis.
-  const result = indexedBenchmark.addRun(newConflation);
+  // Update the aggregated benchmark, discarding sample(s)
+  // rejected during the conflation analysis.
+  const result = bench.addRun(newConflation);
 
-  // copy annotations from the existing benchmark
+  // set sample annotation
   for (const s of result.samples()) {
-    const bag = indexedBenchmark.annotations().get(s[uuid]);
-    if (bag) {
-      result.annotations().set(s[uuid], bag);
-    }
+    if (s === newEntry.sample) result.annotations().set(s[uuid], newEntry.annotations);
   }
 
   // Annotate this conflation
