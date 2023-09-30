@@ -2,13 +2,30 @@
 import chalk from 'chalk';
 import { defaults } from '@repris/samplers';
 
+/**
+ * @param {string} displayName
+ * @param {import('./src/config').Ctx | undefined} ctx
+ * @returns {import('./src/config').AnnotationRequest}
+ */
+function benchmarkSummary(displayName, ctx = undefined) {
+  return ['benchmark:summaryText', {
+    displayName,
+    grading: [
+      'benchmark:stable', {
+        rules: [{ '==': false, apply: chalk.dim }],
+        ctx
+      },
+    ],
+  }]
+}
+
 /** @type {import("./src/config").ReprisConfig} */
 export default {
-  sampler: {
-    options: defaults.samplers.stopwatch
-  },
   sample: {
     options: defaults.samples.duration
+  },
+  sampler: {
+    options: defaults.samplers.stopwatch
   },
   conflation: {
     options: defaults.conflations.duration
@@ -29,14 +46,7 @@ export default {
             ],
           },
         }],
-        ['benchmark:summaryText', {
-          displayName: 'Index status',
-          grading: [
-            'benchmark:stable', {
-              rules: [{ '==': false, apply: chalk.dim }],
-            },
-          ],
-        }],
+        benchmarkSummary('Index'),
       ],
     },
 
@@ -44,27 +54,11 @@ export default {
       annotations: [{
         '@index': [
           ['mean:conflation', { displayName: 'mean'}],
-          ['benchmark:summaryText', {
-            displayName: 'Index',
-            grading: [
-              'benchmark:stable', {
-                ctx: '@index',
-                rules: [{ '==': false, apply: chalk.dim }],
-              },
-            ],
-          }],
+          benchmarkSummary('Index', '@index'),
         ],
         '@baseline': [
           ['mean:conflation', { displayName: 'mean'}],
-          ['benchmark:summaryText', {
-            displayName: 'Baseline',
-            grading: [
-              'benchmark:stable', {
-                ctx: '@baseline',
-                rules: [{ '==': false, apply: chalk.dim }],
-              },
-            ],
-          }],
+          benchmarkSummary('Baseline', '@baseline'),
         ]
       }]
     },

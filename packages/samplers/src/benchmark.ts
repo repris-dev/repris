@@ -230,7 +230,7 @@ ann.register('@benchmark:annotator' as typeid, {
   ): Status<ann.AnnotationBag | undefined> {
     if (!DefaultBenchmark.is(fixt)) return Status.value(void 0);
 
-    let summary;
+    let summary: string;
 
     const confl = fixt.conflation();
     if (confl) {
