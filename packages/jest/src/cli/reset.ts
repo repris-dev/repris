@@ -13,7 +13,6 @@ import { IndexResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import { println, panic, yesNoQuestion } from './util.js';
 
-
 type IndexStat = {
   totalBenchmarks: number;
   totalSamples: number;
@@ -22,9 +21,9 @@ type IndexStat = {
 
 type IndexFileStat = {
   testPath: string;
-  benchmarkCount: number;
+  pendingBenchmarkCount: number;
+  totalBenchmarkCount: number;
   sampleCount: number;
-  tombstoneCount: number;
 };
 
 export async function reset(_argv: string[]) {
@@ -53,12 +52,12 @@ export async function reset(_argv: string[]) {
   // ask permission
   const extra =
     indexStat.totalSamples > 0
-      ? ` ${chalk.bold(indexStat.totalSamples)} samples from ${chalk.bold(indexStat.totalBenchmarks)} benchmarks will be lost.`
+      ? ` ${chalk.bold(indexStat.totalSamples)} samples from ${chalk.bold(
+          indexStat.totalBenchmarks
+        )} benchmarks will be lost.`
       : '';
 
-  const doDelete: boolean | undefined = await yesNoQuestion(
-    'Reset the index?' + extra
-  );
+  const doDelete: boolean | undefined = await yesNoQuestion('Reset the index?' + extra);
 
   if (doDelete === true) {
     const p = indexStat.files.map(stat => sfm.delete(stat.testPath));
@@ -97,10 +96,15 @@ async function showIndexSummary(
       }
 
       const tombstoneCount = iterator.count(snapshot!.allTombstones());
-      benchmarkCount += tombstoneCount;
 
       if (benchmarkCount > 0 || tombstoneCount > 0) {
-        pending.push({ testPath: t.path, benchmarkCount, sampleCount, tombstoneCount });
+        pending.push({
+          testPath: t.path,
+          pendingBenchmarkCount: benchmarkCount,
+          totalBenchmarkCount: tombstoneCount + benchmarkCount,
+          sampleCount,
+        });
+
         totalBenchmarks += benchmarkCount;
         totalSamples += sampleCount;
       }
@@ -109,23 +113,23 @@ async function showIndexSummary(
 
   if (pending.length > 0) {
     const columns = [
-      { type: 'benchmarkStat' as typeid, displayName: 'Pending (samples)' },
-      { type: 'tombstoneCount' as typeid, displayName: 'Captured' },
+      { type: 'uncapturedStat' as typeid, displayName: 'Benchmarks' },
+      { type: 'uncapturedSamplesStat' as typeid, displayName: 'Samples' },
     ];
 
     const report = new TableTreeReporter<IndexFileStat>(columns, {
       annotate: stat => {
-        const ann = {
-          benchmarkStat:
-            stat.benchmarkCount === 0
-              ? chalk.dim(`0 (0)`)
-              : `${stat.benchmarkCount} (${stat.sampleCount})`,
-          tombstoneCount:
-            stat.tombstoneCount === 0
-              ? chalk.dim('0')
-              : `${stat.tombstoneCount} of ${stat.benchmarkCount}`,
-        };
-        return annotators.DefaultBag.fromJson(ann);
+        const uncaptured = stat.pendingBenchmarkCount;
+        const benchSuffix = `${chalk.dim('of ' + stat.totalBenchmarkCount)}`;
+
+        return annotators.DefaultBag.fromJson({
+          uncapturedStat:
+            stat.pendingBenchmarkCount === 0
+              ? chalk.dim('0 ') + benchSuffix
+              : `${chalk.bold(uncaptured)} ${benchSuffix}`,
+          uncapturedSamplesStat:
+            stat.sampleCount === 0 ? chalk.dim(0) : chalk.bold(stat.sampleCount),
+        });
       },
       render: stat => jReporters.utils.formatTestPath(projCfg, stat.testPath),
       pathOf: () => [],
