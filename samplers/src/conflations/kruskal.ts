@@ -44,6 +44,7 @@ export class KWConflation<T> {
     if (N < 2) {
       const stat =
         N === 1 ? [{ sample: samples[0][1], status: 'consistent' as ConflatedSampleStatus }] : [];
+
       return {
         stat,
         summary: this.summarize(stat),
