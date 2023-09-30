@@ -8,7 +8,7 @@ describe('hsm', () => {
     const rng6 = random.gaussian(6, 8, gen);
     const sample = new Float32Array(128);
 
-    for (let i = 0; i < sample.length - 1;) {
+    for (let i = 0; i < sample.length - 1; ) {
       sample[i++] = rng3();
       sample[i++] = rng6();
     }
@@ -64,37 +64,74 @@ describe('hsmDifferenceTest', () => {
     const rng = random.PRNGi32(52);
     const rng0 = random.gaussian(105, 5, rng);
     const rng1 = random.gaussian(100, 5, rng);
-    
+
     const N = 100;
     const x0 = new Float32Array(N);
     const x1 = new Float32Array(N);
-    
+
     for (let i = 0; i < N; i++) {
       x0[i] = rng0();
       x1[i] = rng1();
     }
-  
+
     const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
     expect(p05).toBeInRange(-10, 5);
     expect(p95).toBeInRange(5, 15);
   });
 
   test('difference in two very similar normal distributions', () => {
-    const rng = random.PRNGi32(52)
+    const rng = random.PRNGi32(52);
     const rng0 = random.gaussian(1000, 5, rng);
     const rng1 = random.gaussian(1000, 50, rng);
-    
+
     const N = 100;
     const x0 = new Float32Array(N);
     const x1 = new Float32Array(N);
-    
+
     for (let i = 0; i < N; i++) {
       x0[i] = rng0();
       x1[i] = rng1();
     }
-  
+
     const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
     expect(p05).toBeInRange(-50, 0);
     expect(p95).toBeInRange(0, 50);
+  });
+});
+
+describe('estimateStdDev', () => {
+  test('can estimate standard deviation', () => {
+    const rng = random.PRNGi32(52);
+    const rng0 = random.gaussian(1000, 5, rng);
+
+    const N = 50_000;
+    const x0 = new Float32Array(N);
+
+    for (let i = 0; i < N; i++) {
+      x0[i] = rng0();
+    }
+
+    expect(modes.estimateStdDev(x0, 1)).toBeCloseTo(5, 1);
+    expect(modes.estimateStdDev(x0, 0.5)).toBeCloseTo(5, 1);
+    expect(modes.estimateStdDev(x0, 0.25)).toBeCloseTo(5, 0.5);
+  });
+
+  test('is robust to noise', () => {
+    const rng = random.PRNGi32(52);
+    const rng0 = random.gaussian(1000, 5, rng);
+    const rng1 = random.gaussian(2000, 50, rng);
+
+    const N = 50_000;
+    const xs = new Float32Array(N);
+
+    // 50% noise.
+    for (let i = 0; i < N; ) {
+      xs[i++] = rng0();
+      xs[i++] = rng1();
+    }
+
+    // by looking at only the narrowest 5%, the std dev. of the modal value can
+    // be estimated
+    expect(modes.estimateStdDev(xs, 0.05)).toBeInRange(5, 10);
   });
 });

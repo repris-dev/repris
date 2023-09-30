@@ -94,6 +94,26 @@ export function hsm(sample: Indexable<number>): REM {
 }
 
 /**
+ * A robust estimation of the standard deviation of a sample
+ * at the mode.
+ * 
+ * @param std Controls the proportion of the sample about the mode to
+ * take in to account
+ */
+export function estimateStdDev(xs: Indexable<number>, std = 1) {
+  // The proportion of the sample (window size) to find which would correspond
+  // to std (standard deviations). e.g. 1 s.d. = .682
+  const m = 1 - (1 - stats.normal.cdf(std)) * 2;
+
+  // width containing the proportion of the data
+  const bound = stats.mode.lms(xs, m).bound;
+  const a = xs[bound[1]] - xs[bound[0]];
+
+  // convert to standard dev.
+  return (a * (1 / std)) / 2;
+}
+
+/**
  * @param sample
  * @param level The confidence level, between (0, 1)
  * @param K The number of bootstrap samples
