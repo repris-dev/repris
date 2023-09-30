@@ -215,7 +215,7 @@ ann.register('@sample:duration-annotator' as typeid, {
       [annotations.std, s.std()],
       [annotations.cov, s.cov()],
       [annotations.kurtosis, s.kurtosis()],
-      [annotations.range, s.range() as ann.Annotation],
+      [annotations.range, s.range()],
       [annotations.min, s.range()[0]],
       [annotations.max, s.range()[1]],
       [annotations.rme95, s.rme()],

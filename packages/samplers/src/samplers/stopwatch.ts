@@ -97,7 +97,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
 
   /** Start capturing samples */
   run(...args: Args): Promise<Status> {
-    if (this.phase !== Phase.Ready) { throw new Error('The stopwatch is already running'); }
+    if (this.phase !== Phase.Ready) throw new Error('The stopwatch is already running');
 
     // TODO: measure the overhead of .apply()
     const applyParams = [this.state, ...args];

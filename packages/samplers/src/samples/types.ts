@@ -33,7 +33,7 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
    */
   significant(): boolean;
 
-  /** Convert a sample value as a quantity */
+  /** Convert a sample value to a quantity */
   asQuantity(value: V): q.Quantity;
 }
 

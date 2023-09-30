@@ -43,7 +43,7 @@ export type Sample = {
    */
   samplerInfo?: SamplerInfo;
 
-  /** The observations(s) constituting the sample */
+  /** The observations(s) of the sample */
   data: SampleData;
 };
 
@@ -78,7 +78,7 @@ export type Benchmark = {
   /** Conflation of the samples */
   conflation?: Conflation;
 
-  /** Index of annotations of samples/conflations in this benchmark */
+  /** Index of annotations of samples/conflation in this benchmark */
   annotations?: Record<string, AnnotationBag>;
 };
 
@@ -101,10 +101,3 @@ export type Snapshot = {
   /** */
   epoch?: Epoch;
 };
-
-export function isSample(x: Sample): x is Sample {
-  return typeof x === 'object'
-      && typeof x.samplerInfo !== 'undefined'
-      && typeof x.data === 'object'
-      && typeof x.data['@type'] === 'string';
-}
