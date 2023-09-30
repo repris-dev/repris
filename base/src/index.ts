@@ -6,6 +6,7 @@ export * as iterator from './iterator.js';
 export * as stats from './stats.js';
 export * as math from './math.js';
 export * as random from './random.js';
+export * as partitioning from './partitioning.js';
 
 export * from './multimap.js';
 export * from './util.js';
