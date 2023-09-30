@@ -12,7 +12,7 @@ export function StagingAreaResolver(config: Config.ProjectConfig): snapshotManag
   return resolver;
 }
 
-export async function SnapshotResolver(config: Config.ProjectConfig): Promise<snapshotManager.PathResolver> {
+export async function IndexResolver(config: Config.ProjectConfig): Promise<snapshotManager.PathResolver> {
   const resolver = await buildSnapshotResolver(config);
   return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
 }

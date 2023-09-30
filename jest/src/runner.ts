@@ -17,7 +17,7 @@ import {
 import { typeid, assert, iterator as iter, Status } from '@repris/base';
 
 import * as reprisConfig from './config.js';
-import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
+import { IndexResolver, StagingAreaResolver } from './snapshotUtils.js';
 
 export interface AugmentedAssertionResult extends AssertionResult {
   repris?: {
@@ -301,7 +301,7 @@ async function commitToSnapshot(
   testPath: string,
   index: snapshots.Snapshot
 ) {
-  const s = new snapshotManager.SnapshotFileManager(await SnapshotResolver(config));
+  const s = new snapshotManager.SnapshotFileManager(await IndexResolver(config));
   const snapFile = await s.loadOrCreate(testPath);
 
   if (Status.isErr(snapFile)) {

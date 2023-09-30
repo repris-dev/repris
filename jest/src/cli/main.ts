@@ -20,7 +20,7 @@ import {
 } from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
-import { StagingAreaResolver, SnapshotResolver } from '../snapshotUtils.js';
+import { StagingAreaResolver, IndexResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import * as reprisConfig from '../config.js';
 import { gradedColumns } from '../reporterUtils.js';
@@ -121,7 +121,7 @@ async function show(argv: string[]): Promise<void> {
     watchman: false,
   });
 
-  const sfm = new snapshotManager.SnapshotFileManager(await SnapshotResolver(projCfg));
+  const sfm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
   const search = new core.SearchSource(context);
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
   const reprisCfg = await reprisConfig.load(projCfg.rootDir);
@@ -137,7 +137,7 @@ async function compare(_argv: string[]): Promise<void> {
     watchman: false,
   });
 
-  const sfm = new snapshotManager.SnapshotFileManager(await SnapshotResolver(projCfg));
+  const sfm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
   const indexm = new snapshotManager.SnapshotFileManager(await StagingAreaResolver(projCfg));
   const search = new core.SearchSource(context);
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
