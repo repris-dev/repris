@@ -11,6 +11,7 @@ export interface ColumnQuality {
 
 export interface Column {
   type: typeid;
+  ctx?: `@${string}`[];
   displayName?: string;
   units?: string;
   grading?: { type: typeid; thresholds?: config.GradingConfig['thresholds'] };
@@ -74,7 +75,7 @@ export class TerminalReport<Id> {
    */
   load(rowid: Id, bag: anno.AnnotationBag): boolean {
     const cells = this.columns.map((c) => {
-      const ann = bag.annotations.get(c.type);
+      const ann = bag.annotations.get(c.type, c.ctx);
 
       if (ann !== undefined) {
         let cell = this.fmt.format(ann);
