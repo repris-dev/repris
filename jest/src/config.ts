@@ -5,7 +5,7 @@ import { assert, assignDeep, iterator, RecursivePartial, typeid } from '@repris/
 const dbg = debug('repris:config');
 const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
 
-export interface SCIConfig {
+export interface ReprisConfig {
   sampler: {
     /** Configuration of the sampler */
     options: RecursivePartial<import('@repris/samplers').stopwatch.Options>;
@@ -126,16 +126,16 @@ const explorer = lilconfig('repris', {
   },
 });
 
-const defaultConfig: Promise<SCIConfig> = import(DEFAULT_CONFIG_PATH)
+const defaultConfig: Promise<ReprisConfig> = import(DEFAULT_CONFIG_PATH)
   .then(mod => mod.default)
   .catch((e) => {
     dbg(`Failed to load default Config file: %s`, e);
   });
 
 /** Map of rootDir to config */
-const sessionConfigs = new Map<string, SCIConfig>();
+const sessionConfigs = new Map<string, ReprisConfig>();
 
-export async function load(rootDir: string): Promise<SCIConfig> {
+export async function load(rootDir: string): Promise<ReprisConfig> {
   if (!sessionConfigs.has(rootDir)) {
     const sr = await explorer.search(rootDir);
     const defaultCfg = await defaultConfig;

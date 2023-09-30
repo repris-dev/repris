@@ -153,7 +153,7 @@ type ComparedFixtures = {
 
 async function showComparison(
   projCfg: Config.ProjectConfig,
-  reprisCfg: reprisConfig.SCIConfig,
+  reprisCfg: reprisConfig.ReprisConfig,
   testFiles: jReporters.Test[],
   index: snapshotManager.SnapshotFileManager,
   baseline: snapshotManager.SnapshotFileManager
@@ -260,7 +260,7 @@ function applyMissingAnnotations(
 
 async function showSnapshotDetail(
   projCfg: Config.ProjectConfig,
-  reprisCfg: reprisConfig.SCIConfig,
+  reprisCfg: reprisConfig.ReprisConfig,
   testFiles: jReporters.Test[],
   sfm: snapshotManager.SnapshotFileManager
 ) {

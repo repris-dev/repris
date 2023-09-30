@@ -1,7 +1,7 @@
 // @ts-check
 import chalk from 'chalk';
 
-/** @type {import("./src/config").SCIConfig} */
+/** @type {import("./src/config").ReprisConfig} */
 export default {
   sampler: {
     options: {},

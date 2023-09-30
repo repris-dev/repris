@@ -66,7 +66,7 @@ const dbg = debug('repris:runner');
 
 function initializeEnvironment(
   environment: JestEnvironment,
-  cfg: reprisConfig.SCIConfig,
+  cfg: reprisConfig.ReprisConfig,
   getState: (title: string[], nth: number) => snapshots.FixtureState
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
