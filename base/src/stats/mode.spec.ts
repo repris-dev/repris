@@ -62,10 +62,10 @@ describe('hsm', () => {
 describe('hsmDifferenceTest', () => {
   test('difference in two normal distributions', () => {
     const rng = random.PRNGi32(52);
-    const rng0 = random.gaussian(100, 5, rng);
-    const rng1 = random.gaussian(105, 5, rng);
+    const rng0 = random.gaussian(105, 5, rng);
+    const rng1 = random.gaussian(100, 5, rng);
     
-    const N = 30;
+    const N = 100;
     const x0 = new Float32Array(N);
     const x1 = new Float32Array(N);
     
@@ -75,8 +75,8 @@ describe('hsmDifferenceTest', () => {
     }
   
     const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
-    expect(p05).toBeLessThan(-5);
-    expect(p95).toBeGreaterThan(0);
+    expect(p05).toBeInRange(-10, 5);
+    expect(p95).toBeInRange(5, 15);
   });
 
   test('difference in two very similar normal distributions', () => {
@@ -84,7 +84,7 @@ describe('hsmDifferenceTest', () => {
     const rng0 = random.gaussian(1000, 5, rng);
     const rng1 = random.gaussian(1000, 50, rng);
     
-    const N = 30;
+    const N = 100;
     const x0 = new Float32Array(N);
     const x1 = new Float32Array(N);
     
@@ -94,7 +94,7 @@ describe('hsmDifferenceTest', () => {
     }
   
     const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
-    expect(p05).toBeLessThan(-25);
-    expect(p95).toBeGreaterThan(25);
+    expect(p05).toBeInRange(-50, 0);
+    expect(p95).toBeInRange(0, 50);
   });
 });
