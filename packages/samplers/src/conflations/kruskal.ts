@@ -86,7 +86,7 @@ console.info('m99', m99);
 
     if (N > opts.maxSize) {
       // reject the outlier samples
-      const gauss = random.gaussian(0, N / 3);
+      const gauss = random.gaussian(0, N / 4);
 
       for (let n = N; n > opts.maxSize; n--) {
         let kth = 0;
@@ -104,35 +104,47 @@ console.info('reject', kth);
       //kw = stats.kruskalWallis(subset);
     }
 
+
+    console.info('samplingDist', subset.map(x => x.mode));
+
+    const xs = subset.map(x => x.mode);
+    const os = stats.online.Gaussian.fromValues(xs);
+    const z = stats.allPairs.crouxQn(xs).correctedSpread;
+    const nOutliers = xs.reduce(
+      (acc, ith) => acc + (Math.abs(ith - os.mean()) > 3 * z ? 1 : 0),
+      0);
+  
+    console.info('outliers', nOutliers, 'cov', os.cov(1));
+
     if (subset.length >= opts.minSize) {
       // resort by mode (ascending)
-      subset.sort((a, b) => a.mode - b.mode);
+      //subset.sort((a, b) => a.mode - b.mode);
   
-console.info('samplingDist', subset.map(x => x.mode));
 
-      const bound = stats.mode.hsm(subset.map(x => x.mode), opts.minSize).bound;
 
-console.info('bound', bound);      
+//      const bound = stats.mode.hsm(subset.map(x => x.mode), opts.minSize).bound;
+
+//console.info('bound', bound);      
       
-      subset = subset.slice(bound[0], bound[1] + 1);
+//      subset = subset.slice(bound[0], bound[1] + 1);
 
-      assert.eq(subset.length, opts.minSize);
+      //assert.eq(subset.length, opts.minSize);
 
-      kw = stats.kruskalWallis(subset.map(s => s.raw));
+      //kw = stats.kruskalWallis(subset.map(s => s.raw));
 
-console.info('>> kw1', kw.effectSize, kw.pValue());
+//console.info('>> kw1', kw.effectSize, kw.pValue());
 console.info('------------')   ;
 
       // mark consistent samples
 //      if (kw.effectSize <= opts.maxEffectSize) {
-      if (m99 < 0.01) {
+      if (os.cov(1) < 0.02) {
         subset.forEach(x => (statIndex.get(x.raw)!.status = 'consistent'));
       }
     }
 
     return {
       stat: iterator.collect(statIndex.values()),
-      effectSize: kw.effectSize,
+      effectSize: os.cov(1)
     };
   }
 }
