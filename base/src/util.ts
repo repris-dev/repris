@@ -74,6 +74,8 @@ export function isObject(item: any): item is object {
   return item && typeof item === 'object' && !Array.isArray(item) && item !== null;
 }
 
+export const asTuple = <T extends [any, ...any]>(array: T) => array;
+
 //
 // UUIDs
 //
