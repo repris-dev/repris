@@ -3,13 +3,14 @@
 import { samples, stopwatch } from '@sampleci/samplers';
 import { Status } from '@sampleci/base';
 
-/** A function defined by the stopwatch test-runner in the test environment */
+/** A function defined by the stopwatch test-runner  */
 declare function onSample(
-  matcherState: any,
+  matcherState: jest.MatcherState & Record<string, any>,
   sample: samples.Sample<unknown>
 ): void;
 
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
+const getGC = () => global.gc;
 
 async function runStopwatch(
   sw: stopwatch.Sampler<[]>,
@@ -30,14 +31,11 @@ async function runStopwatch(
   return delay(0);
 }
 
-function getGC(): (() => void) | undefined {
-  return global.gc;
-}
-
 (globalThis as any).sample = function(testName: string, fn: stopwatch.SamplerFn<[]>, timeout?: number) {
   const gc = getGC();
   const sw = new stopwatch.Sampler(fn, [], void 0, void 0, gc);
   const f = runStopwatch.bind(null, sw) as jest.ProvidesCallback;
 
+  // create the jest test-case
   test(testName, f, timeout);
 }
