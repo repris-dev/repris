@@ -106,5 +106,5 @@ export function annotate(
     }
   }
 
-  return Status.value(new DefaultBag(result));
+  return Status.value(DefaultBag.from(result));
 }

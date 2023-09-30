@@ -121,7 +121,7 @@ const sampleAnnotator: ann.Annotator = {
       }
     }
 
-    return Status.value(new ann.DefaultBag(result));
+    return Status.value(ann.DefaultBag.from(result));
   },
 };
 
@@ -173,7 +173,7 @@ const conflationAnnotator: ann.Annotator = {
         result.set(ConflationAnnotations.kdeMode, kdeAnalysis.mode);
       }
 
-      return Status.value(new ann.DefaultBag(result));
+      return Status.value(ann.DefaultBag.from(result));
     }
 
     return Status.value(void 0);

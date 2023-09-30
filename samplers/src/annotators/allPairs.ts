@@ -42,7 +42,7 @@ const annotator = {
       result.set(Annotations.sn, sn.correctedSpread);
     }
 
-    return Status.value(new ann.DefaultBag(result));
+    return Status.value(ann.DefaultBag.from(result));
   },
 };
 
