@@ -1,6 +1,6 @@
 import { stats, Status, typeid } from '@sampleci/base';
 import * as ann from '../annotators.js';
-import { duration, Sample } from '../samples.js';
+import * as samples from '../samples.js';
 
 const Annotations = {
   /** */
@@ -18,18 +18,18 @@ const annotator = {
   },
 
   annotate(
-    sample: Sample<unknown>,
+    sample: samples.Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex((id) => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== (duration.Duration[typeid] as typeid)) {
+    if (sample[typeid] !== (samples.Duration[typeid] as typeid)) {
       return Status.value(void 0);
     }
 
-    const data = (sample as duration.Duration).toF64Array();
+    const data = (sample as samples.Duration).toF64Array();
     const result = new Map<typeid, ann.Annotation>();
 
     if (request.has(Annotations.qn)) {

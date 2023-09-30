@@ -12,7 +12,7 @@ export interface SCIConfig {
 
   sample: {
     /** Configuration of each sample */
-    options: RecursivePartial<import('@sampleci/samplers').samples.duration.SampleOptions>;
+    options: RecursivePartial<import('@sampleci/samplers').samples.DurationOptions>;
 
     /** The annotations to compute for each sample */
     annotations: (string | [id: string, config: AnnotationConfig])[];
@@ -20,7 +20,7 @@ export interface SCIConfig {
 
   conflation: {
     /** Configuration of each conflation */
-    options: RecursivePartial<import('@sampleci/samplers').samples.duration.ConflationOptions>;
+    options: RecursivePartial<import('@sampleci/samplers').conflations.DurationOptions>;
 
     /** The annotations to compute for each conflation */
     annotations: (string | [id: string, config: AnnotationConfig])[];

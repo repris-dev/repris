@@ -1,4 +1,4 @@
-import { Status, isPromise, typeid, assert, array, timer, iterator, math } from '@sampleci/base';
+import { Status, isPromise, typeid, assert, array, timer, iterator } from '@sampleci/base';
 import * as types from './types.js';
 import * as samples from './samples.js';
 import * as wt from './wireTypes.js';
@@ -82,7 +82,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
     this.state = new DefaultState(this.clock, parameter);
     this.timeSource = timeSource.clone();
 
-    this.result = new samples.duration.Duration(
+    this.result = new samples.Duration(
       { maxCapacity: this.opts['reservoirSample.capacity'] < 0 ? this.opts['sampleSize.max'] : this.opts['reservoirSample.capacity'] }
     );
 

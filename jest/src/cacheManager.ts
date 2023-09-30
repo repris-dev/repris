@@ -44,7 +44,7 @@ export class SampleCacheManager {
     this.cachePath = this.getCachePath();
   }
 
-  updateFixture(title: string[], index: number, fixture: AggregatedFixture<samples.duration.Duration>) {
+  updateFixture(title: string[], index: number, fixture: AggregatedFixture<samples.Duration>) {
     if (!this.fixtures) this.load();
 
     this.fixtures!.set(`${JSON.stringify(title)}: ${index}`, {
@@ -58,16 +58,16 @@ export class SampleCacheManager {
   }
 
   /** @returns  */
-  getFixture(title: string[], nth: number): AggregatedFixture<samples.duration.Duration> {
+  getFixture(title: string[], nth: number): AggregatedFixture<samples.Duration> {
     if (!this.fixtures) this.load();
 
     const fixture = this.fixtures!.get(`${JSON.stringify(title)}: ${nth}`);
 
     if (fixture) {
-      const resultSamples = [] as AggregatedFixture<samples.duration.Duration>['samples'];
+      const resultSamples = [] as AggregatedFixture<samples.Duration>['samples'];
 
       for (let ws of fixture.samples) {
-        const s = samples.duration.Duration.fromJson(ws.data);
+        const s = samples.Duration.fromJson(ws.data);
         if (!Status.isErr(s)) {
           resultSamples.push({ sample: Status.get(s), annotations: ws.annotations });
         } else {

@@ -1,5 +1,6 @@
 import { timer, random, iterator } from '@sampleci/base';
-import * as duration from './duration.js';
+import * as duration from '../samples/duration.js';
+import { Duration } from './duration.js';
 
 const gen = random.PRNGi32(52);
 
@@ -23,7 +24,7 @@ describe('DurationConflation', () => {
   const sF = create(1005, 10, 250);
 
   test('samples() - cluster of 3, 1 outlier', () => {
-    const conf = new duration.Conflation();
+    const conf = new Duration();
 
     conf.push(sB);
     conf.push(sA);
@@ -41,7 +42,7 @@ describe('DurationConflation', () => {
   });
 
   test('samples() - 2 clusters of 2', () => {
-    const conf = new duration.Conflation(
+    const conf = new Duration(
       [sF, sB, sA, sE],
       { minSimilarity: 0.5 }
     );
@@ -64,11 +65,11 @@ describe('DurationConflation', () => {
 
   test('minSimilarity', () => {
     { // High threshold
-      const conf = new duration.Conflation([sE, sF], { minSimilarity: 0.8 });
+      const conf = new Duration([sE, sF], { minSimilarity: 0.8 });
       expect(conf.analysis().consistentSubset.length).toBe(0);
     }
     { // Low threshold
-      const conf = new duration.Conflation([sE, sF], { minSimilarity: 0.2 });
+      const conf = new Duration([sE, sF], { minSimilarity: 0.2 });
   
       const a = conf.analysis();
       expect(a.consistentSubset.length).toBe(2);
@@ -78,7 +79,7 @@ describe('DurationConflation', () => {
 
   test('maxSize', () => {
     {
-      const conf = new duration.Conflation([sA, sB, sC, sD, sE, sF], { minSimilarity: 0, maxSize: 4 });
+      const conf = new Duration([sA, sB, sC, sD, sE, sF], { minSimilarity: 0, maxSize: 4 });
       const a = conf.analysis();
 
       expect(a.excluded).toEqual([4, 5]);
@@ -86,7 +87,7 @@ describe('DurationConflation', () => {
       expect(Array.from(a.consistentSubset.sort())).toEqual([0, 1, 2, 3]);
     }
     {
-      const conf = new duration.Conflation([sA, sB], { minSimilarity: 0, maxSize: 4 });
+      const conf = new Duration([sA, sB], { minSimilarity: 0, maxSize: 4 });
       const a = conf.analysis();
 
       expect(a.excluded).toEqual([]);

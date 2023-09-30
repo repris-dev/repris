@@ -5,7 +5,7 @@ import type { JestEnvironment } from '@jest/environment';
 import type { Config } from '@jest/types';
 import type { TestEvents, TestFileEvent } from '@jest/test-result';
 
-import { annotators, samples, wiretypes as wt } from '@sampleci/samplers';
+import { annotators, samples, conflations, wiretypes as wt } from '@sampleci/samplers';
 import { typeid, assert, iterator } from '@sampleci/base';
 
 import { SampleCacheManager, RecordCounter, AggregatedFixture } from './cacheManager.js';
@@ -55,9 +55,9 @@ export default async function testRunner(
       const [_testPath, assertionResult] = args as TestEvents[typeof evt];
 
       if (assertionResult
-        && pendingSample?.[typeid] === samples.duration.Duration[typeid]
+        && pendingSample?.[typeid] === samples.Duration[typeid]
       ) {
-        const s = pendingSample as samples.duration.Duration;
+        const s = pendingSample as samples.Duration;
         
         // assign serialized sample generated during the most recent test case
         // to this test case result
@@ -112,7 +112,7 @@ function normaliseAnnotationCfg(
 }
 
 function annotate(
-  newSample: samples.duration.Duration,
+  newSample: samples.Duration,
   annotations: Map<typeid, any>,
 ): wt.AnnotationBag | undefined {
   const [bag, err] = annotators.annotate(newSample, annotations);
@@ -124,10 +124,10 @@ function annotate(
 }
 
 function conflate(
-  newSample: samples.duration.Duration,
-  cacheState: AggregatedFixture<samples.duration.Duration>,
+  newSample: samples.Duration,
+  cacheState: AggregatedFixture<samples.Duration>,
   annotations: Map<typeid, any>,
-  opts?: Partial<samples.duration.ConflationOptions>,
+  opts?: Partial<conflations.DurationOptions>,
 ): wt.SampleConflation | undefined {
   // The existing cached samples
   const index = new Map(cacheState.samples.map(s => [s.sample, s]));
@@ -136,7 +136,7 @@ function conflate(
   index.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the current and previous samples together
-  const newConflation = new samples.duration.Conflation(index.keys(), opts);
+  const newConflation = new conflations.Duration(index.keys(), opts);
 
   let result: wt.SampleConflation | undefined;
 
@@ -148,7 +148,7 @@ function conflate(
       dbg('Failed to annotate conflation %s', err.message);
     } else {
       result = {
-        '@type': samples.duration.Conflation[typeid],
+        '@type': conflations.Duration[typeid],
         annotations: bag!.toJson()
       };
 
@@ -157,7 +157,7 @@ function conflate(
     }
   }
 
-  const bestSamples: AggregatedFixture<samples.duration.Duration>['samples'] = [];
+  const bestSamples: AggregatedFixture<samples.Duration>['samples'] = [];
   
   // Update the aggregated fixture with the best K samples, discarding the worst sample.
   for (const best of newConflation.samples(false)) {
