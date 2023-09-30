@@ -230,7 +230,7 @@ export function studentizedHsmDifferenceTest(
   KK: number,
   entropy = random.mathRand
 ): [lo: number, hi: number] {
-  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => median(x0) - median(x1);
+  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => mean(x0) - mean(x1);
   const resampler = boot.pairedStudentizedResampler(
     x0, x1, estimator, KK, entropy
   );
