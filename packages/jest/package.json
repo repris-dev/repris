@@ -1,7 +1,9 @@
 {
   "name": "@repris/jest",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.8.0",
+  "author": {
+    "name": "Ray Glover"
+  },
   "sideEffects": false,
   "files": [
     "package.json",
