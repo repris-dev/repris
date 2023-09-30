@@ -1,6 +1,7 @@
 import HasteMap from 'jest-haste-map';
 import { Config } from '@jest/types';
 import { snapshotManager } from '@repris/samplers';
+
 import { buildSnapshotResolver } from './snapshotResolver.js';
 
 export function IndexResolver(config: Config.ProjectConfig): snapshotManager.PathResolver {

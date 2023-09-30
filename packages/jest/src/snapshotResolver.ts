@@ -26,6 +26,7 @@ export const isSnapshotPath = (path: string): boolean => path.endsWith(DOT_EXTEN
 
 type LocalRequire = (module: string) => unknown;
 
+/** Cache of project rootdir to snapshot resolver */
 const cache = new Map<string, SnapshotResolver>();
 
 export const buildSnapshotResolver = async (
@@ -109,6 +110,7 @@ function mustImplement(propName: string, requiredType: string) {
 function verifyConsistentTransformations(custom: SnapshotResolver) {
   const resolvedSnapshotPath = custom.resolveSnapshotPath(custom.testPathForConsistencyCheck);
   const resolvedTestPath = custom.resolveTestPath(resolvedSnapshotPath);
+
   if (resolvedTestPath !== custom.testPathForConsistencyCheck) {
     throw new Error(
       chalk.bold(

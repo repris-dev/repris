@@ -91,7 +91,8 @@ export class SnapshotFileManager {
     // simple validation
     if (cache.suiteFilePath !== testFilePath) {
       return Status.err(
-        `Invalid cache file, expected "${cachePath}", got "${cache.suiteFilePath}".`
+        `Invalid cache file for suite "${testFilePath}".\n` +
+        `Cache file "${cachePath}" is associated with suite "${cache.suiteFilePath}".`
       );
     }
 
