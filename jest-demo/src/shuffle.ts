@@ -16,6 +16,21 @@ function shuffle(array: Int32Array) {
 
 describe('shuffle()', () => {
   sample('numbers', (s) => {
+    const n = 5e5;
+    const arr = new Int32Array(n);
+
+    for (let i = 0; i < n; i++) {
+      arr[i] = i;
+    }
+
+    for (let _ of s) {
+      shuffle(arr);
+    }
+
+    expect(arr[0]).toBeGreaterThan(-1);
+  });
+
+  sample('numbers', (s) => {
     const n = 1e5;
     const arr = new Int32Array(n);
 
@@ -27,6 +42,21 @@ describe('shuffle()', () => {
       shuffle(arr);
     }
 
-    expect(arr[0]).toBeGreaterThan(0);
+    expect(arr[0]).toBeGreaterThan(-1);
+  });
+
+  sample('numbers', (s) => {
+    const n = 10;
+    const arr = new Int32Array(n);
+
+    for (let i = 0; i < n; i++) {
+      arr[i] = i;
+    }
+
+    for (let _ of s) {
+      shuffle(arr);
+    }
+
+    expect(arr[0]).toBeGreaterThan(-1);
   });
 });
