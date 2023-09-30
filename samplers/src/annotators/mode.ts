@@ -18,7 +18,7 @@ function kdeMode(
   summary: stats.SimpleSummary<number>,
 ): KDEAnalysis {
   const h = stats.kde.cvBandwidth(sample, summary.std());
- 
+
   // find the mode
   const [maxi,, ties] = stats.kde.findMaxima(
     stats.kde.gaussian, sample, h
@@ -47,15 +47,6 @@ const Annotations = {
    * empirical PDF located at the mode
    */
   kdeDispersion: 'mode:kde:dispersion' as typeid,
-
-  /** Inter-quartile range of the sample */
-  iqr: 'iqr' as typeid,
-
-  /**
-   * Quartile coefficient of dispersion
-   * https://en.wikipedia.org/wiki/Quartile_coefficient_of_dispersion
-   */
-  qcd: 'qcd' as typeid,
 
   /** Sample shorth robust mode estimator */
   shorth: {
