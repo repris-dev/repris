@@ -187,6 +187,9 @@ export default class SampleReporter extends DefaultReporter {
         test.context.config,
         result,
       );
+
+      // Reset column widths for the next test suite
+      this.table!.reset();
     }
 
     super.forceFlushBufferedOutput();
