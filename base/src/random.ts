@@ -101,17 +101,29 @@ export function gaussian(mean = 0, stdDev = 1, generator = mathRand): Distributi
   return fn;
 }
 
+
+export function newUuid(): uuid;
+export function newUuid(crypto?: Crypto): uuid;
+export function newUuid(generator?: Generator): uuid;
+
 /**
  * Generate a RFC4122-compliant UUID
  * @param generator Optional source of entropy.
  */
-export function newUuid(generator?: Generator) {
-  if (generator !== void 0) {
-    // Inspired by https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid
-    return (<any>[1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c: any) =>
-      (c ^ (generator() % 256) & 15 >> c / 4).toString(16)
-    );
+export function newUuid(opt?: Crypto | Generator) {
+  // use global crypto
+  if (opt === void 0) return globalThis.crypto.randomUUID();
+
+  // use supplied crypto
+  if (typeof (opt as Crypto).randomUUID === 'function') {
+    return (opt as Crypto).randomUUID();
   }
 
-  return globalThis.crypto.randomUUID() as uuid;
+  // pseudo-random uuid
+  const generator = opt as Generator;
+  // Inspired by https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid
+  return (<any>[1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c: any) =>
+    (c ^ (generator() % 256) & 15 >> c / 4).toString(16)
+  );
 }
+
