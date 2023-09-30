@@ -68,10 +68,11 @@ export function removeAtIndices(
     const el = arr[i];
 
     if (off < indices.length && indices[off] === i) {
+      // discard this value
       off++;
+    } else {
+      arr[i - off] = el;
     }
-
-    arr[i - off] = el;
   }
 
   return len - off;
