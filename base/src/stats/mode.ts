@@ -121,8 +121,9 @@ export function estimateStdDev(xs: Indexable<number>, std = 1) {
  */
 export function hsmConfidence(
   sample: Indexable<number>,
-  level = 0.95,
-  K = 100
+  level: number,
+  K: number,
+  smoothing?: number
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
@@ -131,7 +132,7 @@ export function hsmConfidence(
   const hsms = new Float64Array(K);
 
   sort(sample);
-  for (let i = 0, next = boot.resampler(sample); i < K; i++) {
+  for (let i = 0, next = boot.resampler(sample, void 0, smoothing); i < K; i++) {
     hsms[i] = hsmImpl(next()).mode;
   }
 
@@ -148,23 +149,27 @@ export function hsmConfidence(
 export function hsmDifferenceTest(
   x0: Indexable<number>,
   x1: Indexable<number>,
-  level = 0.95,
-  K = 100,
-  entropy = random.mathRand
+  level: number,
+  K: number,
+  entropy = random.mathRand,
+  smoothing: number | [smoothing0: number, smoothing1: number] = 0,
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
 
   // bootstrap distribution of HSM differences
   const hsms = new Float64Array(K);
+  const [smoothing0, smoothing1] = typeof smoothing === 'number'
+    ? [smoothing, smoothing]
+    : smoothing;
 
   sort(x0);
-  for (let i = 0, next0 = boot.resampler(x0, entropy); i < K; i++) {
+  for (let i = 0, next0 = boot.resampler(x0, entropy, smoothing0); i < K; i++) {
     hsms[i] = hsmImpl(next0()).mode;
   }
 
   sort(x1);
-  for (let i = 0, next1 = boot.resampler(x1, entropy); i < K; i++) {
+  for (let i = 0, next1 = boot.resampler(x1, entropy, smoothing1); i < K; i++) {
     hsms[i] -= hsmImpl(next1()).mode;
   }
 
@@ -181,9 +186,9 @@ export function hsmDifferenceTest(
 export function studentizedHsmDifferenceTest(
   x0: Indexable<number>,
   x1: Indexable<number>,
-  level = 0.95,
-  K = 500,
-  KK = 50,
+  level: number,
+  K: number,
+  KK: number,
   entropy = random.mathRand
 ): [lo: number, hi: number] {
   const estimator = (x0: Indexable<number>, x1: Indexable<number>) => hsm(x0).mode - hsm(x1).mode;

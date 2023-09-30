@@ -8,10 +8,12 @@ import { online } from '../stats.js';
  */
 export function resampler(
   sample: Indexable<number>,
-  entropy = random.PRNGi32()
+  entropy = random.PRNGi32(),
+  smoothing = 0,
 ): () => Indexable<number> {
   const N = sample.length,
     rng = random.uniformi(0, N - 1, entropy),
+    smoother = smoothing > 0 ? random.uniform(-smoothing, smoothing, entropy) : () => 0,
     counts = new Int32Array(N),
     replicate = new Float64Array(N);
 
@@ -24,7 +26,7 @@ export function resampler(
       let k = counts[n];
 
       while (k-- > 0) {
-        replicate[i++] = x;
+        replicate[i++] = x + smoother();
       }
     }
 
