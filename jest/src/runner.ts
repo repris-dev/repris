@@ -81,7 +81,7 @@ function initializeEnvironment(
   let title: string[] | undefined;
   let nth = -1;
 
-  environment.global.crypto = globalThis.crypto = {
+  environment.global.crypto ??= globalThis.crypto ??= {
     randomUUID() { return crypto.randomUUID() as any }
   } as any;
 

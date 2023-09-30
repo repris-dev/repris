@@ -29,7 +29,7 @@ import { println, panic, yesNoQuestion } from './util.js';
 const dbg = debug('repris:cli');
 
 export function run(argv: string[] = process.argv) {
-  globalThis.crypto = {
+  globalThis.crypto ??= {
     randomUUID() {
       return crypto.randomUUID() as any;
     },
