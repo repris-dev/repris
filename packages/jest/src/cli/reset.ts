@@ -6,7 +6,7 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { typeid } from '@repris/base';
+import { iterator, typeid } from '@repris/base';
 import { snapshotManager, annotators } from '@repris/samplers';
 
 import { IndexResolver } from '../snapshotUtils.js';
@@ -53,11 +53,11 @@ export async function reset(_argv: string[]) {
   // ask permission
   const extra =
     indexStat.totalSamples > 0
-      ? ` ${chalk.bold(indexStat.totalSamples)} samples will be lost.`
+      ? ` ${chalk.bold(indexStat.totalSamples)} samples from ${chalk.bold(indexStat.totalBenchmarks)} benchmarks will be lost.`
       : '';
 
   const doDelete: boolean | undefined = await yesNoQuestion(
-    'Reset the index for these tests?' + extra
+    'Reset the index?' + extra
   );
 
   if (doDelete === true) {
@@ -77,7 +77,7 @@ async function showIndexSummary(
 ): Promise<IndexStat> {
   const pending = [] as IndexFileStat[];
 
-  println('Repris Index Status\n');
+  println('Repris Index Status:\n');
 
   let totalBenchmarks = 0,
     totalSamples = 0;
@@ -94,12 +94,10 @@ async function showIndexSummary(
 
       for (const benchmark of snapshot!.allBenchmarks()) {
         benchmarkCount++;
-        sampleCount += benchmark.samples.length;
+        sampleCount += iterator.count(benchmark.samples());
       }
 
-      for (const _ of snapshot!.allTombstones()) {
-        tombstoneCount++;
-      }
+      tombstoneCount += iterator.count(snapshot!.allTombstones())
 
       if (benchmarkCount > 0 || tombstoneCount > 0) {
         pending.push({ testPath: t.path, benchmarkCount, sampleCount, tombstoneCount });
@@ -126,7 +124,7 @@ async function showIndexSummary(
           tombstoneCount:
             stat.tombstoneCount === 0
               ? chalk.dim('0')
-              : `${stat.tombstoneCount} (${(100 * captured).toFixed(0)}%)`,
+              : `${stat.tombstoneCount} of ${stat.benchmarkCount})`,
         };
         return annotators.DefaultBag.fromJson(ann);
       },
