@@ -107,7 +107,7 @@ export function* range(from: number, n: number): Iterable<number> {
 /**
  * Iterate a subspan of values
  */
-export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n: number): Iterable<T> {
+export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n = xs.length - fromIdx): Iterable<T> {
   if (n <= 0) return;
 
   assert.bounds(xs, fromIdx);
