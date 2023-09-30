@@ -223,20 +223,20 @@ function hsmConflation(
   ciLevel?: number,
 ) {
   const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
-  const sample = new Float64Array(N);
+  const concatSample = new Float64Array(N);
 
   for (let i = 0, off = 0; i < samples.length; i++) {
     const [raw] = samples[i];
-    sample.set(raw, off)
+    concatSample.set(raw, off)
     off += raw.length;
   }
 
-  const mode = stats.mode.hsm(sample).mode;
+  const mode = stats.mode.hsm(concatSample).mode;
 
   return {
     mode,
     rme: ciLevel !== void 0
-      ? rme(stats.mode.hsmConfidence(sample, ciLevel), mode)
+      ? rme(stats.mode.hsmConfidence(concatSample, ciLevel), mode)
       : void 0,
   };
 }
