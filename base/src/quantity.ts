@@ -91,6 +91,8 @@ export function formatter(of?: Kind, opts?: Intl.NumberFormatOptions): Formatter
   switch (of) {
     case 'time':
       return Time.formatter(opts);
+    case 'dimensionless':
+      return Dimensionless.formatter(opts);
     default:
       return DefaultFormatter(opts);
   }
@@ -103,6 +105,25 @@ function DefaultFormatter(opts?: Intl.NumberFormatOptions): Formatter {
       return fmt.format(q.scalar);
     },
   };
+}
+
+class Dimensionless {
+  static formatter(opts = Time.defaultNumberFormatting): Formatter {
+    const fmt = Intl.NumberFormat(void 0, opts)
+    return {
+      format(quantity: Quantity): string {
+        if (!isUnitOf(quantity[UnitTag], 'dimensionless')) {
+          throw new Error('Unknown Dimensionless unit');
+        }
+
+        if (quantity[UnitTag] === 'percent') {
+          return fmt.format(quantity.scalar * Taxonomy.dimensionless.percent[1]) + '%';
+        }
+
+        return fmt.format(quantity.scalar);
+      }
+    }
+  }
 }
 
 class Time {
