@@ -1,5 +1,15 @@
-import { Indexable, quickselect } from '../array.js';
+import { Indexable, quickselect, sort } from '../array.js';
 import { gt } from '../assert.js';
+
+/** median absolute deviation result */
+export type MADResult = {
+  mad: number,
+  /**
+   * Normal-consistent measure of standard deviation. Assumes
+   * The input distribution is normal.
+   */
+  normMad: number
+};
 
 export function iqr(sample: Indexable<number>): [number, number] {
   gt(sample.length, 0);
@@ -24,5 +34,20 @@ export function median(sample: Indexable<number>): number {
     return (lo + hi) / 2;
   } else {
     return sample[quickselect(sample, Math.floor(midpoint))];
+  }
+}
+
+/** median absolute deviation */
+export function mad(sample: Indexable<number>, x: number): MADResult {
+  const devs = new Float64Array(sample.length);
+
+  for (let i = 0; i < devs.length; i++) {
+    devs[i] = Math.abs(x - sample[i]);
+  }
+
+  const mad = median(devs);
+
+  return {
+    mad, normMad: 1.4826 * mad
   }
 }
