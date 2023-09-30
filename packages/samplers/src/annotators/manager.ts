@@ -167,7 +167,6 @@ export function annotateMissing<A extends Annotatable>(
   bag: AnnotationBag,
   request: Map<typeid, any>,
   annotatable: A,
-  ctx?: `@${string}`
 ): Status<unknown> {
   // A new request which excludes pre-existing annotations
   const filteredRequest = new Map(
@@ -181,7 +180,7 @@ export function annotateMissing<A extends Annotatable>(
       return newBag;
     }
 
-    bag.union(newBag[0], ctx);
+    bag.union(newBag[0]);
   }
 
   return Status.ok;

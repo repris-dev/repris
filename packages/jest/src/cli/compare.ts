@@ -15,7 +15,7 @@ import {
   samples,
   wiretypes as wt,
   hypothesis,
-  benchmark as b
+  benchmark as b,
 } from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
@@ -90,12 +90,12 @@ function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
   index?: b.AggregatedBenchmark<samples.duration.Duration>,
   base?: b.AggregatedBenchmark<samples.duration.Duration>
-): { name: wt.BenchmarkName; annotations: annotators.DefaultBag } {
+): ComparedBenchmarks {
   const annotations = annotators.DefaultBag.from([]);
 
   // Load index conflation and annotations
   const x0 = index?.conflation();
-  
+
   if (x0) {
     const bag = annotators.DefaultBag.fromJson(index?.annotations().get(x0[uuid]) ?? {});
     annotators.annotateMissing(bag, annotationRequests('@index'), x0);

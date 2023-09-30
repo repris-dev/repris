@@ -43,9 +43,9 @@ export default {
     show: {
       annotations: [{
         '@index': [
-          ['mean:conflation', { displayName: 'mean (index)'}],
+          ['mean:conflation', { displayName: 'mean'}],
           ['benchmark:summaryText', {
-            displayName: 'Index Status',
+            displayName: 'Index',
             grading: [
               'benchmark:stable', {
                 ctx: '@index',
@@ -55,9 +55,9 @@ export default {
           }],
         ],
         '@baseline': [
-          ['mean:conflation', { displayName: 'mean (baseline)'}],
+          ['mean:conflation', { displayName: 'mean'}],
           ['benchmark:summaryText', {
-            displayName: 'Baseline Status',
+            displayName: 'Baseline',
             grading: [
               'benchmark:stable', {
                 ctx: '@baseline',

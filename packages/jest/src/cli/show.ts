@@ -7,10 +7,16 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { snapshotManager, annotators, benchmark as b, wiretypes } from '@repris/samplers';
+import {
+  snapshotManager,
+  annotators,
+  benchmark as b,
+  wiretypes as wt,
+  snapshots,
+} from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
-import { BaselineResolver } from '../snapshotUtils.js';
+import { IndexResolver, BaselineResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import * as reprisConfig from '../config.js';
 import { gradedColumns } from '../reporterUtils.js';
@@ -27,82 +33,107 @@ export async function show(_argv: string[]): Promise<void> {
   });
 
   const baseline = new snapshotManager.SnapshotFileManager(await BaselineResolver(projCfg));
+  const indexm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
   const search = new core.SearchSource(context);
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
   const reprisCfg = await reprisConfig.load(projCfg.rootDir);
 
-  await showSnapshotDetail(projCfg, reprisCfg, testFiles, baseline);
+  await showSnapshotDetail(projCfg, reprisCfg, testFiles, indexm, baseline);
 }
+
+type PairedBenchmarks = {
+  name: wt.BenchmarkName;
+  annotations: annotators.AnnotationBag;
+};
 
 async function showSnapshotDetail(
   projCfg: Config.ProjectConfig,
   reprisCfg: reprisConfig.ReprisConfig,
   testFiles: jReporters.Test[],
-  sfm: snapshotManager.SnapshotFileManager
+  index: snapshotManager.SnapshotFileManager,
+  baseline: snapshotManager.SnapshotFileManager
 ) {
   const annotationTree = reprisCfg.commands.show?.annotations ?? [];
   const annotationReq = reprisConfig.parseAnnotations(annotationTree);
 
-  const testRenderer = new TableTreeReporter<b.AggregatedBenchmark<any>>(
-    gradedColumns(annotationTree, void 0, 'show'), {
-    annotate(benchmark) {
-      const bag = annotators.DefaultBag.from([]);
-      const conflation = benchmark.conflation();
-
-      loadOrReannotate(
-        benchmark,
-        annotationReq('@baseline'),
-        benchmark.annotations().get(benchmark[uuid]),
-        bag,
-        '@baseline'
-      );
-
-      if (conflation) {
-        loadOrReannotate(
-          conflation,
-          annotationReq('@baseline'),
-          benchmark.annotations().get(conflation[uuid]),
-          bag,
-          '@baseline'
-        );
-      }
-
-      return bag;
-    },
-    pathOf: benchmark => benchmark.name.title.slice(0, -1),
-    render: benchmark => chalk.dim(benchmark.name.title.at(-1)),
-  });
+  const testRenderer = new TableTreeReporter<PairedBenchmarks>(
+    gradedColumns(annotationTree, void 0, 'show'),
+    {
+      annotate: entry => entry.annotations,
+      pathOf: entry => entry.name.title.slice(0, -1),
+      render: entry => chalk.dim(entry.name.title.at(-1)),
+    }
+  );
 
   for (const t of testFiles) {
-    if (await sfm.exists(t.path)) {
-      const [snapshot, err] = await sfm.loadOrCreate(t.path);
+    if (!(await index.exists(t.path)) || !(await baseline.exists(t.path))) continue;
 
-      if (err) panic(err);
+    const [snapBaseline, err1] = await baseline.loadOrCreate(t.path);
+    const [snapIndex, err2] = await index.loadOrCreate(t.path);
 
-      const path = jReporters.utils.formatTestPath(projCfg, t.path);
-      println(path);
+    if (err1) panic(err1);
+    if (err2) panic(err2);
 
-      const benchmarks = iterator.collect(snapshot!.allBenchmarks(), []);
-      testRenderer.render(benchmarks, process.stderr);
-    }
+    const path = jReporters.utils.formatTestPath(projCfg, t.path);
+    println(path);
+
+    const annotations = iterator.map(
+      snapshots.joinSnapshotBenchmarks(snapIndex!, snapBaseline!),
+      ([index, base]) => annotateTest(annotationReq, index, base)
+    );
+
+    testRenderer.render(annotations, process.stderr);
+  }
+}
+
+function annotateTest(
+  annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
+  index?: b.AggregatedBenchmark<any>,
+  base?: b.AggregatedBenchmark<any>
+): PairedBenchmarks {
+  const annotations = annotators.DefaultBag.from([]);
+
+  index && annotateBenchmark(annotationRequests, index, annotations, '@index');
+  base && annotateBenchmark(annotationRequests, base, annotations, '@baseline');
+
+  return {
+    name: (index?.name ?? base?.name) as wt.BenchmarkName,
+    annotations,
+  };
+}
+
+function annotateBenchmark(
+  annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
+  bench: b.AggregatedBenchmark<any>,
+  annotations: annotators.DefaultBag,
+  ctx: reprisConfig.Ctx
+) {
+  const req = annotationRequests(ctx);
+  const confl = bench.conflation();
+
+  const benchBag = loadOrReannotate(bench, req, bench.annotations().get(bench[uuid]) ?? {});
+  annotations.union(benchBag, ctx);
+
+  if (confl) {
+    const conflBag = loadOrReannotate(confl, req, bench.annotations().get(confl[uuid]) ?? {});
+    annotations.union(conflBag, ctx);
   }
 }
 
 function loadOrReannotate<T extends annotators.Annotatable>(
   annotatable: T,
   annotationRequest: Map<typeid, any>,
-  annotations: wiretypes.AnnotationBag = {},
-  target: annotators.DefaultBag,
-  ctx?: `@${string}`
+  annotations: wt.AnnotationBag = {}
 ) {
   // Use existing annotations from the index
   const deserializedBag = annotators.DefaultBag.fromJson(annotations);
-  target.union(deserializedBag);
-  
-  // Compute missing annotations
-  const result = annotators.annotateMissing(target, annotationRequest, annotatable, ctx);
 
-  if (Status.isErr(result)) {
-    dbg('%s', result[1]);
+  // Compute missing annotations
+  const stat = annotators.annotateMissing(deserializedBag, annotationRequest, annotatable);
+
+  if (Status.isErr(stat)) {
+    dbg('%s', stat[1]);
   }
+
+  return deserializedBag;
 }
