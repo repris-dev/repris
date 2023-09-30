@@ -1,6 +1,6 @@
-import { Status, typeid } from '@sampleci/base';
+import { Status, typeid, json } from '@sampleci/base';
 import { Units } from '../quantity.js';
-import { Sample } from '../samples.js';
+import * as wt from '../wireTypes.js';
 
 /** Possible values for a sample annotation */
 export type Value = number | bigint | string | boolean;
@@ -8,20 +8,23 @@ export type Value = number | bigint | string | boolean;
 /** An annotation */
 export type Annotation = Value | Value[] | { units: Units, quantity: Value };
 
+/** An object which can be annotated */
+export type Annotatable = { readonly [typeid]: typeid; };
+
 /** Annotations associated with a sample from an annotator */
-export interface AnnotationBag
+export interface AnnotationBag extends json.Serializable<wt.AnnotationBag>
 {
   annotations: Map<typeid, Annotation>
 }
 
-export interface SampleAnnotator
+export interface Annotator
 {
   /** Returns a list of annotations this annotator supports */
   annotations(): typeid[];
 
-  /** Annotate the given sample */
+  /** Annotate the given item */
   annotate(
-    sample: Sample<unknown>,
+    item: Annotatable,
     request: Map<typeid, { /* Options */ }>
   ): Status<AnnotationBag | undefined>;
 }

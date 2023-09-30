@@ -1,5 +1,6 @@
-import type { Status } from '@sampleci/base';
+import type { json, Status } from '@sampleci/base';
 import * as samples from './samples.js';
+import * as wt from './wireTypes.js';
 
 /**
  * A function to be sampled
@@ -11,7 +12,7 @@ export interface SamplerFn<O, State extends SamplerState<O>, Args extends any[]>
 }
 
 /** Used to build a Sample<V> */
-export interface Sampler<V>
+export interface Sampler<V> extends json.Serializable<wt.Sample>
 {
   /** build the sample */
   run(): Status | Promise<Status>;

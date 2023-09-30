@@ -26,11 +26,11 @@ const annotator = {
     sample: Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex(id => request.has(id)) < 0) {
+    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== Duration[typeid] as typeid) {
+    if (sample[typeid] !== Duration[typeid]) {
       return Status.value(void 0);
     }
 
@@ -38,14 +38,14 @@ const annotator = {
     const data = d.toF64Array();
     const iqr = stats.iqr(data);
 
-    const result = new Map<typeid, ann.Annotation>([
+    const bag = ann.DefaultBag.from([
       [Annotations.median, stats.median(data)],
       [Annotations.iqr, iqr],
       [Annotations.qcd, stats.qcd(iqr)],
     ]);
 
-    return Status.value({ annotations: result, name: annotator.name });    
-  }
-}
+    return Status.value(bag);
+  },
+};
 
 ann.register(annotator.name, annotator);

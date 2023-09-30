@@ -1,4 +1,4 @@
-import { Status, typeid, json, timer, stats, assert } from '@sampleci/base';
+import { Status, typeid, json, timer, stats, assert, Indexable, array, iterator } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
@@ -22,11 +22,13 @@ function isDurationSampleWT(x: unknown): x is WireType {
       && (obj.values === void 0 || Array.isArray(obj.values));
 }
 
-/**
- * A sample of HrTime durations in nanoseconds
- */
+/** A sample of HrTime durations in nanoseconds */
 export class Duration implements types.MutableSample<timer.HrTime> {
   static [typeid] = '@sample:duration' as typeid;
+
+  static is(x: any) {
+    return x[typeid] === Duration[typeid];
+  }
 
   readonly [typeid] = Duration[typeid];
 
@@ -81,25 +83,25 @@ export class Duration implements types.MutableSample<timer.HrTime> {
     return false;
   }
 
-  toF64Array() {
-    const buff = new Float64Array(this.times.N());
+  toF64Array(dst = new Float64Array(this.times.N())) {
+    assert.gte(dst.length, this.times.N());
 
     let idx = 0;
     for (const t of this.times.values) {
-      buff[idx++] = Number(t);
+      dst[idx++] = Number(t);
     }
 
-    assert.eq(idx, buff.length);
-    return buff;
+    assert.eq(idx, dst.length);
+    return dst;
   }
 
-  toJson() {
-    const obj = {
+  toJson(): WireType {
+    const obj: WireType = {
       '@type': Duration[typeid],
       summary: this.onlineStats.toJson(),
       values: this.times.values.map(timer.toString),
       units: 'microseconds' as quantity.Units
-    } as WireType;
+    };
 
     if (this.maxCapacity !== void 0) {
       obj.maxSize = this.maxCapacity;
@@ -109,7 +111,9 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   }
 
   static fromJson(x: json.Value): Status<Duration> {
-    if (!isDurationSampleWT(x)) { return invalidSample; }
+    if (!isDurationSampleWT(x)) {
+      return Status.err(`Invalid ${ Duration[typeid] } sample`);;
+    }
 
     const sample = new Duration(x.maxSize);
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
@@ -122,11 +126,141 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   }
 }
 
-const invalidSample = Status.err(`Invalid ${ Duration[typeid] } sample`);
+type ConflationAgreement = {
+  /** Sample indices which are in agreement */
+  inAgreement: Int32Array,
 
-const Annotations = {
+  /** Degree to which the samples in agreement disagree (0..1) */
+  heterogeneity: number,
+
+  /**
+   * All sample indices ordered by the number of times it is more likely to
+   * produce lower values in a sample-by-sample comparison
+   */
+  order: Int32Array,
+};
+
+export class DurationConflation implements types.Conflation<timer.HrTime> {
+  static [typeid] = '@conflation:duration' as typeid;
+
+  readonly [typeid] = DurationConflation[typeid];
+
+  private allSamples: Duration[] = [];
+  private rawSamples: Float64Array[] = [];
+  private analysisCache?: ConflationAgreement;
+
+  constructor (private exclusionThreshold = 0.2) { }
+
+  samples(maxSize = 5, all = false): Iterable<Duration> {
+    const allSamples = this.allSamples;
+
+    if (all && maxSize >= allSamples.length) {
+      // no analysis needed
+      return allSamples;
+    }
+
+    const a = this.analysis();
+
+    const series = all
+      // consider all samples
+      ? Array.from(iterator.range(0, allSamples.length))
+      // consider only those samples in agreement
+      : a.inAgreement;
+
+    if (maxSize < series.length) {
+      // find the fastest subset
+      const subset = new Set(series);
+      const result = [] as Duration[];
+
+      for (let i = 0; i < series.length; i++) {
+        const idx = a.order[i];
+        if (subset.has(idx)) {
+          if (result.push(allSamples[idx]) >= maxSize) break;
+        }
+      }
+
+      return result;
+    }
+
+    return array.subsetOf(allSamples, series, []);
+  }
+
+  analysis(): ConflationAgreement {
+    return this.analysisCache ??= DurationConflation.analyze(
+      this.rawSamples, this.exclusionThreshold
+    );
+  }
+
+  push(sample: Duration) {
+    this.allSamples.push(sample);
+    this.rawSamples.push(sample.toF64Array());
+    this.analysisCache = undefined;
+  }
+
+  /**
+   * @returns The subset of samples in agreement with more than
+   * half the other samples. Two samples agree when their distributions
+   * overlap below the exclusion threshold.
+   * 
+   * The returned subset is ordered 
+   */
+  static analyze(
+    samples: Indexable<number>[], exclusionThreshold: number
+  ): ConflationAgreement {
+    const N = samples.length;
+    // degree of each sample (represented as a graph, where
+    // each edge represents a pair of agreeing samples)
+    const degrees = new Int32Array(N);
+
+    // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
+    // is not possible. Instead we order by the number of 'wins'.
+    const wins = new Int32Array(N);
+
+    // 
+    let heterogeneity = 0, e = 0;
+
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const mwu = stats.mwu(samples[i], samples[j]).effectSize;
+        // Normalized effect-size between 0 and 1 where 0 is 'equal-chance' or homogeneous.
+        const a = Math.abs(mwu - 0.5) * 2;
+
+        if (a < exclusionThreshold) {
+          heterogeneity += a;
+          e++;
+
+          degrees[i]++;
+          degrees[j]++;
+        }
+
+        if (mwu > 0.5) {
+          wins[i]++
+        } else if (mwu < 0.5) {
+          wins[j]++
+        }
+      }
+    }
+
+    const order = new Int32Array(N);
+
+    array.fillAscending(order, 0);
+    order.sort((a, b) => wins[b] - wins[a]);
+
+    // min degree threshold
+    const thresh = (N - 1) / 2;
+    const inAgreement = order.filter(idx => degrees[idx] > thresh);
+
+    return {
+      order,
+      inAgreement,
+      heterogeneity: e > 0 ? heterogeneity / e : 1,
+    };
+  }
+}
+
+const sampleAnnotations = {
   /** Number of observations seen during sampling */
-  n: 'duration:n' as typeid,
+  iter: 'duration:iter' as typeid,
 
   /**
    * The Reservoir sample size, <= n.
@@ -162,11 +296,9 @@ const Annotations = {
   rme95: 'duration:rme:95' as typeid,
 };
 
-const annotator = {
-  name: '@sample:duration-annotator',
-
+ann.register('@sample:duration-annotator' as typeid, {
   annotations() {
-    return Object.values(Annotations);
+    return Object.values(sampleAnnotations);
   },
 
   annotate(
@@ -180,22 +312,34 @@ const annotator = {
     const d = (sample as Duration);
     const s = d.summary();
 
-    const annotations = new Map([
-      [Annotations.n, d.observationCount()],
-      [Annotations.k, d.sampleSize()],
-      [Annotations.mean, s.mean()],
-      [Annotations.skew, s.skewness()],
-      [Annotations.std, s.std()],
-      [Annotations.cov, s.cov()],
-      [Annotations.kurtosis, s.kurtosis()],
-      [Annotations.range, s.range() as ann.Annotation],
-      [Annotations.min, s.range()[0]],
-      [Annotations.max, s.range()[1]],
-      [Annotations.rme95, s.rme()],
+    const bag = ann.DefaultBag.from([
+      [sampleAnnotations.iter, d.observationCount()],
+      [sampleAnnotations.k, d.sampleSize()],
+      [sampleAnnotations.mean, s.mean()],
+      [sampleAnnotations.skew, s.skewness()],
+      [sampleAnnotations.std, s.std()],
+      [sampleAnnotations.cov, s.cov()],
+      [sampleAnnotations.kurtosis, s.kurtosis()],
+      [sampleAnnotations.range, s.range() as ann.Annotation],
+      [sampleAnnotations.min, s.range()[0]],
+      [sampleAnnotations.max, s.range()[1]],
+      [sampleAnnotations.rme95, s.rme()],
     ]);
 
-    return Status.value({ annotations, name: annotator.name });    
+    return Status.value(bag);    
   }
-}
+});
 
-ann.register(annotator.name, annotator);
+const conflationAnnotations = {
+  /**
+   * The heterogeneity of the selected samples in the conflation, between
+   * 0 (indistinguishable) to 1 (no similarity)
+   */
+  heterogeneity: 'duration:conflation:heterogeneity' as typeid,
+
+  /** The number of samples selected for the conflation */
+  includedCount: 'duration:conflation:includedCount' as typeid,
+
+  /** The number of samples excluded from the conflation */
+  excludedCount: 'duration:conflation:excludedCount' as typeid,
+}

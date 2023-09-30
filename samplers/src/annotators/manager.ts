@@ -1,20 +1,46 @@
-import { Status, typeid } from '@sampleci/base';
-import { SampleAnnotator, AnnotationBag, Annotation } from './types.js';
-import { Sample } from '../samples.js';
+import { json, Status, typeid } from '@sampleci/base';
+import * as wt from '../wireTypes.js';
+import type { Annotator, AnnotationBag, Annotation, Annotatable } from './types.js';
 
-const annotators = new Map<string, SampleAnnotator>();
+const annotators = new Map<string, Annotator>();
 const annotatorMap = new Map<typeid, string>();
 
 /** Register a global annotator */
-export function register(name: string, annotator: SampleAnnotator): Status {
+export function register(name: string, annotator: Annotator): Status {
   if (annotators.has(name)) {
-    return Status.err(`Annotator '${ name }' already registered`);
+    return Status.err(`Annotator '${name}' already registered`);
   }
 
   annotators.set(name, annotator);
-  annotator.annotations().forEach(a => annotatorMap.set(a, name));
+  annotator.annotations().forEach((a) => annotatorMap.set(a, name));
 
   return Status.ok;
+}
+
+/** Serialize an annotation */
+export function serialize(ann: Annotation): json.Value {
+  return typeof ann === 'bigint'
+    ? json.bigint.toJson(ann)
+    : Array.isArray(ann)
+    ? ann.map((x) => serialize(x))
+    : (ann as json.Value);
+}
+
+/** Default bag implementation */
+export class DefaultBag implements AnnotationBag {
+  static from(pairs: Iterable<readonly [typeid, Annotation]>) {
+    return new DefaultBag(new Map(pairs));
+  }
+
+  constructor(public annotations: Map<typeid, Annotation>) {}
+
+  toJson(): wt.AnnotationBag {
+    const r = {} as Record<string, json.Value>;
+    for (const [k, v] of this.annotations.entries()) {
+      r[k] = serialize(v);
+    }
+    return r;
+  }
 }
 
 export function supports(annotation: typeid) {
@@ -22,15 +48,23 @@ export function supports(annotation: typeid) {
 }
 
 export function annotate(
-  sample: Sample<unknown>,
-  request: Map<typeid, { /* Options */ }>
+  item: Annotatable,
+  request: Map<
+    typeid,
+    {
+      /* Options */
+    }
+  >
 ): Status<AnnotationBag> {
-  const result = new Map<typeid, Annotation>;
+  const result = new Map<typeid, Annotation>();
 
   // Union the results of each annotator in to one AnnotationBag
   for (const [, annotator] of annotators) {
-    const r = annotator.annotate(sample, request);
-    if (Status.isErr(r)) { return r; }
+    const r = annotator.annotate(item, request);
+    if (Status.isErr(r)) {
+      return r;
+    }
+
     const bag = Status.get(r);
 
     if (bag !== void 0) {
@@ -40,5 +74,5 @@ export function annotate(
     }
   }
 
-  return Status.value({ annotations: result });
+  return Status.value(new DefaultBag(result));
 }

@@ -1,12 +1,11 @@
-import { json } from '@sampleci/base';
+import { json, typeid } from '@sampleci/base';
 
 export type Parameter =
     number | string | boolean | { label: string, value: json.Value };
 
 export type SamplerInfo = json.Value & {
   '@type': string;
-  variable: { name: string };
-  parameters?: Parameter[]
+  parameter?: Parameter[]
 };
 
 export type SampleData = json.Value & {
@@ -19,30 +18,57 @@ export type Sample = {
    * able to compare or combine two samples the sample configuration must be
    * identical.
    */
-  metadata: SamplerInfo;
+  samplerInfo?: SamplerInfo;
 
-  /** The observations constituting the sample */
-  sample: SampleData;
+  /** The observations(s) constituting the sample */
+  data: SampleData;
+
+  /** Annotations of the sample */
+  annotations?: AnnotationBag;
 };
+
+export type AnnotationBag = Record<typeid, json.Value>;
 
 export type FixtureName = {
   title: string[];
+  nth: number;
   description?: string;
   version?: string;
 };
 
-export type Report = {
-  fixtures: {
-    name: FixtureName;
-    samples: Sample[];
-  }[]
+export type Fixture = {
+  /**
+   * The name of this fixture
+   * Note: There can be multiple fixtures in a report which have the same name.
+   * Fixtures are therefore keyed on (name.title, name.nth).
+   */
+  name: FixtureName;
+
+  /** All collected samples */
+  samples: Sample[];
+
+  /** Conflation of the samples */
+  conflation?: SampleConflation
 };
 
-export type Epoch = string;
+export type Epoch = {
+  startTime: string;
+  endTime: string;
+};
+
+export type SampleConflation = {
+  '@type': string;
+  annotations: AnnotationBag;
+}
+
+export type Report = {
+  epoch: Epoch;
+  fixtures: Fixture[];
+};
 
 export function isSample(x: Sample): x is Sample {
   return typeof x === 'object'
-      && typeof x.metadata !== 'undefined'
-      && typeof x.sample === 'object'
-      && typeof x.sample['@type'] === 'string';
+      && typeof x.samplerInfo !== 'undefined'
+      && typeof x.data === 'object'
+      && typeof x.data['@type'] === 'string';
 }

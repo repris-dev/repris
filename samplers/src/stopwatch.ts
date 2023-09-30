@@ -1,6 +1,7 @@
-import { Status, isPromise, typeid, assert, array, timer, iterator } from '@sampleci/base';
+import { Status, isPromise, typeid, assert, array, timer, iterator, math } from '@sampleci/base';
 import * as types from './types.js';
 import * as samples from './samples.js';
+import * as wt from './wireTypes.js';
 
 /** Type of function which can be sampled by the stopwatch */
 export type SamplerFn<Args extends any[]> = types.SamplerFn<timer.HrTime, StopwatchState, Args>
@@ -24,7 +25,7 @@ export const defaultSamplerOptions = {
 
   /* The range of observations to take for the sample */
   'sampleSize.min': 10,
-  'sampleSize.max': 10_000,
+  'sampleSize.max': 5_000,
 
   /**
    * The maximum size of the returned sample, using reservoir sampling.
@@ -114,6 +115,16 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
       return this.tryRunSync(applyParams);
     } catch (e: any) {
       return Status.err(e);
+    }
+  }
+  
+  toJson(): wt.Sample {
+    return {
+      data: this.sample().toJson(),
+      samplerInfo: {
+        '@type': Sampler[typeid],
+        parameters: this.parameter
+      }
     }
   }
 
