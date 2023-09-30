@@ -1,5 +1,7 @@
-import { sort } from '../array.js';
+import { quickselect, sort } from '../array.js';
 import { assert, Indexable, stats } from '../index.js';
+import { percentile, qcd } from './util.js';
+
 
 /** Robust Estimation of the Mode */
 export type REM = {
@@ -26,17 +28,21 @@ export type REM = {
  * Find the shortest interval in the given sample containing the
  * specified number of observations (k)
  */
-function modalSearch(sample: Indexable<number>, k: number, i = 0, len = sample.length) {
+export function modalSearch(
+  sample: Indexable<number>, k: number, i = 0, len = sample.length
+) {
   assert.le(k, len);
+  assert.gte(len, 2);
   assert.bounds(sample, i);
   assert.bounds(sample, i + len - 1);
 
-  let minRange = Infinity,
-      lo = -1,
-      hi = -1,
-      ties = 0;
+  const EPS = 1e-8,
+        end = i + len;
 
-  const end = i + len;
+  let minRange = Infinity,
+      lo = i,
+      hi = end,
+      ties = 0;
 
   for (; i + k < end; i++) {
     const range = sample[i + k] - sample[i];
@@ -46,7 +52,7 @@ function modalSearch(sample: Indexable<number>, k: number, i = 0, len = sample.l
       lo = i;
       hi = i + k;
       ties = 0;
-    } else if (range - minRange < 1e-6) {
+    } else if (range - minRange < EPS) {
       ties++;
     }
   }
@@ -70,44 +76,43 @@ function oneSampleRME(sample: Indexable<number>): REM {
 
 /**
  * Half-sample mode (HSM)
+ * 
+ * The variation returned is the Quartile coefficient of dispersion
+ * of the shorth.
  *
  * See:
  * On a fast, robust estimator of The mode - David R. Bickel
  * https://arxiv.org/ftp/math/papers/0505/0505419.pdf
  */
 export function hsm(sample: Indexable<number>): REM {
+  assert.gt(sample.length, 0);
+
   const n = sample.length;
   if (n === 1) { return oneSampleRME(sample); }
 
   sort(sample);
 
-  let windowSize = n,
-      bound = [0, n - 1] as [number, number],
-      qcd = 1,
-      mode = 0,
-      depth = 0;
+  let windowSize = n / 2,
+      [b0, b1] = modalSearch(sample, Math.ceil(windowSize)).range,
+      variation = qcd([sample[b0], sample[b1]]);
 
-  while (windowSize >= 2) {
-    windowSize = Math.ceil(windowSize * .5);
-    bound = modalSearch(
-      sample, windowSize, bound[0], (bound[1] - bound[0]) + 1
-    ).range;
+  // Recursively find the shortest interval that contains 50% of the window
+  while (b1 - b0 >= 2) {
+    const K = (b1 - b0) + 1;
 
-    const lo = sample[bound[0]],
-          hi = sample[bound[1]];
-
-    depth++;
-    qcd += (hi - lo) * (1 / depth);
-    mode = (lo * .5) + (hi * .5);
+    windowSize /= 2;
+    [b0, b1] = modalSearch(sample, Math.ceil(windowSize), b0, K).range;
   }
 
-  assert.eq(bound[1], bound[0] + 1);
-  assert.gt(depth, 0);
+  // The mode is the mean of the two consecutive values
+  assert.eq(b1, b0 + 1);
+  const lo0 = sample[b0], hi0 = sample[b1];
+  const mode = lo0 + ((hi0 - lo0) / 2);
 
   return {
-    bound,
+    bound: [b0, b1],
     ties: 0,
-    variation: 0, //qcd / mode,
+    variation,
     mode
   };
 }
@@ -127,6 +132,7 @@ export function hsm(sample: Indexable<number>): REM {
  * TODO: correct implementation for small samples (N=1-3)
  */
 export function lms(sample: Indexable<number>, alpha = .5): REM {
+  assert.gt(sample.length, 0);
   assert.gt(alpha, 0);
   assert.le(alpha, 1);
 
@@ -136,22 +142,20 @@ export function lms(sample: Indexable<number>, alpha = .5): REM {
   sort(sample);
 
   const windowSize = Math.ceil(n * alpha),
-        r = modalSearch(sample, windowSize);
+    r = modalSearch(sample, windowSize);
 
   const [lodx, hidx] = r.range;
   assert.eq(hidx - lodx, windowSize);
 
   const midpoint = windowSize / 2;
   const mode = windowSize % 2 === 0
-        ? (sample[midpoint - 1] + sample[midpoint]) / 2
-        : sample[Math.floor(midpoint)];
-
-  const variation = (sample[hidx] - sample[lodx]) / mode;
+    ? (sample[midpoint - 1] + sample[midpoint]) / 2
+    : sample[Math.floor(midpoint)];
 
   return {
-    bound: [sample[lodx], sample[hidx]],
+    bound: r.range,
     ties: r.ties,
-    variation,
+    variation: qcd([sample[lodx], sample[hidx]]),
     mode
   };
 }
@@ -162,14 +166,18 @@ export function lms(sample: Indexable<number>, alpha = .5): REM {
  * A robust estimate of the mode, returning the arithmetic mean of the shortest
  * interval containing a specified fraction of the sample.
  *
- * The variation is the relative range of the interval (the range divided by
- * the mode)
+ * The variation is the standard deviation of the interval divided by the mode
  *
  * @param sample values
  * @param alpha The fraction of the sample in the interval. 0.5
  * (i.e. half the sample) produces the 'shorth'.
  */
-export function shorth(sample: Indexable<number>, alpha = .5): REM {
+export function shorth(
+  sample: Indexable<number>,
+  alpha = .5,
+  dist: stats.online.OnlineStat<number> = new stats.online.Lognormal()
+): REM {
+  assert.gt(sample.length, 0);
   assert.gt(alpha, 0);
   assert.le(alpha, 1);
 
@@ -182,18 +190,17 @@ export function shorth(sample: Indexable<number>, alpha = .5): REM {
         r = modalSearch(sample, windowSize);
 
   const [lodx, hidx] = r.range;
-  const lo = sample[lodx], hi = sample[hidx];
-  const os = new stats.OnlineStats();
-
+  
+  dist.reset();
   // The mode is the mean of the interval
   for (let i = lodx; i <= hidx; i++) {
-   os.push(sample[i]);
+    dist.push(sample[i]);
   }
 
   return {
-    bound: [lo, hi],
-    variation: os.cov(),
+    bound: r.range,
+    variation: dist.std(1) / dist.mode(),
     ties: r.ties,
-    mode: os.mean(),
+    mode: dist.mode(),
   };
 }
