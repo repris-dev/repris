@@ -100,14 +100,14 @@ export function outlierSelection<T>(
 
   const xsTmp = xs.slice();
   const sigmas = new Float64Array(N),
-    med = stats.median(xsTmp),
+    med = stats.mode.shorth(xsTmp).mode,
     std = stats.mad(xsTmp, med).normMad;
 
   if (std > 0) {
     // weight by distance from the median, normalized by
     // estimate of standard deviation 
     for (let i = 0; i < N; i++) {
-      sigmas[i] = (Math.abs(xs[i] - med) / std) ** 2;
+      sigmas[i] = (Math.abs(xs[i] - med) / std);
     }
   }
 
