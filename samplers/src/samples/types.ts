@@ -22,7 +22,7 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
   observationCount(): number;
 
   /** The values that constitute the sample */
-  values(): IterableIterator<V>;
+  values(): Iterable<V>;
 
   /**
    * @returns true if the sample is statistically significant for
@@ -46,4 +46,23 @@ export interface MutableSample<O, V = O> extends Sample<V>
 
   /** Remove all observations */
   reset(): void;
+}
+
+/** Represents the consolidation of several independent samples of the same quantity */
+export interface Conflation<V>
+{
+  /** The kind of conflation */
+  readonly [typeid]: typeid;
+
+  /**
+   * Samples constituting the conflation.
+   *
+   * @param maxSize When defined, only up to maxSize samples are returned. 
+   * These should constitute the 'best' samples.
+   * 
+   * @param all If true, the returned iterable also includes any samples
+   * that didn't meet the inclusion criteria for the conflation.
+   * Default: false
+   */
+  samples(maxSize?: number, all?: boolean): Iterable<Sample<V>>;
 }
