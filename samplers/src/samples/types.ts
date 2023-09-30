@@ -11,10 +11,24 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
   readonly [typeid]: typeid;
 
   /** The number of values in the sample */
-  count(): number;
+  sampleSize(): number;
+
+  /**
+   * @return The total number of observations.
+   * 
+   * Not all observations necessarily contribute to the sample and
+   * so this number could be greater than the sample size.
+   */
+  observationCount(): number;
 
   /** The values that constitute the sample */
   values(): IterableIterator<V>;
+
+  /**
+   * @returns true if the sample is statistically significant for
+   * its configured purpose
+   */
+  significant(): boolean;
 }
 
 /**
@@ -24,7 +38,10 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
  */
 export interface MutableSample<O, V = O> extends Sample<V>
 {
-  /** Measure an observation and add zero or more values to the sample */
+  /**
+   * Commit an observation to the sample, which creates one or more
+   * sample values
+   */
   push(observation: O): void;
 
   /** Remove all observations */

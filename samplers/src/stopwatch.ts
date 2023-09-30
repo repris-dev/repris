@@ -18,21 +18,27 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
 }
 
 export const defaultSamplerOptions = {
-  // Time to spend collecting the sample (ms)
+  /* Time to spend collecting the sample (ms) */
   'duration.min': 500,
-  'duration.max': 5000,
+  'duration.max': 7_500,
 
-  // The number of observations to take for the sample
-  'sampleSize.min': 5,
-  'sampleSize.max': 500,
-  
-  'family.multiplier': 8,
+  /* The range of observations to take for the sample */
+  'sampleSize.min': 10,
+  'sampleSize.max': 10_000,
 
-  // warmup options
+  /**
+   * The maximum size of the returned sample, using reservoir sampling.
+   * A value < 0 disables reservoir sampling and the returned sample
+   * will contain all observations.
+   * 
+   * See: https://en.wikipedia.org/wiki/Reservoir_sampling
+   */
+  'reservoirSample.capacity': 500,
+
+  /** warmup options */
   'warmup.duration.min': 100,
-  'warmup.duration.max': 1000,
-  'warmup.sampleSize.min': 1,
-  'warmup.sampleSize.max': 20,
+  'warmup.duration.max': 1_000,
+  'warmup.sampleSize.min': 10,
 }
 
 const enum Phase {
@@ -40,6 +46,8 @@ const enum Phase {
   Warmup = 1,
   Sampling = 2
 }
+
+const SECOND = timer.cvtFrom(1, 'second');
 
 /**
  * Implementation of a micro-benchmarking sampler
@@ -49,27 +57,44 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
   
   readonly opts: SamplerOptions;
   readonly state: StopwatchState;
-  readonly hand: timer.Hand;
+  readonly clock: timer.Clock;
   readonly result: samples.MutableSample<timer.HrTime>;
+  readonly durationBounds: {
+    main: [min: timer.HrTime, max: timer.HrTime],
+    warmup: [min: timer.HrTime, max: timer.HrTime]
+  }
 
   phase = Phase.Ready;
-  progress: timer.Timer;
+  totalElapsed = 0n;
+  timeSource: timer.TimeSource;
 
   constructor (
     private readonly fn: SamplerFn<Args>,
     parameter: number[],
     opts: Partial<SamplerOptions> = { },
-    time = timer.create(),
+    timeSource = timer.create(),
     private readonly gc: () => void = (() => {})
   )
   {
-    this.hand = timer.createHand(time, this.onObservation.bind(this));
+    this.clock = timer.createClock(timeSource, this.onObservation.bind(this));
     this.opts = Object.assign({}, defaultSamplerOptions, opts);
-    this.state = new DefaultState(this.hand, parameter);
-    this.progress = time.clone();
+    this.state = new DefaultState(this.clock, parameter);
+    this.timeSource = timeSource.clone();
 
     this.result = new samples.Duration(
-        this.opts['sampleSize.max']);
+      this.opts['reservoirSample.capacity'] < 0 ? this.opts['sampleSize.max'] : this.opts['reservoirSample.capacity']
+    );
+
+    this.durationBounds = {
+      main: [
+        timer.cvtFrom(this.opts['duration.min'], 'millisecond'),
+        timer.cvtFrom(this.opts['duration.max'], 'millisecond'),
+      ],
+      warmup: [
+        timer.cvtFrom(this.opts['warmup.duration.min'], 'millisecond'),
+        timer.cvtFrom(this.opts['warmup.duration.max'], 'millisecond'),
+      ]
+    }
   }
 
   sample(): samples.Sample<timer.HrTime> {
@@ -85,7 +110,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
     try {
       this.phase = Phase.Warmup;
-      this.progress.start();
+      this.timeSource.start();
       return this.tryRunSync(applyParams);
     } catch (e: any) {
       return Status.err(e);
@@ -94,12 +119,12 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
   private runAsync(args: any[], baton: PromiseLike<void>): Promise<Status> {
     const fn = this.fn as Function;
-    const hand = this.hand;
+    const clock = this.clock;
 
     function loop(onComplete: (s: Status) => void, tickId: number, baton: PromiseLike<void>) {
       baton.then(() => {
-        if (hand.tock(tickId)) {
-          loop(onComplete, hand.tick(), fn.apply(void 0, args));
+        if (clock.tock(tickId)) {
+          loop(onComplete, clock.tick(), fn.apply(void 0, args));
         } else {
           onComplete(Status.ok);
         }
@@ -116,10 +141,10 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
   /** Attempt to run the fixture synchronously, or continue asynchronously */
   private tryRunSync(args: any[]): Status | Promise<Status> {
     const fn = this.fn as Function;
-    const hand = this.hand;
+    const clock = this.clock;
 
     // in for-of fixtures (sync or async), this tick will be invalidated
-    let tickId = hand.tick();
+    let tickId = clock.tick();
 
     const p = fn.apply(null, args);
     if (isPromise(p)) {
@@ -127,8 +152,8 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
     }
 
     // main sampling loop
-    while (hand.tock(tickId)) {
-      tickId = hand.tick();
+    while (clock.tock(tickId)) {
+      tickId = clock.tick();
       fn.apply(null, args);
     }
 
@@ -137,27 +162,33 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
   /**
    * Capture an observation.
-   * @returns whether to keep running
+   * @returns Whether to keep sampling.
    */
   private onObservation(valid: boolean, duration: timer.HrTime): boolean {
     assert.is(this.phase !== Phase.Ready);
-    const { result, progress, opts } = this;
+    const { result, timeSource: progress, opts, durationBounds } = this;
+
+    let e1 = this.totalElapsed, e2 = e1;
 
     if (valid) {
+      e2 = this.totalElapsed += duration;
       result.push(duration);
     }
 
-    const k = result.count();
-    const dur = timer.cvtTo(progress.current(), 'millisecond');
+    const elapsed = this.totalElapsed;
+    const n = result.observationCount();
 
     if (this.phase === Phase.Warmup) {
-      const keepWarming =
-          (k < opts['warmup.sampleSize.min'] && dur < opts['warmup.duration.min'])
-            || dur < opts['warmup.duration.max'];
+      const [durMin, durMax] = durationBounds.warmup;
 
-      if (!keepWarming) {
+      const warmupComplete =
+        (n >= opts['warmup.sampleSize.min'] && elapsed >= durMin)
+        || elapsed >= durMax;
+
+      if (warmupComplete) {
         this.gc();
         this.phase = Phase.Sampling;
+        this.totalElapsed = 0n;
 
         result.reset();
         progress.start();
@@ -165,8 +196,20 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
       return true;
     }
 
-    return (k < opts['sampleSize.min'] && dur < opts['duration.min'])
-        || dur < opts['duration.max'];
+    const [durMin, durMax] = durationBounds.main;
+    const checkSignificance = e1 / SECOND < e2 / SECOND;
+
+    const complete =
+      // minimum criteria
+      (n >= opts['sampleSize.min'] && elapsed >= durMin && checkSignificance && this.isSignificant())
+      // maximum criteria
+      || (n >= opts['sampleSize.max'] || elapsed >= durMax);
+
+    return !complete;
+  }
+
+  private isSignificant() {
+    return this.result.significant();
   }
 }
 
@@ -174,7 +217,7 @@ class DefaultState implements StopwatchState {
   iter: Iterator<number> | null = null;
 
   constructor(
-      private time: ReturnType<typeof timer.createHand>,
+      private time: ReturnType<typeof timer.createClock>,
       private parameter: number[]) {
   }
 
@@ -206,7 +249,7 @@ class DefaultState implements StopwatchState {
     this.time.cancel();
   }
 
-  static createIterator(time: timer.Hand): Iterator<number> {
+  static createIterator(time: timer.Clock): Iterator<number> {
     const result = { done: false, value: -1 };
 
     return {
@@ -282,7 +325,7 @@ export class Builder<Args extends any[]>
     return this;
   }
 
-  timer(t: timer.Timer): this {
+  timer(t: timer.TimeSource): this {
     this.params.timer = t;
     return this;
   }

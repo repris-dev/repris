@@ -68,7 +68,7 @@ describe('Sampler', () => {
   
     expect(result).toEqual(Status.ok);
 
-    const k = s.sample().count(); 
+    const k = s.sample().observationCount(); 
     expect(k > 0 && k <= n).toBeTruthy();
   });
   
@@ -115,7 +115,7 @@ describe('Sampler', () => {
 
     expect(n).toBeGreaterThan(0);
     expect(Status.isErr(result as Status)).toBe(true);
-    expect(sw.sample().count()).toBe(0);
+    expect(sw.sample().observationCount()).toBe(0);
   });
   
   test('run (synchronous) manual observations', () => {
@@ -140,7 +140,7 @@ describe('Sampler', () => {
     const result = s.run();
   
     expect(result).toEqual(Status.ok);
-    expect(s.sample().count()).toBe(0);
+    expect(s.sample().observationCount()).toBe(0);
   });
   
   test('run (synchronous) for-of', () => {
@@ -209,7 +209,7 @@ describe('Sampler', () => {
       expect(s).toEqual(Status.ok);
       expect(m).toBeGreaterThan(0);
       expect(n).toBe(0);
-      expect(sw.sample().count()).toBeGreaterThan(0);
+      expect(sw.sample().observationCount()).toBeGreaterThan(0);
     });
   });
   

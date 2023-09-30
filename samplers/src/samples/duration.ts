@@ -1,4 +1,4 @@
-import { Status, typeid, json, timer, stats } from '@sampleci/base';
+import { Status, typeid, json, timer, stats, assert } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
@@ -7,7 +7,7 @@ import { Sample } from './types.js';
 
 /** Json representation of a duration sample */
 type WireType = wt.SampleData & {
-  summary: ReturnType<stats.OnlineStats['toJson']>,
+  summary: ReturnType<stats.online.Lognormal['toJson']>,
   units: quantity.Units,
   values?: string[],
   maxSize?: number,
@@ -33,25 +33,32 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   private times: stats.ReservoirSample<timer.HrTime>;
 
   // TODO: stats specifically for bigint
-  private onlineStats: stats.LognormalOnlineStats;
+  private onlineStats: stats.online.Lognormal;
 
-  constructor (private maxCapacity?: number) {
+  constructor (
+    private maxCapacity?: number,
+    private significanceThreshold = 0.01
+  ) {
     this.times = new stats.ReservoirSample(
       maxCapacity === void 0 ? Number.MAX_SAFE_INTEGER : maxCapacity
     );
 
-    this.onlineStats = new stats.LognormalOnlineStats();
+    this.onlineStats = new stats.online.Lognormal();
   }
 
-  count() {
-    return this.times.count;
+  sampleSize(): number {
+    return this.times.N();
+  }
+
+  observationCount(): number {
+    return this.onlineStats.N();
   }
   
   values() {
     return this.times.values.values();
   }
 
-  summary(): stats.LognormalOnlineStats {
+  summary(): stats.online.Lognormal {
     return this.onlineStats;
   }
 
@@ -66,34 +73,23 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   }
 
   significant(): boolean {
-    return this.onlineStats.kurtosis() >= 0 && this.onlineStats.rme(1) < 5;
+    if (this.sampleSize() >= 3) {
+      const hsm = stats.mode.lms(this.toF64Array());
+      return hsm.variation < this.significanceThreshold;
+    }
 
-//    const vals = this.times.values;
-//    const n = vals.length;
-//
-//    if (n < 3) { return false; }
-//
-//    const mode = this.onlineStats.mode();
-//
-//    let k = 0;
-//    for (let i = 0; i < n; i++) {
-//      if (Math.abs(Number(vals[i]) - mode) / mode < .25) { k++; };
-//    }
-//    
-//    console.info(mode, k, n);
-//    k /= (n - 1);
-//
-//    return k > .5;
+    return false;
   }
 
   toF64Array() {
-    const buff = new Float64Array(this.times.count);
+    const buff = new Float64Array(this.times.N());
 
     let idx = 0;
     for (const t of this.times.values) {
       buff[idx++] = Number(t);
     }
 
+    assert.eq(idx, buff.length);
     return buff;
   }
 
@@ -116,7 +112,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
     if (!isDurationSampleWT(x)) { return invalidSample; }
 
     const sample = new Duration(x.maxSize);
-    sample.onlineStats = stats.LognormalOnlineStats.fromJson(x.summary);
+    sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
 
     if (Array.isArray(x.values)) {
       x.values.forEach(v => sample.times.push(timer.fromString(v)));
@@ -185,8 +181,8 @@ const annotator = {
     const s = d.summary();
 
     const annotations = new Map([
-      [Annotations.n, s.N()],
-      [Annotations.k, d.count()],
+      [Annotations.n, d.observationCount()],
+      [Annotations.k, d.sampleSize()],
       [Annotations.mean, s.mean()],
       [Annotations.skew, s.skewness()],
       [Annotations.std, s.std()],
