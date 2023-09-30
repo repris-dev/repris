@@ -7,12 +7,13 @@ type SnapshotFileWT = {
   /** The suite which produced each run in this cache */
   suiteFilePath: string;
 
-  /**  */
+  /** Snapshot contents */
   snapshot: wt.Snapshot;
 };
 
 export type PathResolver = (testPath: string) => string;
 
+/** File-based snapshot storage */
 export class SnapshotFileManager {
   private activeSnapshots = new WeakMap<
     snapshots.Snapshot,
@@ -21,6 +22,7 @@ export class SnapshotFileManager {
 
   constructor(private paths: PathResolver) {}
 
+  /** Load an existing snapshot for the given test path, or create a new one */
   async loadOrCreate(testPath: string): Promise<Status<snapshots.Snapshot>> {
     const cachePath = this.paths(testPath);
     let snapshot: snapshots.Snapshot | undefined;
@@ -44,10 +46,11 @@ export class SnapshotFileManager {
     return Status.value(snapshot);
   }
 
+  /** Write the given snapshot to disk. */
   async save(snapshot: snapshots.Snapshot): Promise<Status<unknown>> {
     const meta = this.activeSnapshots.get(snapshot);
     if (!meta) {
-      return Status.err('Unknown Snapshot');
+      return Status.err('Unknown Snapshot. Load the snapshot first.');
     }
 
     if (!snapshot.isEmpty()) {
@@ -55,14 +58,20 @@ export class SnapshotFileManager {
         suiteFilePath: meta.testPath,
         snapshot: snapshot.toJson(),
       };
-  
-      await fs.writeFile(meta.cachePath, JSON.stringify(cache));      
+
+      await fs.writeFile(meta.cachePath, JSON.stringify(cache));
     } else if (await pathExists(meta.cachePath)) {
       // delete any existing snapshot instead of writing an 'empty' snapshot
       await fs.unlink(meta.cachePath);
     }
 
     return Status.ok;
+  }
+
+  /** Delete any snapshot associated with the given path */
+  async delete(testPath: string) {
+    const cachePath = this.paths(testPath);
+    await fs.unlink(cachePath);
   }
 
   private async loadCacheFile(cachePath: string, testFilePath: string) {
@@ -88,7 +97,7 @@ export class SnapshotFileManager {
 async function pathExists(path: string) {
   try {
     await fs.access(path);
-    return true
+    return true;
   } catch {
     return false;
   }

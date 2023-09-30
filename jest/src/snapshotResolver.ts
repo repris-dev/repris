@@ -22,12 +22,11 @@ export type SnapshotResolver = {
 
 export const EXTENSION = 'sample';
 export const DOT_EXTENSION = `.${EXTENSION}`;
-
 export const isSnapshotPath = (path: string): boolean => path.endsWith(DOT_EXTENSION);
 
-const cache = new Map<string, SnapshotResolver>();
-
 type LocalRequire = (module: string) => unknown;
+
+const cache = new Map<string, SnapshotResolver>();
 
 export const buildSnapshotResolver = async (
   config: Config.ProjectConfig,

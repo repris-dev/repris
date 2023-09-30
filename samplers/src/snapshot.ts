@@ -21,6 +21,12 @@ export type AggregatedFixture<T extends samples.Sample<any>> = {
   conflation?: wt.Conflation;
 };
 
+export const enum FixtureState {
+  Unknown = 0,
+  Stored = 1,
+  Tombstoned = 2
+};
+
 type FixtureKey = `${string}: ${number}`;
 
 export class Snapshot implements json.Serializable<wt.Snapshot> {
@@ -39,8 +45,13 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return this.fixtures.size === 0 && this.tombstones.size === 0;
   }
 
-  hasFixture(title: string[], nth: number) {
-    return this.fixtures.get(cacheKey(title, nth))
+  fixtureState(title: string[], nth: number) {
+    const key = cacheKey(title, nth);
+    return this.fixtures.has(key)
+      ? FixtureState.Stored
+      : this.tombstones.has(key)
+      ? FixtureState.Tombstoned
+      : FixtureState.Unknown;
   }
 
   allFixtures(): Iterable<AggregatedFixture<samples.Duration>> {
@@ -62,8 +73,8 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     });
   }
 
-  isTombstoned(title: string[], nth: number) {
-    return this.tombstones!.has(cacheKey(title, nth));
+  allTombstones(): Iterable<wt.FixtureName> {
+    return this.tombstones.values();
   }
 
   /** @returns true if the given title was found in the cache and tombstoned */

@@ -1,17 +1,15 @@
 import { debug } from 'util';
 
-import HasteMap from 'jest-haste-map';
 import circus from 'jest-circus/runner';
 import type { JestEnvironment } from '@jest/environment';
 import type { Circus, Config } from '@jest/types';
 import type { AssertionResult, TestFileEvent, TestResult } from '@jest/test-result';
 
-import { annotators, samples, conflations, wiretypes as wt, snapshots } from '@sampleci/samplers';
+import { annotators, samples, conflations, wiretypes as wt, snapshots, snapshotManager } from '@sampleci/samplers';
 import { typeid, assert, iterator, Status } from '@sampleci/base';
 
-import * as sfm from './SnapshotFileManager.js';
-import { buildSnapshotResolver } from './snapshotResolver.js';
 import * as sciConfig from './config.js';
+import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
 
 export interface AugmentedAssertionResult extends AssertionResult {
   sci?: {
@@ -22,16 +20,56 @@ export interface AugmentedAssertionResult extends AssertionResult {
   };
 }
 
+export interface AugmentedTestResult extends TestResult {
+  sci?: {
+    cacheStat: {
+      /** Count of fixtures run which produced at least one sample */
+      runFixtures: number;
+      /** Count of fixtures skipped in this test run */
+      skippedFixtures: number;
+      /** Count of new fixtures seen in this test run */
+      newFixtures: number;
+      /** Count of all fixtures in the cache after the test run */
+      totalFixtures: number;
+      /**
+       * Count of fixtures which are ready for snapshotting after
+       * the test run. This is only positive when shapshots are not being
+       * updated.
+       */
+      stagedFixtures: number;
+    };
+    snapshotStat: {
+      /** Count of fixtures moved to snapshots in the current test run */
+      updated: number;
+      /**
+       * Count of fixtures moved to snapshots in the current epoch (i.e.
+       * over all runs)
+       */
+      updatedTotal: number;
+    };
+    epochStat: {
+      /**  */
+      complete: boolean;
+    }
+  };
+}
+
 const dbg = debug('sci:runner');
 
 function initializeEnvironment(
   environment: JestEnvironment,
   cfg: sciConfig.SCIConfig,
-  skipTest: (title: string[], nth: number) => boolean,
+  getState: (title: string[], nth: number) => snapshots.FixtureState,
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const titleCount = new snapshots.RecordCounter<string>();
+  const stat = {
+    runFixtures: 0,
+    skippedFixtures: 0,
+    newFixtures: 0,
+  };
 
+  let hasSample = false;
   let title: string[] | undefined;
   let nth = -1;
 
@@ -39,16 +77,28 @@ function initializeEnvironment(
   environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
     assert.isDefined(title, 'No test running');
     samples.push({ title, nth, sample });
+
+    if (!hasSample) {
+      stat.runFixtures++;
+
+      if (getState(title, nth) === snapshots.FixtureState.Unknown) {
+        stat.newFixtures++
+      }
+    }
+    hasSample = true;
   };
 
   const hte = environment.handleTestEvent;
   environment.handleTestEvent = (evt, state) => {
     if (evt.name === 'test_start') {
+      hasSample = false;
       title = getTestID(evt.test);
       nth = titleCount.increment(JSON.stringify(title));
 
-      if (skipTest(title, nth)) {
+      const state = getState(title, nth);
+      if (state === snapshots.FixtureState.Tombstoned) {
         evt.test.mode = 'skip';
+        stat.skippedFixtures++;
       }
     }
 
@@ -56,9 +106,8 @@ function initializeEnvironment(
   };
 
   return {
-    getSamples() {
-      return samples;
-    },
+    stat() { return stat; },
+    getSamples() { return samples; },
   };
 }
 
@@ -71,22 +120,23 @@ export default async function testRunner(
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> {
   const cfg = await sciConfig.load(globalConfig.rootDir);
-  const cacheMgr = new sfm.SnapshotFileManager(HasteResolver(config));
+  const stagingAreaMgr = new snapshotManager.SnapshotFileManager(StagingAreaResolver(config));
 
-  let cacheFile: snapshots.Snapshot | undefined;
+  // cache
+  let saSnapshot: snapshots.Snapshot | undefined;
 
   if (config.cache) {
-    const sCacheFile = await cacheMgr.loadOrCreate(testPath);
+    const sCacheFile = await stagingAreaMgr.loadOrCreate(testPath);
 
     if (Status.isErr(sCacheFile)) {
-      throw new Error(`Failed to load cache for test file:\n${sCacheFile[1]}`);
+      throw new Error(`Failed to load staging area for test file:\n${sCacheFile[1]}`);
     }
 
-    cacheFile = sCacheFile[0];
+    saSnapshot = sCacheFile[0];
   }
 
   // Don't re-run benchmarks which were committed to the snapshot in a previous run
-  const skipTest = (title: string[], nth: number) => cacheFile?.isTombstoned(title, nth) ?? false;
+  const skipTest = (title: string[], nth: number) => saSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
   // Conflation annotation config
   const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
   // Conflation annotation config
@@ -114,8 +164,8 @@ export default async function testRunner(
 
       while (i < allTestResults.length) {
         const ar = allTestResults[i++];
-        const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
 
+        const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
         if (key === arKey) {
           matched = true;
 
@@ -126,11 +176,13 @@ export default async function testRunner(
           const augmentedResult = ar as AugmentedAssertionResult;
           // assign serialized sample generated during the most recent test case
           // to this test case result
-          augmentedResult.sci = { sample: annotate(sample, sampleAnnotations) };
+          augmentedResult.sci = {
+            sample: annotate(sample, sampleAnnotations)
+          };
 
-          if (cacheFile) {
+          if (saSnapshot) {
             // load the previous samples of this fixture from the cache
-            const cachedFixture = cacheFile.getOrCreateFixture(title, nth);
+            const cachedFixture = saSnapshot.getOrCreateFixture(title, nth);
             // publish the conflation on the current test case result
             augmentedResult.sci.conflation = conflate(
               sample,
@@ -140,7 +192,7 @@ export default async function testRunner(
             )?.annotations;
 
             // Update the cache
-            cacheFile.updateFixture(title, nth, cachedFixture);
+            saSnapshot.updateFixture(title, nth, cachedFixture);
           }
 
           break;
@@ -153,34 +205,70 @@ export default async function testRunner(
     }
   }
 
-  // when --updateSnapshot is specified
-  if (globalConfig.updateSnapshot === 'all') {
-    dbg('Updating snapshots for ' + testPath);
+  const stat: AugmentedTestResult['sci'] = {
+    cacheStat: {
+      ...envState.stat(),
+      stagedFixtures: 0,
+      totalFixtures: 0,
+    },
+    snapshotStat: {
+      updated: 0,
+      updatedTotal: 0,
+    },
+    epochStat: {
+      complete: false
+    }
+  };
 
-    if (!cacheFile) {
+  if (globalConfig.updateSnapshot === 'all') {
+    // when --updateSnapshot is specified
+    dbg('Updating snapshots for %s', testPath);
+
+    if (!saSnapshot) {
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const stat = await commitToSnapshot(config, testPath, cacheFile);
-    testResult.snapshot.added += stat.added;
-    testResult.snapshot.updated += stat.updated;
+    const snapStat = await commitToSnapshot(config, testPath, saSnapshot);
+    testResult.snapshot.added += snapStat.added;
+    testResult.snapshot.updated += snapStat.updated;
+
+    stat.snapshotStat.updated = snapStat.updated + snapStat.added,
+    stat.cacheStat.totalFixtures = snapStat.pending;
+    stat.epochStat.complete = snapStat.pending === 0;
+  } else if (saSnapshot) {
+    // update pending/pendingReady
+    for (const f of saSnapshot.allFixtures()) {
+      stat.cacheStat.totalFixtures++;
+
+      if (f.conflation?.annotations['conflation:ready']) {
+        stat.cacheStat.stagedFixtures++;
+      }
+    }
   }
 
-  if (cacheFile) {
+  if (saSnapshot) {
+    // total tombstones in the staging area is the total moved to snapshot in this epoch
+    stat.snapshotStat.updatedTotal = iterator.count(saSnapshot.allTombstones());
     // commit the new test run to the cache
-    const e = await cacheMgr.save(cacheFile);
+    const e = await stagingAreaMgr.save(saSnapshot);
     Status.get(e);
+  }
+
+  // only augment the test result if there's any benchmark fixtures
+  if (stat.cacheStat.runFixtures > 0 || stat.cacheStat.skippedFixtures > 0) {
+    (testResult as AugmentedTestResult).sci = stat;
   }
 
   return testResult;
 }
 
+/** Move fixtures from the staging area to the snapshot */
 async function commitToSnapshot(
   config: Config.ProjectConfig,
   testPath: string,
-  cacheFile: snapshots.Snapshot
+  stagingArea: snapshots.Snapshot
 ) {
-  const s = new sfm.SnapshotFileManager(await SnapshotResolver(config));
+  const s = new snapshotManager.SnapshotFileManager(await SnapshotResolver(config));
   const snapFile = await s.loadOrCreate(testPath);
 
   if (Status.isErr(snapFile)) {
@@ -188,15 +276,15 @@ async function commitToSnapshot(
   }
 
   const snapshot = snapFile[0];
-  const stat = { added: 0, updated: 0 };
+  const stat = { added: 0, updated: 0, pending: 0 };
 
-  for (const f of cacheFile.allFixtures()) {
+  for (const f of stagingArea.allFixtures()) {
     const bag = f.conflation?.annotations ?? {};
 
     if (bag['conflation:ready']) {
       const { title, nth } = f.name;
 
-      if (snapshot.hasFixture(title, nth)) {
+      if (snapshot.fixtureState(title, nth) === snapshots.FixtureState.Stored) {
         stat.updated++;
       } else {
         stat.added++;
@@ -205,7 +293,10 @@ async function commitToSnapshot(
       // copy the fixture to the snapshot
       snapshot.updateFixture(title, nth, f);
       // allow the runner to skip this fixture in future runs
-      cacheFile.tombstone(title, nth);
+      stagingArea.tombstone(title, nth);
+    } else {
+      // fixture is not ready for snapshotting
+      stat.pending++;
     }
   }
 
@@ -280,19 +371,6 @@ function conflate(
 
   cacheState.samples = bestSamples;
   return result;
-}
-
-function HasteResolver(config: Config.ProjectConfig): sfm.PathResolver {
-  const haste = HasteMap.default.getStatic(config);
-  const resolver = (testFilePath: string) =>
-    haste.getCacheFilePath(config.cacheDirectory, `sample-cache-${config.id}`, testFilePath);
-
-  return resolver;
-}
-
-async function SnapshotResolver(config: Config.ProjectConfig): Promise<sfm.PathResolver> {
-  const resolver = await buildSnapshotResolver(config);
-  return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
 }
 
 // Return a string that identifies the test (concat of parent describe block
