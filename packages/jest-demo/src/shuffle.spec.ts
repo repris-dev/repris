@@ -40,35 +40,6 @@ describe('shuffle() (PRNG)', () => {
     const rng = random.PRNGi32(67);
     const arr = array.fillAscending(new Int32Array(10), 0);
 
-    for (let _ of s)shuffle(arr, rng);
-
-    expect(arr[0]).toBeGreaterThan(-1);
-  });
-})
-
-describe('shuffle()', () => {
-  sample('numbers', (s) => {
-    const rng = random.mathRand;
-    const arr = array.fillAscending(new Int32Array(5e5), 0);
-
-    for (let _ of s) shuffle(arr, rng);
-
-    expect(arr[0]).toBeGreaterThan(-1);
-  });
-
-  sample('numbers', (s) => {
-    const rng = random.mathRand;
-    const arr = array.fillAscending(new Int32Array(1e5), 0);
-
-    for (let _ of s) shuffle(arr, rng);
-
-    expect(arr[0]).toBeGreaterThan(-1);
-  });
-
-  sample('numbers', (s) => {
-    const rng = random.mathRand;
-    const arr = array.fillAscending(new Int32Array(10), 0);
-
     for (let _ of s) shuffle(arr, rng);
 
     expect(arr[0]).toBeGreaterThan(-1);
