@@ -2,8 +2,7 @@ import { assert } from './index.js';
 import { Status } from './util.js';
 
 /** A valid Json value */
-export type Value = number | string | boolean | { [x: string]: Value } | JsonArray;
-export interface JsonArray extends Array<Value> { }
+export type Value = number | string | boolean | { [x: string]: Value } | Array<Value>;
 
 /** serializing an object to Json */
 export interface Serializable<J extends Value = Value> {
@@ -20,11 +19,16 @@ export namespace bigint {
     return x.toString() + 'n';
   };
   
-  export function fromJson(t: string): bigint  {
+  export function fromJson(t: string): bigint {
     assert.gt(t.length, 0);
     assert.eq(t[t.length - 1], 'n');
     
     return BigInt(t.substring(0, t.length - 1));
+  }
+
+  /** @returns true if the given Json value is a string-encoded bigint */
+  export function isJsonBigint(x: Value): x is string {
+    return typeof x === 'string' && /^-*\d+n$/.test(x);
   }
 }
 
