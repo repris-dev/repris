@@ -1,6 +1,6 @@
 import { debug } from 'node:util';
 import { lilconfig } from 'lilconfig';
-import { assert, assignDeep, iterator, typeid } from '@repris/base';
+import { assert, assignDeep, iterator, lazy, typeid } from '@repris/base';
 
 const dbg = debug('repris:config');
 const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
@@ -127,26 +127,24 @@ const explorer = lilconfig('repris', {
   },
 });
 
-const defaultConfig: Promise<ReprisConfig> = import(DEFAULT_CONFIG_PATH)
-  .then(mod => mod.default)
-  .catch((e) => {
-    dbg(`Failed to load default Config file (%s): %s`, DEFAULT_CONFIG_PATH, e);
-  });
+const defaultConfig = lazy(() =>
+  import(DEFAULT_CONFIG_PATH)
+    .then(mod => mod.default as ReprisConfig)
+    .catch(e => {
+      dbg(`Failed to load default Config file (%s): %s`, DEFAULT_CONFIG_PATH, e);
+      return {} as ReprisConfig;
+    })
+);
 
 /** Map of rootDir to config */
 const sessionConfigs = new Map<string, ReprisConfig>();
 
 export async function load(rootDir: string): Promise<ReprisConfig> {
   if (!sessionConfigs.has(rootDir)) {
-    const sr = await explorer.search(rootDir);
-    const defaultCfg = await defaultConfig;
+    const [sr, defaultCfg] = await Promise.all([explorer.search(rootDir), defaultConfig()]);
 
     if (sr?.filepath) {
-      const config = assignDeep<ReprisConfig>(
-        {},
-        defaultCfg,
-        !sr?.isEmpty ? sr?.config : {}
-      );
+      const config = assignDeep<ReprisConfig>({}, defaultCfg, !sr?.isEmpty ? sr?.config : {});
 
       dbg('%s', config);
       sessionConfigs.set(rootDir, config);

@@ -1,4 +1,4 @@
-import * as config from './config.js';
+import type * as config from './config.js';
 import * as util from './reporterUtils.js';
 
 describe('gradedColumns', () => {
