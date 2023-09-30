@@ -6,9 +6,4 @@ export default {
   snapshotResolver: '@sampleci/util/snapshotResolver.cjs',
   testEnvironmentOptions: { customExportConditions: ['development'] },
   globals: defaults(pkg),
-  reporters: [
-    "default",
-    ["<rootDir>/.tsc/custom-reporter.js", {"banana": "yes", "pineapple": "no"}]
-  ],
-  testRunner: "<rootDir>/.tsc/custom-runner.js",
 };

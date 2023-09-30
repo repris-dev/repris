@@ -3,7 +3,7 @@ export default {
   reporters: [
     ['@sampleci/jest/custom-reporter', {
       columns: [
-        { id: 'duration:n', displayName: 'n' },
+        { id: 'duration:iter', displayName: 'iter.' },
         { id: 'duration:min', displayName: 'min' },
         {
           id: 'mode:kde',
@@ -18,7 +18,23 @@ export default {
           }
         },
         { id: 'mode:kde:dispersion', displayName: 'kde-d' },
-        { id: 'mode:hsm', displayName: 'hsm' },
+        { id: 'mode:hsm',
+          displayName: 'hsm',
+          quality: {
+            id: 'mode:hsm:dispersion',
+            thresholds: [
+              0,    // >= good
+              0.02, // >= ok
+              0.1,  // >= poor
+            ],
+          }
+        },
+        { id: 'mode:hsm:dispersion', displayName: 'hsm-d' },
+        { id: 'mode:lms',
+          displayName: 'lms',
+          
+        },
+        { id: 'mode:lms:dispersion', displayName: 'lms-d' },
       ]
     }],
   ],
@@ -27,5 +43,6 @@ export default {
   maxWorkers: 1,
   maxConcurrency: 1,
   testTimeout: 10_000,
+  globalSetup: '@sampleci/jest/global-setup'
 };
 
