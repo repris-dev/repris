@@ -1,10 +1,18 @@
+import { Indexable } from "../array.js";
+
 export interface SimpleSummary<T> {
   N(): T;
+
   mean(): T;
+
   std(): T;
+
   cov(): T;
+
   skewness(): T;
+
   kurtosis(): T;
+
   range(): [T, T];
 }
 
@@ -73,5 +81,15 @@ export default class OnlineStats implements SimpleSummary<number> {
     stat.#M4 = v.m4;
 
     return stat;
+  }
+
+  static fromValues(sample: Indexable<number>) {
+    const os = new OnlineStats();
+
+    for (let i = 0; i < sample.length; i++) {
+      os.push(sample[i]);
+    }
+
+    return os;
   }
 }
