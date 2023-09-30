@@ -1,6 +1,6 @@
-import { quickselect, sort } from '../array.js';
+import { sort } from '../array.js';
 import { assert, Indexable, stats } from '../index.js';
-import { percentile, qcd } from './util.js';
+import { qcd } from './util.js';
 
 
 /** Robust Estimation of the Mode */
