@@ -1,4 +1,4 @@
-import { stats, Indexable, array, iterator, assert } from '@repris/base';
+import { stats, Indexable, array, iterator, assert, random } from '@repris/base';
 
 import { AnalysisOptions, ConflatedSampleStatus } from './types.js';
 
@@ -63,7 +63,7 @@ export class KWConflation<T> {
 
     // median of the sampling distribution
 //    const sDistHsm = stats.mode.hsm(samplingDist.map(x => x.mode)).mode;
-    const sDistMedian = stats.median(samplingDist.map(x => x.mode));
+    const sDistMedian = stats.centralTendency.mean(samplingDist.map(x => x.mode));
 
 console.info('>> kw0', kw.effectSize, kw.pValue());
 
@@ -77,21 +77,30 @@ console.info('sDistMedian', sDistMedian);
 //
 console.info('m99', m99);
 
-    // Sorting of the sampling distribution, distance from median (ascending)
+    // Sorting of the sampling distribution, distance from mean (desc)
     let subset = samplingDist.slice()
-      .sort((a, b) => Math.abs(sDistMedian - a.mode) - Math.abs(sDistMedian - b.mode));
+      .sort((a, b) => Math.abs(sDistMedian - b.mode) - Math.abs(sDistMedian - a.mode));
 
     // Index of samples
     const statIndex = new Map(iterator.map(subset, x => [x.raw, x]));
 
     if (N > opts.maxSize) {
       // reject the outlier samples
-      for (const { raw } of subset.slice(opts.maxSize)) {
-        statIndex.get(raw)!.status = 'rejected';
+      const gauss = random.gaussian(0, N / 3);
+
+      for (let n = N; n > opts.maxSize; n--) {
+        let kth = 0;
+        do {
+          kth = Math.floor(Math.min(Math.abs(gauss()), N - 1))
+        } while(subset[kth].status === 'rejected')
+
+console.info('reject', kth);
+        subset[kth].status = 'rejected';
       }
 
       // from the remaining samples, compute KW again.
-      subset = subset.slice(0, opts.maxSize);
+      subset = subset.filter(s => s.status !== 'rejected');
+      assert.eq(subset.length, opts.maxSize);
       //kw = stats.kruskalWallis(subset);
     }
 
