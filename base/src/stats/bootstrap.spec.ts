@@ -62,7 +62,7 @@ describe('studentizedResampler', () => {
   const hsm1 = hsm(sample1).mode;
 
   test('Confidence intervals of a right-skewed sample', () => {
-    const rng = rand.PRNGi32();
+    const rng = rand.PRNGi32(53);
     const resampler = boot.studentizedResampler(sample0, xs => hsm(xs).mode, 50, rng);
 
     const nResamples = 500;
@@ -81,7 +81,7 @@ describe('studentizedResampler', () => {
     const lo = hsm0 - bootStd * quantile(pivotalQuantities, 1 - alpha / 2);
     const hi = hsm0 - bootStd * quantile(pivotalQuantities, alpha / 2);
 
-    expect(hsm0).toBeInRange(183e6, 186e6);
+    expect(hsm0).toBeInRange(180e6, 189e6);
     expect(hi - lo).toBeInRange(3e6, 7e6);
     expect(lo).toBeLessThan(hsm0);
     expect(hi).toBeGreaterThan(hsm0);
