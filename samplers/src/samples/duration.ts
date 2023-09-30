@@ -1,4 +1,16 @@
-import { Status, typeid, json, timer, stats, assert, Indexable, array, iterator, math } from '@sampleci/base';
+import {
+  Status,
+  typeid,
+  json,
+  timer,
+  stats,
+  assert,
+  Indexable,
+  array,
+  iterator,
+  math,
+  partitioning,
+} from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
@@ -9,30 +21,34 @@ export type SampleOptions = typeof defaultSampleOptions;
 
 export const defaultSampleOptions = {
   maxCapacity: Number.MAX_SAFE_INTEGER,
-  significanceThreshold: 0.01
+  significanceThreshold: 0.01,
 };
 
 /** Json representation of a duration sample */
 type WireType = wt.SampleData & {
-  summary: ReturnType<stats.online.Lognormal['toJson']>,
-  units: quantity.Units,
-  values?: string[],
-  maxSize?: number,
+  summary: ReturnType<stats.online.Lognormal['toJson']>;
+  units: quantity.Units;
+  values?: string[];
+  maxSize?: number;
 };
 
 function isDurationSampleWT(x: unknown): x is WireType {
   if (typeof x !== 'object' || x === null || Array.isArray(x)) return false;
 
   const obj = x as WireType;
-  return obj['@type'] === Duration[typeid]
-      && typeof obj.units === 'string'
-      && (obj.values === void 0 || Array.isArray(obj.values));
+  return (
+    obj['@type'] === Duration[typeid] &&
+    typeof obj.units === 'string' &&
+    (obj.values === void 0 || Array.isArray(obj.values))
+  );
 }
 
 /** A sample of HrTime durations in nanoseconds */
 export class Duration implements types.MutableSample<timer.HrTime> {
   static [typeid] = '@sample:duration' as typeid;
-  static is(x: any): x is Duration { return x[typeid] === Duration[typeid]; }
+  static is(x: any): x is Duration {
+    return x[typeid] === Duration[typeid];
+  }
 
   readonly [typeid] = Duration[typeid];
 
@@ -40,7 +56,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   private times: stats.ReservoirSample<timer.HrTime>;
   private onlineStats: stats.online.Lognormal;
 
-  constructor (opts_: Partial<SampleOptions> = {}) {
+  constructor(opts_: Partial<SampleOptions> = {}) {
     this.opts = Object.assign({}, defaultSampleOptions, opts_);
     this.times = new stats.ReservoirSample(this.opts.maxCapacity);
     this.onlineStats = new stats.online.Lognormal();
@@ -98,7 +114,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
       '@type': Duration[typeid],
       summary: this.onlineStats.toJson(),
       values: this.times.values.map(timer.toString),
-      units: 'microseconds' as quantity.Units
+      units: 'microseconds' as quantity.Units,
     };
 
     if (this.opts.maxCapacity !== void 0) {
@@ -110,14 +126,14 @@ export class Duration implements types.MutableSample<timer.HrTime> {
 
   static fromJson(x: json.Value): Status<Duration> {
     if (!isDurationSampleWT(x)) {
-      return Status.err(`Invalid ${ Duration[typeid] } sample`);;
+      return Status.err(`Invalid ${Duration[typeid]} sample`);
     }
 
     const sample = new Duration({ maxCapacity: x.maxSize });
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
 
     if (Array.isArray(x.values)) {
-      x.values.forEach(v => sample.times.push(timer.fromString(v)));
+      x.values.forEach((v) => sample.times.push(timer.fromString(v)));
     }
 
     return Status.value(sample);
@@ -127,29 +143,32 @@ export class Duration implements types.MutableSample<timer.HrTime> {
 export type ConflationOptions = typeof defaultConflationOptions;
 
 export const defaultConflationOptions = {
-  sensitivity: 0.25
+  /**
+   * The minimum similarity (from 0 to 1) for two samples to be considered
+   * in the same cluster during conflation
+   */
+  minSimilarity: 0.75,
+
+  /**
+   * The minimum proportion of all samples which must meet the inclusion
+   * criteria for it to be considered a representative conflation
+   */
+  minConflationSize: 0.5,
+
+  maxSize: 5,
 };
 
 /** A Sample conflation result based on pair-wise Mann-Whitney U tests */
 type MWUConflationAnalysis = {
-  /**
-   * Sample indices of samples which sufficiently overlap with the
-   * fastest sample.
-   * 
-   * This method is based on the observation that systematic errors of
-   * benchmarks almost always increase the benchmark duration (as measured by time,
-   * due to many factors outside the control of the software under test), and
-   * so the easiest way to counteract this is to choose those samples clustered
-   * around the minimum duration.
-   */
-  consistentSubset: number[],
+  /** Sample indices of samples which are sufficiently similar */
+  consistentSubset: number[];
 
   /**
    * All sample indices ordered by the number of times it is more likely to
    * produce lower values in a sample-by-sample comparison, i.e. fastest to
    * slowest.
    */
-  ordered: Int32Array,
+  ordered: Int32Array;
 };
 
 export class Conflation implements types.Conflation<timer.HrTime> {
@@ -162,53 +181,53 @@ export class Conflation implements types.Conflation<timer.HrTime> {
   private rawSamples: Float64Array[] = [];
   private analysisCache?: MWUConflationAnalysis;
 
-  constructor (initial?: Iterable<Duration>, opts?: Partial<ConflationOptions>) {
+  constructor(initial?: Iterable<Duration>, opts?: Partial<ConflationOptions>) {
     this.opts = Object.assign({}, defaultConflationOptions, opts);
     if (initial !== void 0) {
       for (const x of initial) this.push(x);
     }
   }
 
-  samples(maxSize = 5, all = false): Duration[] {
-    const allSamples = this.allSamples;
+  samples(excludeOutliers = true): Duration[] {
+    const maxSize = this.opts.maxSize;
+    const samples = this.allSamples;
 
-    if (all && maxSize >= allSamples.length) {
+    if (!excludeOutliers && maxSize >= samples.length) {
       // no analysis needed
-      return allSamples;
+      return samples;
     }
 
     const a = this.analysis();
+    const series = !excludeOutliers
+      ? // consider all samples
+        Array.from(iterator.range(0, samples.length))
+      : // consider only the consistent subset
+        a.consistentSubset;
 
-console.info(`XX ${allSamples.length}/${a.consistentSubset.length}`);
-
-    const series = all
-      // consider all samples
-      ? Array.from(iterator.range(0, allSamples.length))
-      // consider only those samples in agreement
-      : a.consistentSubset;
-
-    if (maxSize < series.length) {
-      // find the fastest subset
-      const subset = new Set(series);
-      const result = [] as Duration[];
-
-      for (let i = 0; i < series.length; i++) {
-        const ith = a.ordered[i];
-        if (subset.has(ith)) {
-          if (result.push(allSamples[ith]) >= maxSize) break;
-        }
-      }
-
-      return result;
+    if (series.length <= maxSize) {
+      return array.subsetOf(samples, series, [] as Duration[]);
     }
 
-    return array.subsetOf(allSamples, series, [] as Duration[]);
+    // find the fastest subset.
+    const subset = new Set(series);
+    const result = [] as Duration[];
+
+    for (let i = 0; i < a.ordered.length; i++) {
+      const ith = a.ordered[i];
+      if (subset.has(ith)) {
+        if (result.push(samples[ith]) >= maxSize) break;
+      }
+    }
+
+    return result;
   }
 
   analysis(): MWUConflationAnalysis {
-    return this.analysisCache ??= Conflation.analyze(
-      this.rawSamples, this.opts.sensitivity
-    );
+    return (this.analysisCache ??= Conflation.analyze(
+      this.rawSamples,
+      this.opts.minSimilarity,
+      this.opts.minConflationSize
+    ));
   }
 
   push(sample: Duration) {
@@ -219,56 +238,83 @@ console.info(`XX ${allSamples.length}/${a.consistentSubset.length}`);
 
   static analyze(
     samples: Indexable<number>[],
-    maxDissimilarity: number,
+    minSimilarity: number,
+    minSize: number
   ): MWUConflationAnalysis {
     const N = samples.length;
 
-    // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
-    // is not possible. Instead we order by the number of 'wins'.
-    const wins = new Int32Array(N);
+    if (N === 0) {
+      return {
+        ordered: new Int32Array(0),
+        consistentSubset: [],
+      };
+    }
 
-    // upper triangular matrix of effect sizes
-    const ess = [] as number[];
+    // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
+    // is not possible. Instead we order by the sum of 'win' effect sizes in pair-wise
+    // comparisons.
+    const wins = new Float32Array(N);
+    const edges = [] as [number, number][];
+
+    // Normalized similarities between 0 and 1 where 1 is 'equal-chance'
+    const similarities = [] as number[];
 
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
-        const mwu = stats.mwu(samples[i], samples[j]).effectSize;
-        // Normalized effect-size between 0 and 1 where 0 is 'equal-chance'.
-        const es = Math.abs(mwu - 0.5) * 2;
-        ess.push(es);
+        const mwu = stats.mwu(samples[i], samples[j]).effectSize - 0.5;
+        const similarity = 1 - Math.abs(mwu) * 2;
 
-        if (mwu > 0.5) {
-          wins[i]++
-        } else if (mwu < 0.5) {
-          wins[j]++
+        if (similarity >= minSimilarity) {
+          edges.push([i, j]);
+          similarities.push(similarity);
         }
+
+        wins[i] += mwu;
+        wins[j] -= mwu;
       }
     }
 
-    const ordered = new Int32Array(N);
-    array.fillAscending(ordered, 0);
-    ordered.sort((a, b) => wins[b] - wins[a]);
+    let consistentSubset: number[] = [];
 
-    const fastest = ordered[0];
-    const consistentSubset = [fastest];
+    if (edges.length > 0) {
+      // connected components of samples
+      const cc = partitioning.from(edges, N);
 
-    // Pick the subset close enough to the fastest
-    for (let k = 1; k < N; k++) {
-      const kth = ordered[k];
-      const es = ess[math.triMatIdx(N, fastest, kth)];
+      if (cc.countGroups() === 1) {
+        // take all samples
+        consistentSubset = iterator.collect(cc.iterateGroup(0));
+      } else {
+        // Cohesion of each group
+        const groupCohesion = new Float32Array(N);
+        edges.forEach(([a, b], i) => {
+          if (cc.get(a) === cc.get(b)) groupCohesion[cc.get(a)] += similarities[i];
+        });
 
-      if (es < maxDissimilarity) {
-        consistentSubset.push(kth);
+        // sort samples by:
+        //  1. group size (descending)
+        //  2. within-group cohesion (descending)
+        const groups = iterator.collect(cc.iterateGroups()).sort((a, b) => {
+          const deltaSize = cc.groupSize(b) - cc.groupSize(a);
+          return deltaSize === 0 ? groupCohesion[b] - groupCohesion[a] : deltaSize;
+        });
+
+        // take the largest group.
+        consistentSubset = iterator.collect(cc.iterateGroup(groups[0]));
       }
     }
 
-    // The fastest sample disagrees with all the other samples
-    if (consistentSubset.length < 2) {
+    // check the conflation is large enough
+    if (consistentSubset.length < N * minSize) {
       consistentSubset.length = 0;
     }
 
+    // sort all samples
+    const orderByWins = new Int32Array(N);
+    array.fillAscending(orderByWins, 0);
+    orderByWins.sort((a, b) => wins[b] - wins[a]);
+
     return {
-      ordered,
+      ordered: orderByWins,
       consistentSubset,
     };
   }
@@ -325,7 +371,7 @@ ann.register('@sample:duration-annotator' as typeid, {
       return Status.value(void 0);
     }
 
-    const d = (sample as Duration);
+    const d = sample as Duration;
     const s = d.summary();
 
     const bag = ann.DefaultBag.from([
@@ -343,7 +389,7 @@ ann.register('@sample:duration-annotator' as typeid, {
     ]);
 
     return Status.value(bag);
-  }
+  },
 });
 
 const conflationAnnotations = {
@@ -358,4 +404,4 @@ const conflationAnnotations = {
 
   /** The number of samples excluded from the conflation */
   excludedCount: 'duration:conflation:excludedCount' as typeid,
-}
+};

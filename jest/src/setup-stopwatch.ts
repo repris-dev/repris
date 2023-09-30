@@ -9,6 +9,7 @@ declare function onSample(
   sample: samples.Sample<unknown>
 ): void;
 
+/** Current stopwatch opts */
 declare function getSamplerOptions(): Partial<stopwatch.Options>;
 
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));

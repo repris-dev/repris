@@ -55,14 +55,12 @@ export interface Conflation<V>
   readonly [typeid]: typeid;
 
   /**
-   * Samples constituting the conflation.
-   *
-   * @param maxSize When defined, only up to maxSize samples are returned. 
-   * These should constitute the 'best' samples.
+   * Get Samples constituting the conflation.
    * 
-   * @param all If true, the returned iterable also includes any samples
-   * that didn't meet the inclusion criteria for the conflation.
-   * Default: false
+   * @param excludeOutliers If true, only the samples which meet
+   * the inclusion criteria are returned; effectively the best samples.
+   * If false, no outliers are excluded and all samples are returned.
+   * Default: true
    */
-  samples(maxSize?: number, all?: boolean): Iterable<Sample<V>>;
+  samples(excludeOutliers?: boolean): Iterable<Sample<V>>;
 }

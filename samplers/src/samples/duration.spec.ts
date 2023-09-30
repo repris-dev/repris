@@ -19,8 +19,8 @@ describe('DurationConflation', () => {
   const sB = create(300, 10, 250);
   const sC = create(300, 50, 250);
   const sD = create(1000, 2, 250);
-  const sE = create(1000, 5, 250);
-  const sF = create(1005, 5, 250);
+  const sE = create(1000, 10, 250);
+  const sF = create(1005, 10, 250);
 
   test('samples() - cluster of 3, 1 outlier', () => {
     const conf = new duration.Conflation();
@@ -41,16 +41,14 @@ describe('DurationConflation', () => {
   });
 
   test('samples() - 2 clusters of 2', () => {
-    const conf = new duration.Conflation();
-
-    conf.push(sD);
-    conf.push(sB);
-    conf.push(sA);
-    conf.push(sE);
+    const conf = new duration.Conflation(
+      [sF, sB, sA, sE],
+      { minSimilarity: 0.5 }
+    );
 
     const result = conf.analysis();
 
-    // The faster cluster is selected
+    // The more-similar cluster is selected
     expect(result.consistentSubset.length).toBe(2);
     expect(result.consistentSubset).toContain(1);
     expect(result.consistentSubset).toContain(2);
@@ -60,20 +58,17 @@ describe('DurationConflation', () => {
     expect(result.ordered.indexOf(2)).toBeLessThanOrEqual(1);
 
     // slowest samples
-    expect(result.ordered.indexOf(0)).toBeGreaterThanOrEqual(2);
-    expect(result.ordered.indexOf(3)).toBeGreaterThanOrEqual(2);
+    expect(result.ordered.indexOf(3)).toBe(2);
+    expect(result.ordered.indexOf(0)).toBe(3);
   });
 
   test('exclusionThreshold', () => {
-    { // Low threshold
-      const sensitivity = 0.2;
-      const conf = new duration.Conflation([sE, sF], { sensitivity });
-  
+    { // High threshold
+      const conf = new duration.Conflation([sE, sF], { minSimilarity: 0.8 });
       expect(conf.analysis().consistentSubset.length).toBe(0);
     }
-    { // high threshold
-      const sensitivity = 0.8;
-      const conf = new duration.Conflation([sE, sF], { sensitivity });
+    { // Low threshold
+      const conf = new duration.Conflation([sE, sF], { minSimilarity: 0.2 });
   
       const a = conf.analysis();
       expect(a.consistentSubset.length).toBe(2);

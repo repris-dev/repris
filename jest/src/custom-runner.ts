@@ -147,7 +147,7 @@ function conflate(
   const bestSamples: AggregatedFixture<samples.duration.Duration>['samples'] = [];
   
   // Update the aggregated fixture with the best K samples, discarding the worst sample.
-  for (const best of newConflation.samples(5, true)) {
+  for (const best of newConflation.samples(true)) {
     assert.is(index.has(best), 'Sample should be indexed');
     bestSamples.push(index.get(best)!);
   }
