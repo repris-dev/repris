@@ -1,4 +1,4 @@
-import { timer, random, iterator } from '@repris/base';
+import { timer, random, iterator, quantity as q } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import { DurationResult, Duration } from './duration.js';
 import { ConflatedSampleStatus } from './types.js';
@@ -10,7 +10,7 @@ function create(mean: number, std: number, size: number) {
   const s = new duration.Duration();
 
   for (const x of iterator.take(size, iterator.gen(rng3))) {
-    s.push(timer.cvtFrom(x, 'nanosecond'));
+    s.push(timer.HrTime.from(q.create('nanosecond', x)));
   }
 
   return s;
