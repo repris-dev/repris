@@ -167,7 +167,12 @@ ann.register('@conflation:duration-annotator' as typeid, {
       }
     });
 
-    const summary = `${consistent}/${outlier + consistent} (${confl.effectSize().toFixed(2)})`;
+    let summary = `${consistent}/${outlier + consistent}`;
+
+    if (confl.ready()) {
+      // Avoid confusion by only reporting effect-size when ready to be snapshotted
+      summary += ` (${confl.effectSize().toFixed(2)})`;
+    }
 
     const bag = ann.DefaultBag.from([
       [annotations.summaryText, summary],

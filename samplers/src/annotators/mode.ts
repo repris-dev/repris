@@ -1,4 +1,4 @@
-import { Indexable, stats, Status, typeid } from '@repris/base';
+import { Indexable, quantity, stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 import * as conflations from '../conflations.js';
@@ -122,14 +122,17 @@ const sampleAnnotator: ann.Annotator = {
     if (request.has(SampleAnnotations.hsm)) {
       const hsm = stats.mode.hsm(data);
 
-      result.set(SampleAnnotations.hsm, hsm.mode);
+      result.set(SampleAnnotations.hsm, sample.asQuantity(hsm.mode));
       result.set(SampleAnnotations.hsmDispersion, hsm.variation);
 
       if (request.has(SampleAnnotations.hsmCIRME.id)) {
         const opts = { ...SampleAnnotations.hsmCIRME.opts, ...request.get(SampleAnnotations.hsmCIRME.id) }
         const hsmCI = stats.mode.hsmConfidence(data, opts.level);
 
-        result.set(SampleAnnotations.hsmCIRME.id, rme(hsmCI, hsm.mode));
+        result.set(
+          SampleAnnotations.hsmCIRME.id,
+          quantity.create('percent', rme(hsmCI, hsm.mode)),
+        );
       }
     }
 

@@ -4,9 +4,9 @@ import { annotators as anno } from '@repris/samplers';
 import type * as config from './config.js';
 import * as cli from './cli.js';
 
-export interface ColumnQuality {
+export interface ColumnGrading {
   type: typeid;
-  thresholds?: number[];
+  rules?: config.GradingThreshold[];
 }
 
 export interface Column {
@@ -14,7 +14,7 @@ export interface Column {
   ctx?: `@${string}`[];
   displayName?: string;
   units?: string;
-  grading?: { type: typeid; thresholds?: config.GradingConfig['thresholds'] };
+  grading?: ColumnGrading;
 }
 
 export interface RenderedLine {
@@ -74,7 +74,7 @@ export class TerminalReport<Id> {
    * are rendered in the order they were loaded in to the table.
    */
   load(rowid: Id, bag: anno.AnnotationBag): boolean {
-    const cells = this.columns.map((c) => {
+    const cells = this.columns.map(c => {
       const ann = bag.annotations.get(c.type, c.ctx);
 
       if (ann !== undefined) {
@@ -107,23 +107,18 @@ export class TerminalReport<Id> {
    * @param config Configuration of the quality annotation
    * @param bag A bag of annotations containing the quality annotation
    */
-  private _colorizeByQuality(cell: Cell, config: ColumnQuality, bag: anno.AnnotationBag): Cell {
+  private _colorizeByQuality(cell: Cell, config: ColumnGrading, bag: anno.AnnotationBag): Cell {
     const ann = bag.annotations.get(config.type);
-    const colors = [chalk.green, chalk.yellow, chalk.red];
 
-    if (typeof ann === 'number' && Array.isArray(config.thresholds)) {
-      let k = -1;
+    if (ann !== void 0 && Array.isArray(config.rules)) {
+      let matchingRule: config.GradingThreshold | undefined;
 
-      for (let t of config.thresholds) {
-        if (ann >= t) {
-          k++;
-        } else {
-          break;
-        }
+      for (let t of config.rules) {
+        if (matchesRule(ann, t)) matchingRule = t;
       }
 
-      if (k >= 0 && k < colors.length) {
-        return [colors[k](Cell.text(cell)), Cell.length(cell)];
+      if (matchingRule !== void 0) {
+        return [matchingRule.apply(Cell.text(cell)), Cell.length(cell)];
       }
     }
 
@@ -144,9 +139,9 @@ export class TerminalReport<Id> {
   reset() {
     this.rowIndex.clear();
     this.titleCells = this.columns.map(
-      (c) => (c.displayName ?? c.type) + (c.units ? ` (${c.units})` : '')
+      c => (c.displayName ?? c.type) + (c.units ? ` (${c.units})` : '')
     );
-    this.columnWidths = this.titleCells.map((c) => c.length);
+    this.columnWidths = this.titleCells.map(c => c.length);
   }
 
   private _renderRow(cells: Cell[]): RenderedLine {
@@ -193,9 +188,9 @@ class AnnotationFormatter {
   private numeric = {
     int: new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 }),
     number: new Intl.NumberFormat(void 0, { maximumFractionDigits: 3 }),
-  }
+  };
 
-  private quantities = new Map<q.Unit, q.Formatter>()
+  private quantities = new Map<q.Unit, q.Formatter>();
 
   format(a: anno.Annotation): Cell {
     const formatters = this.numeric;
@@ -261,15 +256,12 @@ interface TreeStrategy<Leaf> {
   pathOf(leaf: Leaf): string[];
   render(leaf: Leaf): string;
   annotate(leaf: Leaf): anno.AnnotationBag | undefined;
-};
+}
 
 export class TableTreeReporter<Leaf> {
   table: TerminalReport<Leaf>;
 
-  constructor(
-    public readonly columns: Column[],
-    private strategy: TreeStrategy<Leaf>
-  ) {
+  constructor(public readonly columns: Column[], private strategy: TreeStrategy<Leaf>) {
     this.table = new TerminalReport(columns);
   }
 
@@ -313,7 +305,7 @@ export class TableTreeReporter<Leaf> {
       this.#logTest(test, suite.depth + 1, stream);
     }
 
-    suite.children.forEach((suite) => this.#logSuite(suite, stream));
+    suite.children.forEach(suite => this.#logSuite(suite, stream));
   }
 
   #logTest(test: Leaf, indentLevel: number, stream: NodeJS.WriteStream) {
@@ -334,32 +326,62 @@ export class TableTreeReporter<Leaf> {
   #createTreeFrom(items: Iterable<Leaf>): ReportTree<Leaf> {
     const pathOf = this.strategy.pathOf;
     const root: ReportTree<Leaf> = { depth: 0, children: [], items: [], node: '' };
-  
+
     for (const testResult of items) {
       let targetSuite = root;
       let depth = 1;
-      
+
       // Find the target suite for this test, creating nested suites as necessary.
       for (const node of pathOf(testResult)) {
-        let matchingSuite = targetSuite.children.find((s) => s.node === node);
-  
+        let matchingSuite = targetSuite.children.find(s => s.node === node);
+
         if (!matchingSuite) {
           matchingSuite = { depth, children: [], items: [], node };
           targetSuite.children.push(matchingSuite);
         }
-  
+
         targetSuite = matchingSuite;
         depth++;
       }
-  
+
       targetSuite.items.push(testResult);
     }
-  
+
     return root;
   }
 }
 
-
 function indent(n: number) {
   return '  '.repeat(n);
+}
+
+/** 
+ * @returns True if the given annotation value matches all the conditions in the given
+ * grading rule 
+ */
+function matchesRule(ann: anno.Annotation, rule: config.GradingThreshold): boolean {
+  const conditions = Object.entries(rule);
+  const value = q.isQuantity(ann) ? ann.scalar : ann;
+
+  for (const [op, x] of conditions) {
+    switch (op) {
+      case '>':
+        if (!(value > x)) return false;
+        break;
+      case '>=':
+        if (!(value >= x)) return false;
+        break;
+      case '==':
+        if (!(value == x)) return false;
+        break;
+      case '<=':
+        if (!(value <= x)) return false;
+        break;
+      case '<':
+        if (!(value < x)) return false;
+        break;
+    }
+  }
+
+  return true;
 }

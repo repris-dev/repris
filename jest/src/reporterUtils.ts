@@ -5,7 +5,11 @@ import * as config from './config.js';
 export type Ctx = `@${string}`;
 
 /** @returns an array of graded columns from the given annotation configurations */
-export function gradedColumns(annotations: config.NestedAnnotationRequest, ctx?: Ctx[], columns: Column[] = []): Column[] {
+export function gradedColumns(
+  annotations: config.NestedAnnotationRequest,
+  ctx?: Ctx[],
+  columns: Column[] = [],
+): Column[] {
   if (Array.isArray(annotations)) {
     // one column for each visible annotation
     for (const ann of annotations) {
@@ -40,8 +44,8 @@ function convertToColumn(
   if (typeof a.display === 'undefined' || a.display) {
     const grading = a.grading !== undefined
       ? Array.isArray(a.grading)
-        ? { type: a.grading[0] as typeid, thresholds: a.grading[1].thresholds }
-        : { type: type as typeid, thresholds: a.grading?.thresholds }
+        ? { type: a.grading[0] as typeid, rules: a.grading[1].rules }
+        : { type: type as typeid, rules: a.grading?.rules }
       : undefined;
 
     columns.push({

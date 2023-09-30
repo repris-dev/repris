@@ -1,6 +1,7 @@
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
 import { assignDeep, RecursivePartial } from '@repris/base';
+import chalk from 'chalk';
 
 const dbg = debug('repris:config');
 
@@ -38,15 +39,25 @@ export interface SCIConfig {
   }
 }
 
+export interface GradingThreshold {
+  '>'?: number;
+  '>='?: number;
+  '=='?: number | string | boolean;
+  '<='?: number;
+  '<'?: number;
+
+  apply: (str: string) => string;
+};
+
 export interface GradingConfig {
   /** Annotation configuration */
   options?: Record<string, any>;
 
   /**
-   * For numeric annotations, the thresholds field is used to convert the
+   * For annotations, the thresholds field is used to convert the
    * value in to a three-level grading.
    */
-  thresholds?: number[];
+  rules?: GradingThreshold[];
 }
 
 export interface AnnotationConfig {
@@ -83,17 +94,16 @@ const defaultConfig: SCIConfig = {
     options: {},
     annotations: [
       ['duration:iter', { displayName: 'N' }],
-      ['duration:min', { displayName: 'min', display: false }],
-      ['mode:hsm', { displayName: 'avg' }],
+      ['mode:hsm', { displayName: 'Avg.' }],
       [
         'mode:hsm:ci-rme',
         {
-          displayName: 'ci',
+          displayName: 'CI (95%)',
           grading: {
-            thresholds: [
-              0, // >= good
-              0.05, // >= ok
-              0.1, // >= poor
+            rules: [
+              { '>=': 0,    apply: chalk.green },
+              { '>=': 0.05, apply: chalk.yellow },
+              { '>=': 0.2,  apply: chalk.red },
             ],
           },
         },
@@ -104,33 +114,37 @@ const defaultConfig: SCIConfig = {
   conflation: {
     options: {},
     annotations: [
-      ['mode:hsm:conflation', { displayName: 'avg¹' }],
       [
-        'mode:hsm:conflation:ci-rme',
-        {
-          displayName: 'ci¹',
-          grading: {
-            thresholds: [
-              0, // >= good
-              0.05, // >= ok
-              0.1, // >= poor
-            ],
-          },
-        },
+        'duration:conflation:summaryText',
+        { 
+          displayName: 'Index',
+          grading: [
+            'conflation:ready',
+            {
+              rules: [
+                { '==': true, apply: chalk.bold },
+                { '==': false, apply: chalk.dim },
+              ],
+            }
+          ],
+        }
       ],
-      ['duration:conflation:summaryText', { displayName: 'index¹' }],
     ] satisfies NestedAnnotationRequest,
   },
 
   comparison: {
     options: {},
     annotations: {
-      '@index': [['mode:hsm:conflation', { displayName: 'avg (index)' }]  ],
-      '@test': [
-        ['mode:hsm:hypothesis:summaryText', { displayName: 'change (95% CI)' }],
-        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.95 } }]
+      '@index': [
+        ['mode:hsm:conflation', { displayName: 'avg (index)' }]
       ],
-      '@snapshot': [['mode:hsm:conflation', { displayName: 'avg (snapshot)' }]],
+      '@test': [
+        ['mode:hsm:hypothesis:summaryText', { displayName: 'change (99% CI)' }],
+        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.99 } }]
+      ],
+      '@snapshot': [
+        ['mode:hsm:conflation', { displayName: 'avg (snapshot)' }]
+      ],
     } satisfies NestedAnnotationRequest
   }
 };
