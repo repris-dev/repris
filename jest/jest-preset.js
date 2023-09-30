@@ -5,36 +5,30 @@ export default {
       columns: [
         { id: 'duration:iter', displayName: 'iter.' },
         { id: 'duration:min', displayName: 'min' },
-        {
-          id: 'mode:kde',
-          displayName: 'kde',
+        { id: 'mode:hsm:conflation', displayName: 'snapshot-hsm' },
+        { id: 'mode:hsm:conflation:ci-rme',
+          displayName: 'hsm-rme',
           quality: {
-            id: 'mode:kde:dispersion',
+            id: 'mode:hsm:conflation:ci-rme',
             thresholds: [
               0,    // >= good
-              0.02, // >= ok
+              0.05, // >= ok
               0.1,  // >= poor
             ],
           }
         },
-        { id: 'mode:kde:dispersion', displayName: 'kde-d' },
-        { id: 'mode:hsm',
-          displayName: 'hsm',
+        { id: 'mode:hsm', displayName: 'hsm' },
+        { id: 'mode:hsm:ci-rme',
+          displayName: 'hsm-rme',
           quality: {
-            id: 'mode:hsm:dispersion',
+            id: 'mode:hsm:ci-rme',
             thresholds: [
               0,    // >= good
-              0.02, // >= ok
+              0.05, // >= ok
               0.1,  // >= poor
             ],
           }
         },
-        { id: 'mode:hsm:dispersion', displayName: 'hsm-d' },
-        { id: 'mode:lms',
-          displayName: 'lms',
-          
-        },
-        { id: 'mode:lms:dispersion', displayName: 'lms-d' },
       ]
     }],
   ],

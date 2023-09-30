@@ -139,12 +139,12 @@ export default class SampleReporter extends DefaultReporter {
 
   override onTestCaseResult(
     test: Test,
-    tcr: TestCaseResult & { sample?: wt.SampleData },
+    tcr: TestCaseResult & { sample?: wt.SampleData; conflation?: wt.SampleConflation },
   ) {
     super.onTestCaseResult(test, tcr);
 
     if (tcr.sample) {
-      this.table.load(`${ test.path }-${ tcr.fullName }`, tcr.sample);
+      this.table.load(`${ test.path }-${ tcr.fullName }`, tcr.sample, tcr.conflation);
     }
   }
 

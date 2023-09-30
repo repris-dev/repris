@@ -98,7 +98,10 @@ export function hsm(sample: Indexable<number>): REM {
  * @param K The number of bootstrap samples
  * @returns The bootstrapped confidence interval of the Half-sample mode (HSM)
  */
-export function hsmConfidence(sample: Indexable<number>, level = 0.9, K = 50) {
+export function hsmConfidence(
+  sample: Indexable<number>,
+  level = 0.9, K = 50
+): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
 
