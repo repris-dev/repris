@@ -36,6 +36,19 @@ export function gt(a: any, b: any): void {
   }
 }
 
+export function gte(a: any, b: any): void {
+  if (__DEBUG) {
+    if (a < b) err(`Expected ${a} to be >= ${b}`);
+  }
+}
+
+export function inRange(val: any, min: any, max: any): void {
+  if (__DEBUG) {
+    if (val < min || val > max)
+      err(`Expected ${min} >= ${val} <= ${max}`)
+  }
+}
+
 export function bounds(arr: ArrayLike<any>, idx: number) {
   if (__DEBUG) {
     if (idx < 0 || idx >= arr.length) err(`Expected ${idx} to be a valid element`);
