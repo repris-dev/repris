@@ -154,8 +154,8 @@ describe('Duration', () => {
 
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
     expect(a.rejected).toEqual([sE, sF]);
-    expect(a.consistent).toHaveValues([sA, sB, sC]);
-    expect(a.outlier).toEqual([sD]);
+    expect(a.consistent).toEqual([]);
+    expect(a.outlier).toHaveValues([sA, sB, sC, sD]);
   });
 });
 
