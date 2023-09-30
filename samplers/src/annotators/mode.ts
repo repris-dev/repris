@@ -67,14 +67,22 @@ const ConflationAnnotations = Object.freeze({
 });
 
 const HypothesisAnnotations = Object.freeze({
+  /** The relative change between the two samples */
   hsmDifference: 'mode:hsm:hypothesis:difference' as typeid,
+
+  /**
+   * Whether the difference is statistically significant.
+   * Note that this annotation is dependant on 'mode:hsm:hypothesis:difference-ci'.
+   */
   hsmSignificantDifference: 'mode:hsm:hypothesis:significantDifference' as typeid,
 
+  /** Confidence interval of the difference between the two samples */
   hsmDifferenceCI: {
     id: 'mode:hsm:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 1000 },
+    opts: { level: 0.99, resamples: 2500, smoothing: 0.1 },
   },
 
+  /** A text summary of the difference */
   hsmDifferenceSummary: 'mode:hsm:hypothesis:summaryText' as typeid,
 });
 
