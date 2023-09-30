@@ -102,7 +102,7 @@ export function* gen<T>(fn: () => T): Iterable<T> {
 /**
  * Create a range of n numbers from start
  */
-export function* range(from: number, n: number): Iterable<number> {
+export function* range(from: number, n: number): IterableIterator<number> {
   while (n-- > 0) {
     yield from++;
   }

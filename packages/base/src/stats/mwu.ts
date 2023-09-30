@@ -1,5 +1,6 @@
 import { fillAscending } from '../array.js';
-import { assert } from '../index.js';
+import * as iterator from '../iterator.js';
+import * as assert from '../assert.js';
 import { Indexable } from '../util.js';
 import * as chiSq from './chiSq.js';
 import { sidak, stbPhi } from './util.js';
@@ -68,7 +69,7 @@ export function mwu(as: Indexable<number>, bs: Indexable<number>): MWUResult {
   };
 }
 
-export type KruskalWallisResult = {
+export type KruskalWallisResult<T> = {
   /** Number of samples supplied */
   size: number;
 
@@ -95,13 +96,14 @@ export type KruskalWallisResult = {
    * @returns p-value, or Šidák-adjusted p-value
    */
   dunnsTest(i: number, j: number, adjust?: boolean): { p: number; effectSize: number };
+  dunnsTest2(i: T, j: T, adjust?: boolean): { p: number; effectSize: number };
 };
 
 /**
  * Kruskal–Wallis one-way analysis of variance and post-hoc Dunn's test
  * Reference: Voshol, G.P. (2022). STB: A simple Statistics Tool Box (Version 1.23).
  */
-export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult {
+export function kruskalWallis<T extends Indexable<number>>(samples: T[]): KruskalWallisResult<T> {
   assert.gt(samples.length, 1, 'There must be at least two samples');
 
   const G = samples.length;
@@ -220,6 +222,15 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     };
   }
 
+  const lookup = new Map(iterator.map(samples, (sample, i) => [sample, i]));
+
+  function dunnsTest2(a: T, b: T, adjust?: boolean) {
+    assert.is(lookup.has(a));
+    assert.is(lookup.has(b));
+
+    return dunnsTest(lookup.get(a)!, lookup.get(b)!, adjust);
+  }
+
   function pValue() {
     return 1 - chiSq.cdf(H, G - 1);
   }
@@ -231,5 +242,6 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     ranks: rankSums.map((sum, i) => sum / samples[i].length),
     pValue,
     dunnsTest,
+    dunnsTest2
   };
 }

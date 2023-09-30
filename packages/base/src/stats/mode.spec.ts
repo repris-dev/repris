@@ -1,12 +1,36 @@
 import * as random from '../random.js';
 import * as modes from './mode.js';
 
+
+describe('modalSearch', () => {  
+  test('creates a correctly sized window (2)', () => {
+    const r = modes.modalSearch([1, 5, 6], 2, 0, 3);
+
+    expect(r.range).toEqual([1, 2]);
+    expect(r.ties).toEqual(0);
+  });
+
+  test('creates a correctly sized window (3)', () => {
+    const r = modes.modalSearch([1, 5, 6], 3, 0, 3);
+
+    expect(r.range).toEqual([0, 2]);
+    expect(r.ties).toEqual(0);
+  });
+
+  test('counts ties', () => {
+    const r = modes.modalSearch([1, 2, 3], 2, 0, 3);
+
+    expect(r.range).toEqual([0, 1]);
+    expect(r.ties).toEqual(1);
+  });
+});
+
 describe('hsm', () => {
   test('finds one peak', () => {
     const gen = random.PRNGi32(34);
     const rng3 = random.gaussian(3, 0.25, gen);
     const rng6 = random.gaussian(6, 8, gen);
-    const sample = new Float32Array(128);
+    const sample = new Float32Array(512);
 
     for (let i = 0; i < sample.length - 1; ) {
       sample[i++] = rng3();
@@ -14,7 +38,7 @@ describe('hsm', () => {
     }
 
     const r = modes.hsm(sample);
-    expect(r.mode).toBeCloseTo(3, 1 / 3);
+    expect(r.mode).toBeCloseTo(3, 1 / 4);
   });
 
   test('2 observations', () => {
@@ -56,6 +80,24 @@ describe('hsm', () => {
       expect(r.mode).toBeCloseTo(4.5, 10);
       expect(r.bound).toEqual([1, 2]);
     }
+  });
+
+  describe('larger bounds', () => {
+    test('bound length (3)', () => {
+      const sample = [-10, 1, 2, 3, 10, 11];
+      const r = modes.hsm(sample, 3);
+
+      expect(r.bound).toEqual([1, 3]);
+      expect(r.mode).toBeCloseTo((1 + 3) / 2, 10);
+    });
+
+    test('bound length (4)', () => {
+      const sample = [0, 1, 1, 1, 1, 2];
+      const r = modes.hsm(sample, 4);
+
+      expect(r.bound).toEqual([1, 4]);
+      expect(r.mode).toBeCloseTo(1, 10);
+    });
   });
 });
 

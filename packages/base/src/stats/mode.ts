@@ -4,9 +4,9 @@ import { online } from '../stats.js';
 import * as boot from './bootstrap.js';
 import { quantile, qcd } from './util.js';
 
-/** Robust Estimation of the Mode */
+/** A Robust Estimation of the Mode */
 export type REM = {
-  /** The bounds of the sub-sample */
+  /** The bounds of the sub-sample (indices in to a sample) */
   bound: [lower: number, upper: number];
 
   /**
@@ -16,8 +16,8 @@ export type REM = {
   mode: number;
 
   /**
-   * Number of ties encountered. The left-most bound is
-   * returned when encountering a tie
+   * Number of ties encountered. The left-most bound in the sample
+   * is returned when encountering a tie
    */
   ties: number;
 
@@ -43,13 +43,14 @@ export function modalSearch(sample: Indexable<number>, k: number, i = 0, len = s
     hi = end,
     ties = 0;
 
-  for (; i + k < end; i++) {
-    const range = sample[i + k] - sample[i];
+  for (; i + k <= end; i++) {
+    const j = i + k - 1;
+    const range = sample[j] - sample[i];
 
     if (range < minRange) {
       minRange = range;
       lo = i;
-      hi = i + k;
+      hi = j;
       ties = 0;
     } else if (range - minRange < EPS) {
       ties++;
@@ -83,14 +84,13 @@ function oneSampleRME(sample: Indexable<number>): REM {
  * On a fast, robust estimator of The mode - David R. Bickel
  * https://arxiv.org/ftp/math/papers/0505/0505419.pdf
  */
-export function hsm(sample: Indexable<number>): REM {
+export function hsm(sample: Indexable<number>, minInterval?: number): REM {
   assert.gt(sample.length, 0);
 
-  const n = sample.length;
-  if (n === 1) return oneSampleRME(sample);
+  if (sample.length === 1) return oneSampleRME(sample);
 
   sort(sample);
-  return hsmImpl(sample);
+  return hsmImpl(sample, minInterval);
 }
 
 /**
@@ -215,30 +215,36 @@ export function studentizedHsmDifferenceTest(
 }
 
 /** Note: Assumes the given sample is sorted */
-function hsmImpl(sample: Indexable<number>): REM {
-  const n = sample.length;
+function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
+  assert.gte(minInterval, 2);
 
-  let windowSize = n / 2,
-    [b0, b1] = modalSearch(sample, Math.ceil(windowSize)).range,
-    variation = qcd([sample[b0], sample[b1]]);
+  let lo = 0, hi = sample.length - 1;
+  let variation1 = 0;
 
-  // Recursively find the shortest interval that contains 50% of the window
-  while (b1 - b0 >= 2) {
-    windowSize /= 2;
-    [b0, b1] = modalSearch(sample, Math.ceil(windowSize), b0, b1 - b0 + 1).range;
+  while (hi - lo + 1 > minInterval) {
+    // Recursively find the shortest interval that contains n samples
+    // within the bounds of the previous window
+    const space = hi - lo + 1;
+    const n = Math.max(minInterval, Math.ceil(space / 2));
+
+    [lo, hi] = modalSearch(sample, n, lo, space).range;
+
+    if (variation1 <= 0) {
+      variation1 = qcd([sample[lo], sample[hi]]);
+    }
   }
 
   // The mode is the mean of the two consecutive values
-  assert.eq(b1, b0 + 1);
+  assert.eq(hi - lo + 1, minInterval);
 
-  const lo0 = sample[b0],
-    hi0 = sample[b1],
+  const lo0 = sample[lo],
+    hi0 = sample[hi],
     mode = lo0 + (hi0 - lo0) / 2;
 
   return {
-    bound: [b0, b1],
+    bound: [lo, hi],
     ties: 0,
-    variation,
+    variation: variation1,
     mode,
   };
 }
@@ -271,7 +277,7 @@ export function lms(sample: Indexable<number>, alpha = 0.5): REM {
     r = modalSearch(sample, windowSize);
 
   const [lodx, hidx] = r.range;
-  assert.eq(hidx - lodx, windowSize);
+  assert.eq(hidx - lodx + 1, windowSize);
 
   const midpoint = windowSize / 2;
   const mode =

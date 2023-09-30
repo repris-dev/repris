@@ -123,7 +123,7 @@ export class Result implements types.Conflation<duration.Duration> {
   }
 }
 
-function summarize(stat: { sample: any; status: types.ConflatedSampleStatus }[]) {
+function summarize(stat: { status: types.ConflatedSampleStatus }[]) {
   const result: Record<types.ConflatedSampleStatus, number> = {
     consistent: 0,
     outlier: 0,

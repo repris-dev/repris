@@ -380,11 +380,10 @@ function reconflateBenchmark(
   conflationRequest: Map<typeid, any>,
   benchmarkRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
-  // sort by age (oldest first)
+  // sort existing samples by age (oldest first)
   const foo = iter.collect(bench.samples())
     .sort((a, b) => a.run - b.run)
 
-  console.info(foo.reduce((acc, i) => acc + i.run + ' ' , ''));
   const allSamples = foo.map(s => s.sample);
 
   allSamples.push(newEntry.sample);
