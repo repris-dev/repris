@@ -9,6 +9,7 @@ console.table(define);
 export default defineConfig({
   define,
   build: {
+    target: 'es2020',
     lib: {
       entry: path.resolve(__dirname, '.tsc/index.js'),
       fileName: 'index',
