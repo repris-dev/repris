@@ -1,6 +1,7 @@
 import { sort } from '../array.js';
-import { assert, Indexable, stats } from '../index.js';
-import { resampler } from './bootstrap.js';
+import { assert, Indexable, random, stats } from '../index.js';
+import { online } from '../stats.js';
+import * as boot from './bootstrap.js';
 import { quantile, qcd } from './util.js';
 
 /** Robust Estimation of the Mode */
@@ -110,7 +111,7 @@ export function hsmConfidence(
   const hsms = new Float64Array(K);
 
   sort(sample);
-  for (let i = 0, next = resampler(sample); i < K; i++) {
+  for (let i = 0, next = boot.resampler(sample); i < K; i++) {
     hsms[i] = hsmImpl(next()).mode;
   }
 
@@ -121,14 +122,15 @@ export function hsmConfidence(
 }
 
 /**
- * A bootstrapped paired HSM difference test of two samples.
+ * A percentile bootstrapped paired HSM difference test of two samples.
  * x0 - x1
  */
 export function hsmDifferenceTest(
   x0: Indexable<number>,
   x1: Indexable<number>,
   level = 0.95,
-  K = 100
+  K = 100,
+  entropy = random.mathRand
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
@@ -137,18 +139,53 @@ export function hsmDifferenceTest(
   const hsms = new Float64Array(K);
 
   sort(x0);
-  for (let i = 0, next0 = resampler(x0); i < K; i++) {
+  for (let i = 0, next0 = boot.resampler(x0, entropy); i < K; i++) {
     hsms[i] = hsmImpl(next0()).mode;
   }
 
   sort(x1);
-  for (let i = 0, next1 = resampler(x1); i < K; i++) {
+  for (let i = 0, next1 = boot.resampler(x1, entropy); i < K; i++) {
     hsms[i] -= hsmImpl(next1()).mode;
   }
 
   return [
     quantile(hsms, 0.5 - level / 2),
     quantile(hsms, 0.5 + level / 2),
+  ];
+}
+
+/**
+ * A studentized bootstrapped paired HSM difference test of two samples.
+ * x0 - x1
+ */
+export function studentizedHsmDifferenceTest(
+  x0: Indexable<number>,
+  x1: Indexable<number>,
+  level = 0.95,
+  K = 500,
+  KK = 50,
+  entropy = random.mathRand
+): [lo: number, hi: number] {
+  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => hsm(x0).mode - hsm(x1).mode;
+  const resampler = boot.pairedStudentizedResampler(
+    x0, x1, estimator, KK, entropy
+  );
+
+  const stat = estimator(x0, x1);
+  const pivotalQuantities = new Float64Array(K);
+  const estStat = new online.Gaussian();
+
+  for (let i = 0; i < K; i++) {
+    const ti = resampler();
+    pivotalQuantities[i] = ti.pivotalQuantity;
+    estStat.push(ti.estimate);
+  }
+
+  const bootStd = estStat.std();
+
+  return [
+    stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),
+    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2)
   ];
 }
 
