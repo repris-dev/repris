@@ -1,0 +1,40 @@
+{
+  "name": "@sampleci/samplers",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "package.json",
+    "lib",
+    ".tsc"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./.tsc/index.d.ts",
+        "development": "./.tsc/index.js",
+        "default": "./lib/index.es.js"
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/jest": "^28",
+    "@types/node": "^16",
+    "@sampleci/util": "workspace:*",
+    "@sampleci/base": "workspace:*",
+    "jest": "^28",
+    "jest-circus": "^28",
+    "@jest/expect": "^28",
+    "npm-run-all": "4.1.5",
+    "typescript": "~4.7",
+    "vite": "~2.9"
+  },
+  "scripts": {
+    "build:tsc": "tsc --build tsconfig.json tsconfig.spec.json",
+    "build:vite": "MODE=production vite build",
+    "build": "run-s -l build:tsc build:vite",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest '\\.tsc/.*spec\\.js'"
+  },
+  "license": "MIT"
+}
