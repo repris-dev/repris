@@ -4,5 +4,6 @@ export * as timer from './timer.js';
 export * as json from './json.js';
 export * as iterator from './iterator.js';
 export * as stats from './stats.js';
+export * as math from './math.js';
 
 export * from './util.js';

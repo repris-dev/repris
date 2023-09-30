@@ -74,6 +74,10 @@ export function push<T>(dest: T[], src: Indexable<T>): T[] {
   return dest;
 }
 
+export function sort<T extends number>(xs: Indexable<T>) {
+  Array.prototype.sort.call(xs, (a, b) => a - b);
+}
+
 /**
  * Returns the index of the first element in the range that
  * is not less than (i.e. greater or equal to) value, or last if no such
