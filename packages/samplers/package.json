@@ -1,0 +1,48 @@
+{
+  "name": "@repris/samplers",
+  "version": "0.8.0",
+  "author": {
+    "name": "Ray Glover",
+    "email": "ray@repris.dev"
+  },
+  "repository": {
+    "url": "https://github.com/repris-dev/repris",
+    "type": "git"
+  },
+  "files": [
+    "package.json",
+    "lib"
+  ],
+  "type": "module",
+  "types": "./.tsc/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./.tsc/index.d.ts",
+      "development": "./.tsc/index.js",
+      "default": {
+        "import": "./lib/index.js",
+        "require": "./lib/index.cjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@repris/base": "workspace:*",
+    "@repris/util": "workspace:*"
+  },
+  "devDependencies": {
+    "@jest/expect": "^29.7.0",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^16",
+    "jest": "^29.7.0",
+    "npm-run-all": "4.1.5",
+    "typescript": "^5.1",
+    "vite": "^4.4"
+  },
+  "scripts": {
+    "build:tsc": "tsc --build tsconfig.json tsconfig.spec.json",
+    "build:vite": "MODE=production vite build",
+    "build": "run-s -l build:tsc build:vite",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "license": "Apache-2.0"
+}

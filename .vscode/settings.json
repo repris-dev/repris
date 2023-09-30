@@ -1,0 +1,19 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.exclude": {},
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.js": "$(capture).d.ts, $(capture).d.ts.map, $(capture).js.map",
+    "*.ts": "$(capture).spec.*, $(capture).snap.*, $(capture).d.ts",
+    "*.tsx": "$(capture).spec.*, $(capture).snap.*",
+    "package.json": "pnpm-lock.yaml"
+  },
+  "explorer.autoRevealExclude": {
+    "**/node_modules": true
+  }
+}

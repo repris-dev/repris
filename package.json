@@ -1,0 +1,21 @@
+{
+  "name": "@repris/monorepo",
+  "author": "repris",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "^18"
+  },
+  "packageManager": "pnpm@8.6.1",
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.1",
+    "prettier": "=3.0.3"
+  },
+  "scripts": {
+    "build:tsc": "tsc -b .",
+    "build:vite": "pnpm -r run --if-present --workspace-concurrency=1 build:vite",
+    "test": "pnpm -r run --if-present --workspace-concurrency=1 test",
+    "format": "prettier --write ."
+  }
+}

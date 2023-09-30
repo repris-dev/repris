@@ -1,0 +1,14 @@
+// A 'solution' tsconfig, used to support Typescript Project References
+// https://www.typescriptlang.org/docs/handbook/project-references.html#overall-structure
+{
+  "references": [
+    { "path": "./packages/base" },
+    { "path": "./packages/base/tsconfig.spec.json" },
+    { "path": "./packages/samplers" },
+    { "path": "./packages/samplers/tsconfig.spec.json" },
+    { "path": "./packages/jest" },
+    { "path": "./packages/jest/tsconfig.spec.json" },
+    { "path": "./packages/jest-demo" }
+  ],
+  "files": []
+}
