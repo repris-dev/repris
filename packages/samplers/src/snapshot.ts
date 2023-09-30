@@ -1,8 +1,7 @@
-import { json, Status, iterator, uuid } from '@repris/base';
+import { json, Status, iterator } from '@repris/base';
 import * as wt from './wireTypes.js';
 import * as samples from './samples.js';
 import * as f from './fixture.js';
-import { conflations } from './index.js';
 
 export const enum FixtureState {
   Unknown = 0,

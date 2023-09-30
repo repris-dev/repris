@@ -15,7 +15,7 @@ export default {
       [
         'mode:hsm:ci-rme',
         {
-          displayName: 'CI (95%)',
+          displayName: '95% CI',
           grading: {
             rules: [
               { '>=': 0, apply: chalk.green },
@@ -58,7 +58,7 @@ export default {
       [
         'mode:hsm:conflation:ci-rme',
         {
-          displayName: 'CI (95%)',
+          displayName: '95% CI',
           display: { if: ['show'] },
           grading: {
             rules: [
@@ -114,11 +114,11 @@ export default {
           ],
           ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.99 } }],
         ],
-        '@snapshot': [
+        '@baseline': [
           [
             'mode:hsm:conflation',
             {
-              displayName: 'Snapshot',
+              displayName: 'Baseline',
               grading: [
                 'mode:hsm:hypothesis:significantDifference',
                 {

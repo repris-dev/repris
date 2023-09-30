@@ -106,8 +106,8 @@ function annotateComparison(
 
   if (x1) {
     const bag = annotators.DefaultBag.fromJson(base?.annotations().get(x1[uuid]) ?? {});
-    annotators.annotateMissing(bag, annotationRequests('@snapshot'), x1);
-    annotations.union(bag, '@snapshot');
+    annotators.annotateMissing(bag, annotationRequests('@baseline'), x1);
+    annotations.union(bag, '@baseline');
   }
 
   // run comparison

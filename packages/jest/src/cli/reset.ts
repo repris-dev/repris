@@ -1,17 +1,18 @@
 import chalk from 'chalk';
-
 import * as jestConfig from 'jest-config';
+
 import { Config } from '@jest/types';
 import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
+import { typeid } from '@repris/base';
 import { snapshotManager, annotators } from '@repris/samplers';
 
 import { IndexResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import { println, panic, yesNoQuestion } from './util.js';
-import { typeid } from '@repris/base';
+
 
 type IndexStat = {
   totalFixtures: number;
