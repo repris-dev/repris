@@ -101,7 +101,6 @@ export const normalize = {
   }
 }
 
-
 const loadEsm = async (filepath: string) => {
   try {
     dbg(`Loading (${filepath})`);

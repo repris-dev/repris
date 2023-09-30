@@ -1,4 +1,4 @@
-import { assert, isObject, json, Status, typeid, quantity as q } from '@repris/base';
+import { assert, isObject, json, Status, typeid, quantity as q, iterator } from '@repris/base';
 import * as wt from '../wireTypes.js';
 import type { Annotator, AnnotationBag, Annotation, Annotatable, Value } from './types.js';
 
@@ -116,6 +116,7 @@ export class DefaultBag implements AnnotationBag {
   }
 }
 
+
 export function supports(annotation: typeid) {
   return annotatorMap.has(annotation);
 }
@@ -148,4 +149,27 @@ export function annotate(
   }
 
   return Status.value(DefaultBag.from(result));
+}
+
+export function annotateMissing<A extends Annotatable>(
+  bag: AnnotationBag,
+  request: Map<typeid, any>,
+  annotatable: A
+): Status<unknown> {
+  // A new request which excludes pre-existing annotations
+  const filteredRequest = new Map(
+    iterator.filter(request.entries(), anno => bag.annotations.get(anno[1]) === undefined)
+  );
+
+  if (filteredRequest.size > 0) {
+    // the remaining request is the missing annotations
+    const newBag = annotate(annotatable, filteredRequest);
+    if (Status.isErr(newBag)) {
+      return newBag;
+    }
+
+    bag.union(newBag[0]);
+  }
+
+  return Status.ok;
 }
