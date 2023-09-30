@@ -13,7 +13,8 @@ export default class ReservoirSample<T>
 {
   /** Observations in the sample */
   readonly values: T[] = [];
-  /** Number of observations in the sample */
+
+  /** Number of observations seen */
   count = 0;
 
   private sample1: random.Distribution;
@@ -30,6 +31,11 @@ export default class ReservoirSample<T>
     this.sample1 = random.uniform(0, 1, rng);
     this.sampleN = random.uniform(0, capacity, rng);
     this.reset();
+  }
+
+  /** Sample size */
+  N(): number {
+    return Math.min(this.count, this.capacity);
   }
 
   /**
