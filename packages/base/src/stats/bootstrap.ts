@@ -226,3 +226,33 @@ export function studentizedDifferenceTest(
     stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2)
   ];
 }
+
+/** Calculate the percentile confidence interval of a statistic for a given sample */
+export function confidenceInterval(
+  /** The sample */
+  xs: Indexable<number>,
+  /** Function to estimate a statistic */
+  estimator: (xi: Indexable<number>) => number,
+  /** Confidence level */
+  level: number,
+  /** Number of bootstrap resamples */
+  K: number,
+  /** Smoothing to apply to resamples, if any */
+  smoothing?: number,
+  entropy = random.mathRand
+): [lo: number, hi: number] {
+  assert.inRange(level, 0, 1);
+  assert.gt(K, 1);
+
+  // bootstrap sample distribution
+  const dist = new Float64Array(K);
+
+  for (let i = 0, next = resampler(xs, entropy, smoothing); i < K; i++) {
+    dist[i] = estimator(next());
+  }
+
+  return [
+    quantile(dist, 0.5 - level / 2),
+    quantile(dist, 0.5 + level / 2),
+  ];
+}

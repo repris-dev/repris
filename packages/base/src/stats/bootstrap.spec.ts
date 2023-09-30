@@ -7,9 +7,6 @@ import * as centralTendency from './centralTendency.js';
 import { quantile } from './util.js';
 import { hsm } from './mode.js';
 
-
-
-
 describe('resampler', () => {
   test('Estimate std deviation', () => {
     const rng = rand.PRNGi32(31);

@@ -121,64 +121,6 @@ export function estimateStdDev(xs: Indexable<number>, std = 1) {
   return (a * (1 / std)) / 2;
 }
 
-/**
- * @param sample
- * @param level The confidence level, between (0, 1)
- * @param K The number of bootstrap samples
- * @returns The bootstrapped confidence interval of the Half-sample mode (HSM)
- */
-export function hsmConfidence(
-  sample: Indexable<number>,
-  level: number,
-  K: number,
-  smoothing?: number
-): [lo: number, hi: number] {
-  assert.inRange(level, 0, 1);
-  assert.gt(K, 1);
-
-  // bootstrap distribution of HSMs
-  const hsms = new Float64Array(K);
-
-  sort(sample);
-  for (let i = 0, next = boot.resampler(sample, void 0, smoothing); i < K; i++) {
-    hsms[i] = hsmImpl(next()).mode;
-  }
-
-  return [
-    quantile(hsms, 0.5 - level / 2),
-    quantile(hsms, 0.5 + level / 2),
-  ];
-}
-
-/**
- * @param sample
- * @param level The confidence level, between (0, 1)
- * @param K The number of bootstrap samples
- * @returns The bootstrapped confidence interval of the Half-sample mode (HSM)
- */
-export function medianConfidence(
-  sample: Indexable<number>,
-  level: number,
-  K: number,
-  smoothing?: number
-): [lo: number, hi: number] {
-  assert.inRange(level, 0, 1);
-  assert.gt(K, 1);
-
-  // bootstrap distribution of HSMs
-  const hsms = new Float64Array(K);
-
-  sort(sample);
-  for (let i = 0, next = boot.resampler(sample, void 0, smoothing); i < K; i++) {
-    hsms[i] = centralTendency.mean(next());
-  }
-
-  return [
-    quantile(hsms, 0.5 - level / 2),
-    quantile(hsms, 0.5 + level / 2),
-  ];
-}
-
 /** Note: Assumes the given sample is sorted */
 function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
   assert.gte(minInterval, 2);
