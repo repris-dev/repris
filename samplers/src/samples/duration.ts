@@ -113,7 +113,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
   }
 
   push(duration: timer.HrTime) {
-    // convert duration (ns) to microseconds. Note the possibility lose precision
+    // Convert duration (ns) to microseconds. Note the possibility lose precision
     // for durations > 104 days
     const us = timer.HrTime.toMicroseconds(duration);
 
@@ -141,8 +141,8 @@ export class Duration implements MutableSample<timer.HrTime, number> {
       '@type': Duration[typeid],
       '@uuid': this[uuid],
       summary: this.onlineStats.toJson(),
+      units: UNIT,
       values: this.times.values,
-      units: 'microsecond',
     };
 
     if (this.opts.maxCapacity !== void 0) {
