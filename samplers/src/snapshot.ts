@@ -1,4 +1,4 @@
-import { json, typeid, Status, assignDeep, iterator } from '@repris/base';
+import { json, Status, assignDeep, iterator, uuid } from '@repris/base';
 import * as wt from './wireTypes.js';
 import * as samples from './samples.js';
 
@@ -14,11 +14,14 @@ export type AggregatedFixture<T extends samples.Sample<any>> = {
 
   samples: {
     sample: T;
-    annotations?: Record<typeid, json.Value>;
+    annotations: wt.AnnotationBag;
   }[];
 
   /** An analysis of the samples together */
-  conflation?: wt.ConflationResult;
+  conflation?: {
+    result: wt.ConflationResult;
+    annotations: wt.AnnotationBag;
+  };
 };
 
 export const enum FixtureState {
@@ -61,16 +64,28 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   updateFixture(title: string[], nth: number, fixture: AggregatedFixture<samples.Duration>) {
     const key = cacheKey(title, nth);
 
-    this.fixtures.set(key, {
+    const annotationIndex = {} as Record<string, wt.AnnotationBag>;
+
+    fixture.samples.forEach(f => {
+      if (f.annotations) annotationIndex[f.sample[uuid]] = f.annotations;
+    });
+
+    if (fixture.conflation) {
+      annotationIndex[fixture.conflation.result['@uuid']] = assignDeep({}, fixture.conflation.annotations);
+    }
+
+    const s: wt.Fixture = {
       name: assignDeep({} as wt.FixtureName, fixture.name),
-      samples: fixture.samples.map(({ sample, annotations }) => ({
-        data: sample.toJson(),
-        annotations: annotations ? assignDeep({}, annotations) : undefined,
+      samples: fixture.samples.map(({ sample }) => ({
+        data: sample.toJson()
       })),
       conflation: fixture.conflation
-        ? assignDeep({} as wt.ConflationResult, fixture.conflation)
+        ? assignDeep({} as wt.ConflationResult, fixture.conflation.result)
         : undefined,
-    });
+      annotations: annotationIndex
+    };
+
+    this.fixtures.set(key, s);
   }
 
   allTombstones(): Iterable<wt.FixtureName> {
@@ -110,16 +125,23 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     for (let ws of fixture.samples) {
       const s = samples.Duration.fromJson(ws.data);
       if (!Status.isErr(s)) {
-        resultSamples.push({ sample: Status.get(s), annotations: ws.annotations });
+        const sample = Status.get(s);
+        const annotations = fixture.annotations?.[sample[uuid]] ?? {};
+
+        resultSamples.push({ sample, annotations });
       } else {
         throw new Error(`Failed to load sample of type: ${ws.data['@type']}`);
       }
     }
 
+    const conflation = fixture.conflation ?
+      { result: fixture.conflation, annotations: fixture.annotations?.[fixture.conflation['@uuid']] ?? {} }
+      : void 0;
+
     return {
       name: fixture.name,
       samples: resultSamples,
-      conflation: fixture.conflation,
+      conflation
     };
   }
 

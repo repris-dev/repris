@@ -25,9 +25,6 @@ export type ConflationResult = {
 
   /** The samples included in the conflation */
   samples: { '@ref': uuid, outlier: boolean }[];
-
-  /** Annotations of the conflation */
-  annotations?: AnnotationBag;
 };
 
 // TODO - rename to Sampler?
@@ -41,9 +38,6 @@ export type Sample = {
 
   /** The observations(s) constituting the sample */
   data: SampleData;
-
-  /** Annotations of the sample */
-  annotations?: AnnotationBag;
 };
 
 export type AnnotationBag = Record<string, json.Value>;
@@ -69,6 +63,9 @@ export type Fixture = {
 
   /** Conflation of the samples */
   conflation?: ConflationResult;
+
+  /** Index of annotations of samples/conflations in this fixture */
+  annotations?: Record<string, AnnotationBag>;
 };
 
 export type Epoch = {

@@ -201,19 +201,18 @@ export default async function testRunner(
             throw new Error('Unknown sample type ' + sample[typeid]);
           }
 
+          const annotations = annotate(sample, sampleAnnotations);
           const augmentedResult = ar as AugmentedAssertionResult;
-          // assign serialized sample generated during the most recent test case
-          // to this test case result
-          augmentedResult.repris = {
-            sample: annotate(sample, sampleAnnotations),
-          };
+
+          // assign annotations to the test case result
+          augmentedResult.repris = { sample: annotations };
 
           if (idxSnapshot) {
             // load the previous samples of this fixture from the cache
             const indexedFixture = idxSnapshot.getOrCreateFixture(title, nth);
             
             reconflateFixture(
-              sample,
+              { sample, annotations },
               reprisCfg.conflation.options,
               conflationAnnotations,
               indexedFixture,
@@ -354,17 +353,18 @@ function createAnnotationRequest(
 function annotate(
   newSample: samples.Duration,
   annotations: Map<typeid, any>
-): wt.AnnotationBag | undefined {
+): wt.AnnotationBag {
   const [bag, err] = annotators.annotate(newSample, annotations);
   if (err) {
     dbg('Failed to annotate sample %s', err.message);
+    return {};
   } else {
     return bag!.toJson();
   }
 }
 
 function reconflateFixture(
-  newSample: samples.Duration,
+  newEntry: { sample: samples.Duration, annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
   annotations: Map<typeid, any>,
   indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
@@ -373,7 +373,7 @@ function reconflateFixture(
   const fixtureIndex = new Map(indexedFixture.samples.map(s => [s.sample, s]));
 
   // the new sample and its annotations
-  fixtureIndex.set(newSample, { sample: newSample, annotations: {} });
+  fixtureIndex.set(newEntry.sample, newEntry);
 
   // conflate the new and previous samples together
   const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
@@ -386,8 +386,10 @@ function reconflateFixture(
   }
 
   // overwrite the previous conflation annotations
-  indexedFixture.conflation = newConflation.toJson();
-  indexedFixture.conflation.annotations = bag?.toJson() ?? {};
+  indexedFixture.conflation = {
+    result: newConflation.toJson(),
+    annotations: bag?.toJson() ?? {}
+  };
 
   // Update the aggregated fixture, discarding sample(s) rejected in the analysis.
   indexedFixture.samples = iter.collect(
