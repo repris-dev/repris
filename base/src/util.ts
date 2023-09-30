@@ -2,6 +2,13 @@
 // Common types
 //
 
+export type RecursivePartial<T> = {
+  [P in keyof T]?:
+    T[P] extends (infer U)[] ? RecursivePartial<U>[] :
+    T[P] extends object ? RecursivePartial<T[P]> :
+    T[P];
+};
+
 export type Indexable<T> = { [i: number]: T; readonly length: number; }
 
 //
@@ -64,3 +71,4 @@ export function isPromise(p: void | PromiseLike<void>): p is PromiseLike<void> {
 export function isObject(item: any): item is object {
   return item && typeof item === 'object' && !Array.isArray(item) && item !== null;
 }
+
