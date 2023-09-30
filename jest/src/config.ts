@@ -65,9 +65,9 @@ const defaultConfig: SCIConfig = {
   sample: {
     options: {},
     annotations: [
-      ['duration:iter', { displayName: 'iter' }],
+      ['duration:iter', { displayName: 'N' }],
       ['duration:min', { displayName: 'min', display: false }],
-      ['mode:hsm', { displayName: 'mode' }],
+      ['mode:hsm', { displayName: 'avg' }],
       [
         'mode:hsm:ci-rme',
         {
@@ -87,11 +87,11 @@ const defaultConfig: SCIConfig = {
   conflation: {
     options: {},
     annotations: [
-      ['mode:hsm:conflation', { displayName: 'mode(*)' }],
+      ['mode:hsm:conflation', { displayName: 'avg¹' }],
       [
         'mode:hsm:conflation:ci-rme',
         {
-          displayName: 'ci(*)',
+          displayName: 'ci¹',
           grading: {
             thresholds: [
               0, // >= good
@@ -101,7 +101,7 @@ const defaultConfig: SCIConfig = {
           },
         },
       ],
-      ['duration:conflation:summaryText', { displayName: 'stat' }],
+      ['duration:conflation:summaryText', { displayName: 'cache¹' }],
     ],
   },
 };
