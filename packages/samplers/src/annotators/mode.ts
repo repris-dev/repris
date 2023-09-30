@@ -42,12 +42,12 @@ const SampleAnnotations = Object.freeze({
 
   /**
    * The relative margin-of-error of the HSM confidence interval.
-   * The RME is the half-width of the confidence interval divided by the 
+   * The RME is the half-width of the confidence interval divided by the
    * estimated HSM.
    */
   hsmCIRME: {
     id: 'mode:hsm:ci-rme' as typeid,
-    opts: { level: 0.95, resamples: 500 },
+    opts: { level: 0.95, resamples: 500, smoothing: 0.1 },
   },
 });
 
@@ -62,8 +62,8 @@ const ConflationAnnotations = Object.freeze({
 
   hsmCIRME: {
     id: 'mode:hsm:conflation:ci-rme' as typeid,
-    opts: { level: 0.95, resamples: 500 },
-  }
+    opts: { level: 0.95, resamples: 500, smoothing: 0.1 },
+  },
 });
 
 const HypothesisAnnotations = Object.freeze({
@@ -88,14 +88,14 @@ const HypothesisAnnotations = Object.freeze({
 
 const sampleAnnotator: ann.Annotator = {
   annotations() {
-    return Object.values(SampleAnnotations).map((x) => (typeof x === 'object' ? x.id : x));
+    return Object.values(SampleAnnotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
     sample: samples.Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
+    if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
@@ -113,7 +113,10 @@ const sampleAnnotator: ann.Annotator = {
     ]);
 
     if (request.has(SampleAnnotations.shorth.id)) {
-      const opts = { ...SampleAnnotations.shorth.opts, ...request.get(SampleAnnotations.shorth.id) };
+      const opts = {
+        ...SampleAnnotations.shorth.opts,
+        ...request.get(SampleAnnotations.shorth.id),
+      };
       const shorth = stats.mode.shorth(data, opts.fraction);
 
       result.set(SampleAnnotations.shorth.id, shorth.mode);
@@ -121,9 +124,12 @@ const sampleAnnotator: ann.Annotator = {
     }
 
     if (request.has(SampleAnnotations.lms.id)) {
-      const opts = { ...SampleAnnotations.lms.opts, ...request.get(SampleAnnotations.lms.id) };
-      const lms = stats.mode.lms(data, opts.fraction);
+      const opts = {
+        ...SampleAnnotations.lms.opts,
+        ...request.get(SampleAnnotations.lms.id),
+      };
 
+      const lms = stats.mode.lms(data, opts.fraction);
       result.set(SampleAnnotations.lms.id, lms.mode);
       result.set(SampleAnnotations.lmsDispersion, lms.variation);
     }
@@ -135,13 +141,15 @@ const sampleAnnotator: ann.Annotator = {
       result.set(SampleAnnotations.hsmDispersion, hsm.variation);
 
       if (request.has(SampleAnnotations.hsmCIRME.id)) {
-        const opts = { ...SampleAnnotations.hsmCIRME.opts, ...request.get(SampleAnnotations.hsmCIRME.id) }
-        const hsmCI = stats.mode.hsmConfidence(data, opts.level, opts.resamples);
+        const opts = {
+          ...SampleAnnotations.hsmCIRME.opts,
+          ...request.get(SampleAnnotations.hsmCIRME.id),
+        };
 
-        result.set(
-          SampleAnnotations.hsmCIRME.id,
-          quantity.create('percent', rme(hsmCI, hsm.mode)),
-        );
+        const smoothing = bootstrapSmoothing(data, opts.smoothing);
+        const hsmCI = stats.mode.hsmConfidence(data, opts.level, opts.resamples, smoothing);
+
+        result.set(SampleAnnotations.hsmCIRME.id, quantity.create('percent', rme(hsmCI, hsm.mode)));
       }
     }
 
@@ -153,14 +161,14 @@ ann.register('@annotator:mode', sampleAnnotator);
 
 const conflationAnnotator: ann.Annotator = {
   annotations() {
-    return Object.values(ConflationAnnotations).map((x) => (typeof x === 'object' ? x.id : x));
+    return Object.values(ConflationAnnotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
     conflation: conflations.ConflationResult<samples.Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
+    if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
@@ -169,19 +177,24 @@ const conflationAnnotator: ann.Annotator = {
     }
 
     // run pooled analysis only on the best samples
-    const samples = tof64Samples(conflation)
+    const samples = tof64Samples(conflation);
 
     if (samples.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
 
-      if (request.has(ConflationAnnotations.hsmMode) || request.has(ConflationAnnotations.hsmCIRME.id)) {        
-        const opts = request.has(ConflationAnnotations.hsmCIRME.id)
-          ? { ...ConflationAnnotations.hsmCIRME.opts, ...request.get(ConflationAnnotations.hsmCIRME.id) }
-          : void 0;
+      if (
+        request.has(ConflationAnnotations.hsmMode) ||
+        request.has(ConflationAnnotations.hsmCIRME.id)
+      ) {
+        const opts = {
+          ...ConflationAnnotations.hsmCIRME.opts,
+          ...request.get(ConflationAnnotations.hsmCIRME.id),
+        };
 
         const pooledSample = concatSamples(samples);
-        const hsmAnalysis = hsmConflation(pooledSample, opts?.level, opts?.resamples);
-    
+        const smoothing = bootstrapSmoothing(pooledSample, opts.smoothing);
+        const hsmAnalysis = hsmConflation(pooledSample, opts.level, opts.resamples, smoothing);
+
         result.set(ConflationAnnotations.hsmMode, conflation.asQuantity(hsmAnalysis.mode));
 
         if (request.has(ConflationAnnotations.hsmCIRME.id)) {
@@ -205,14 +218,14 @@ ann.register('@annotator:conflation:mode', conflationAnnotator);
 
 const hypothesisAnnotator: ann.Annotator = {
   annotations() {
-    return Object.values(HypothesisAnnotations).map((x) => (typeof x === 'object' ? x.id : x));
+    return Object.values(HypothesisAnnotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
     hypot: hypothesis.DefaultHypothesis<conflations.ConflationResult<samples.Duration>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
+    if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
@@ -220,7 +233,7 @@ const hypothesisAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    const [c0, c1] = hypot.operands(); 
+    const [c0, c1] = hypot.operands();
 
     const xs0 = tof64Samples(c0);
     const x0 = concatSamples(xs0);
@@ -240,15 +253,16 @@ const hypothesisAnnotator: ann.Annotator = {
     if (request.has(HypothesisAnnotations.hsmDifferenceCI.id)) {
       const opts = {
         ...HypothesisAnnotations.hsmDifferenceCI.opts,
-        ...request.get(HypothesisAnnotations.hsmDifferenceCI.id)
+        ...request.get(HypothesisAnnotations.hsmDifferenceCI.id),
       };
 
       const smoothing0 = bootstrapSmoothing(x0, opts.smoothing);
       const smoothing1 = bootstrapSmoothing(x1, opts.smoothing);
 
-      ci = stats.mode.hsmDifferenceTest(
-        x0, x1, opts.level, opts.resamples, void 0, [smoothing0, smoothing1]
-      );
+      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples, void 0, [
+        smoothing0,
+        smoothing1,
+      ]);
 
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
@@ -269,7 +283,7 @@ const hypothesisAnnotator: ann.Annotator = {
 
     if (request.has(HypothesisAnnotations.hsmSignificantDifference)) {
       if (ci) {
-        // Accept the null hypothesis if the interval includes 0, otherwise reject 
+        // Accept the null hypothesis if the interval includes 0, otherwise reject
         const reject = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
         result.set(HypothesisAnnotations.hsmSignificantDifference, reject ? relChange : 0);
       }
@@ -306,11 +320,12 @@ function bootstrapSmoothing(xs: Float64Array, level: number) {
   // Estimate standard deviation
   const std = stats.mode.estimateStdDev(xs, 0.33);
   // Use Scott's estimate
-  return (std / (xs.length ** (-1 / 5))) * level;
+  return (std / xs.length ** (-1 / 5)) * level;
 }
 
 function tof64Samples(conflation: conflations.ConflationResult<samples.Duration>) {
-  return conflation.stat()
+  return conflation
+    .stat()
     .filter(s => s.status === 'consistent')
     .map(s => [s.sample.toF64Array!(), s.sample] as const);
 }
@@ -341,15 +356,17 @@ function hsmConflation(
   pooledSample: Float64Array,
   ciLevel?: number,
   resamples = 500,
+  smoothing?: number
 ) {
   const { mode, variation } = stats.mode.hsm(pooledSample);
 
   return {
     mode,
     variation,
-    rme: ciLevel !== void 0
-      ? rme(stats.mode.hsmConfidence(pooledSample, ciLevel, resamples), mode)
-      : void 0,
+    rme:
+      ciLevel !== void 0
+        ? rme(stats.mode.hsmConfidence(pooledSample, ciLevel, resamples, smoothing), mode)
+        : void 0,
   };
 }
 
@@ -366,12 +383,10 @@ function concatSamples(samples: (readonly [Float64Array, samples.Duration])[]) {
   return concatSample;
 }
 
-function kdeModeConflation(
-  samples: (readonly [Float64Array, samples.Duration])[],
-) {  
+function kdeModeConflation(samples: (readonly [Float64Array, samples.Duration])[]) {
   // MISE-optimized bandwidth
   const hs: [raw: Float64Array, h: number][] = [];
-  
+
   for (let i = 0; i < samples.length; i++) {
     const [raw, s] = samples[i];
     const h = stats.kde.cvBandwidth(raw, s.summary().std());
@@ -380,9 +395,7 @@ function kdeModeConflation(
   }
 
   // find the mode
-  const [mode] = stats.kde.findConflationMaxima(
-    stats.kde.gaussian, hs
-  );
+  const [mode] = stats.kde.findConflationMaxima(stats.kde.gaussian, hs);
 
   return {
     mode,
