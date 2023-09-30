@@ -4,23 +4,16 @@ import * as wt from '../wireTypes.js';
 
 export interface AnalysisOptions {
   /** The maximum number of samples in the cache */
-  maxSize: number,
+  maxSize: number;
 
   /** Minimum number of samples in a valid conflation */
-  minSize: number,
+  minSize: number;
 
   /**
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: number,
-};
-
-/** Represents the consolidation of several independent samples of the same quantity */
-export interface Conflator<T extends Sample<any>, Opts extends AnalysisOptions>
-{
-  /** Return the result of the conflation */
-  analyze(opts: Opts): ConflationResult<T>;
+  maxEffectSize: number;
 }
 
 export type ConflatedSampleStatus =
@@ -40,8 +33,15 @@ export type ConflatedSampleStatus =
    */
   | 'consistent';
 
-export interface ConflationResult<T extends Sample<any>> extends json.Serializable<wt.ConflationResult>
-{
+/** Represents the consolidation of several independent samples of the same quantity */
+export interface Conflator<T extends Sample<any>, Opts extends AnalysisOptions> {
+  /** Return the result of the conflation */
+  analyze(opts: Opts): ConflationResult<T>;
+}
+
+// todo: rename to Consolidation?
+export interface ConflationResult<T extends Sample<V>, V = any>
+  extends json.Serializable<wt.ConflationResult> {
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 
@@ -59,4 +59,7 @@ export interface ConflationResult<T extends Sample<any>> extends json.Serializab
 
   /** A sufficiently large consistent subset was found */
   ready(): boolean;
+
+  /** Aggregate the homogeneous subset in to a single sample */
+  values(): Iterable<V>;
 }

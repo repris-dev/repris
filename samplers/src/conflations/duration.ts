@@ -1,18 +1,13 @@
-import {
-  random,
-  Status,
-  typeid,
-  uuid,
-} from '@repris/base';
+import { random, Status, typeid, uuid } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 import * as wt from '../wireTypes.js';
 import { KWConflation, KWConflationResult, KWOptions } from './kruskal.js';
-import { ConflationResult, Conflator } from './types.js';
+import { ConflatedSampleStatus, ConflationResult, Conflator } from './types.js';
 
 export type DurationOptions = typeof defaultDurationOptions;
 
-const defaultDurationOptions = {  
+const defaultDurationOptions = {
   /** Minimum number of samples in a valid conflation */
   minSize: 4,
 
@@ -45,9 +40,11 @@ export class Duration implements Conflator<samples.Duration, KWOptions> {
   analyze(opts?: Partial<DurationOptions>): DurationResult {
     const defaultedOpts = Object.assign({}, defaultDurationOptions, opts);
     this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
-    
+
     const kwAnalysis = this.analysisCache!.conflate(defaultedOpts);
-    return new DurationResult(defaultedOpts, kwAnalysis);
+    const isReady = kwAnalysis.summary.consistent >= defaultedOpts.minSize;
+
+    return new DurationResult(isReady, kwAnalysis);
   }
 
   push(sample: samples.Duration) {
@@ -63,35 +60,61 @@ export class DurationResult implements ConflationResult<samples.Duration> {
     return x !== void 0 && x[typeid] === DurationResult[typeid];
   }
 
+  static fromJson(
+    obj: wt.ConflationResult,
+    refs: Map<uuid, samples.Duration>
+  ): Status<DurationResult> {
+    const stat = obj.samples.map(s => ({
+      sample: refs.get(s['@ref'])!,
+      status: (s.outlier ? 'outlier' : 'consistent') as ConflatedSampleStatus,
+    }));
+
+    const result = new DurationResult(obj.isReady, {
+      effectSize: obj.effectSize,
+      summary: {
+        consistent: 0,
+        outlier: 0,
+        rejected: 0,
+      },
+      stat,
+    });
+
+    return Status.value(result);;
+  }
+
   readonly [typeid] = DurationResult[typeid];
   readonly [uuid] = random.newUuid();
 
-  constructor(
-    private opts: DurationOptions,
-    private kwResult: KWConflationResult<samples.Duration>) {
-  }
+  constructor(private _isReady: boolean, private _kwResult: KWConflationResult<samples.Duration>) {}
 
   stat() {
-    return this.kwResult.stat;
+    return this._kwResult.stat;
   }
 
   effectSize(): number {
-    return this.kwResult.effectSize;
+    return this._kwResult.effectSize;
   }
 
   /** A sufficiently large consistent subset was found */
   ready(): boolean {
-    return this.kwResult.summary.consistent >= this.opts.minSize;
+    return this._isReady;
+  }
+
+  values(): Iterable<any> {
+    throw 'not impl';
   }
 
   toJson(): wt.ConflationResult {
     return {
       '@type': this[typeid],
       '@uuid': this[uuid],
-      samples: this.kwResult.stat.map(
-        s => ({ '@ref': s.sample[uuid], outlier: s.status !== 'consistent' })
-      )
-    }
+      samples: this._kwResult.stat.map(s => ({
+        '@ref': s.sample[uuid],
+        outlier: s.status !== 'consistent',
+      })),
+      effectSize: this._kwResult.effectSize,
+      isReady: this._isReady,
+    };
   }
 }
 
@@ -122,7 +145,7 @@ ann.register('@conflation:duration-annotator' as typeid, {
     let outlier = 0,
       consistent = 0;
 
-    confl.stat().forEach((x) => {
+    confl.stat().forEach(x => {
       switch (x.status) {
         case 'consistent':
           consistent++;
