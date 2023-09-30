@@ -22,16 +22,16 @@ const defaultDurationOptions = {
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: 0.05,
+  maxEffectSize: 0.075,
 
   /** Minimum number of samples in a valid conflation */
-  minConflationSize: 5,
+  minConflationSize: 4,
 
   /**
    * Method to remove samples from a cache when more than the maximum
    * number are supplied.
    */
-  exclusionMethod: 'slowest' as 'slowest' | 'outliers',
+  exclusionMethod: 'outliers' as 'slowest' | 'outliers',
 };
 
 export type SampleStatus =
@@ -232,17 +232,17 @@ function dunnsCluster(kw: stats.KruskalWallisResult, minEffectSize: number): num
  */
 function dunnAvgSort(kw: stats.KruskalWallisResult): number[] {
   const N = kw.size;
-  const sum = new Float64Array(N);
+  const sums = new Float64Array(N);
 
   for (let i = 0; i < N; i++) {
     for (let j = i + 1; j < N; j++) {
       const a = kw.dunnsTest(i, j).effectSize;
-      sum[i] += a;
-      sum[j] += a;
+      sums[i] += a;
+      sums[j] += a;
     }
   }
 
-  return array.fillAscending(new Array(N), 0).sort((a, b) => sum[b] - sum[a]);
+  return array.fillAscending(new Array(N), 0).sort((a, b) => sums[a] - sums[b]);
 }
 
 function kwRankSort(kw: stats.KruskalWallisResult): number[] {

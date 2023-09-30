@@ -16,7 +16,7 @@ function create(mean: number, std: number, size: number) {
 }
 
 function postProcess(mwu: MWUConflationAnalysis) {
-  const order = [];
+  const order = [] as number[];
   const a: Record<SampleStatus, number[]> = {
     consistent: [],
     rejected: [],
@@ -31,7 +31,7 @@ function postProcess(mwu: MWUConflationAnalysis) {
   return { order, ...a, };
 }
 
-describe('DurationConflation', () => {
+describe('Duration', () => {
   const sA = create(300, 5, 250);
   const sB = create(300, 10, 250);
   const sC = create(300, 50, 250);
@@ -39,8 +39,31 @@ describe('DurationConflation', () => {
   const sE = create(1000, 10, 250);
   const sF = create(1005, 10, 250);
 
-  test('samples() - cluster of 3, 1 outlier', () => {
-    const conf = new Duration(void 0, { minConflationSize: 2 });
+  describe('exclusionMethod: "outliers"', () => {
+    test('analysis() - cluster of 3, 1 outlier', () => {
+      const conf = new Duration(void 0, { minConflationSize: 2, maxEffectSize: 0.5, exclusionMethod: 'outliers' });
+  
+      conf.push(sD);
+      conf.push(sE);
+      conf.push(sA); // <-- outlier
+      conf.push(sF);
+  
+      const result = postProcess(conf.analysis());
+  
+      // samples d, e, f
+      expect(result.consistent.length).toBe(3);
+      expect(result.consistent.includes(2)).toBeFalsy();
+  
+      // The outlier is the last element
+      expect(result.order.length).toEqual(4);
+      expect(result.order[result.order.length - 1]).toBe(2);
+
+      expect(result.outlier).toEqual([2]);
+    });
+  });
+
+  test('analysis() - cluster of 3, 1 outlier', () => {
+    const conf = new Duration(void 0, { minConflationSize: 2, exclusionMethod: 'slowest' });
 
     conf.push(sB);
     conf.push(sA);
@@ -58,10 +81,10 @@ describe('DurationConflation', () => {
     expect(result.order[result.order.length - 1]).toBe(2);
   });
 
-  test('samples() - 2 clusters of 2', () => {
+  test('analysis() - 2 clusters of 2', () => {
     const conf = new Duration(
       [sF, sB, sA, sE],
-      { maxEffectSize: 0.5, minConflationSize: 2 }
+      { maxEffectSize: 0.5, minConflationSize: 2, exclusionMethod: 'slowest' }
     );
 
     const result = postProcess(conf.analysis());
@@ -88,7 +111,7 @@ describe('DurationConflation', () => {
 
   test('maxEffectSize', () => {
     { // High threshold
-      const conf = new Duration([sA, sF], { maxEffectSize: 0.8, minConflationSize: 2 });
+      const conf = new Duration([sA, sF], { maxEffectSize: 0.8, minConflationSize: 2, exclusionMethod: 'slowest' });
       const a = postProcess(conf.analysis());
 
       expect(a.consistent).toEqual([0, 1]);
@@ -96,7 +119,7 @@ describe('DurationConflation', () => {
       expect(a.rejected.length).toBe(0);
     }
     { // Low threshold
-      const conf = new Duration([sA, sF], { maxEffectSize: 0.1, minConflationSize: 2 });
+      const conf = new Duration([sA, sF], { maxEffectSize: 0.1, minConflationSize: 2, exclusionMethod: 'slowest' });
       const a = postProcess(conf.analysis());
       
       expect(a.consistent).toEqual([]);
@@ -123,7 +146,7 @@ describe('DurationConflation', () => {
   });
 
   test('maxCacheSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 1, maxCacheSize: 4, minConflationSize: 2 });
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 1, maxCacheSize: 4, minConflationSize: 2, exclusionMethod: 'slowest' });
     const a = postProcess(conf.analysis());
 
     expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
@@ -133,7 +156,7 @@ describe('DurationConflation', () => {
   });
 
   test('maxCacheSize, maxEffectSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 0.33, maxCacheSize: 4, minConflationSize: 2 });
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 0.33, maxCacheSize: 4, minConflationSize: 2, exclusionMethod: 'slowest' });
     const a = postProcess(conf.analysis());
 
     expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
