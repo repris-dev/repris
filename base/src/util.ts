@@ -1,4 +1,10 @@
 //
+// Common types
+//
+
+export type Indexable<T> = { [i: number]: T; readonly length: number; }
+
+//
 // Error codes, status, results
 //
 
