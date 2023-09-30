@@ -1,4 +1,4 @@
-import { json, typeid, uuid } from '@repris/base';
+import { json, typeid, uuid, quantity as q } from '@repris/base';
 import { Sample } from '../samples.js';
 import * as wt from '../wireTypes.js';
 
@@ -33,13 +33,13 @@ export type ConflatedSampleStatus =
    */
   | 'consistent';
 
-/** Represents the consolidation of several independent samples of the same quantity */
 export interface Conflator<T extends Sample<any>, Opts extends AnalysisOptions> {
   /** Return the result of the conflation */
   analyze(opts: Opts): ConflationResult<T>;
 }
 
 // todo: rename to Consolidation?
+/** Represents the consolidation of several independent samples of the same quantity */
 export interface ConflationResult<T extends Sample<V>, V = any>
   extends json.Serializable<wt.ConflationResult> {
   /** The kind of conflation result */
@@ -62,4 +62,7 @@ export interface ConflationResult<T extends Sample<V>, V = any>
 
   /** Aggregate the homogeneous subset in to a single sample */
   values(): Iterable<V>;
+
+  /** Convert a sample value as a quantity */
+  asQuantity(value: V): q.Quantity;
 }

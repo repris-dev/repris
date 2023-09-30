@@ -40,8 +40,79 @@ describe('Duration', () => {
   const sE = create(1000, 10, 250);
   const sF = create(1005, 10, 250);
 
-  describe('exclusionMethod: "outliers"', () => {
+  describe('exclusionMethod: "slowest"', () => {
     test('analysis() - cluster of 3, 1 outlier', () => {
+      const conf = new Duration();
+
+      conf.push(sB);
+      conf.push(sA);
+      conf.push(sD); // <-- outlier
+      conf.push(sC);
+
+      const result = postProcess(
+        conf.analyze({ minSize: 2, maxSize: 3, exclusionMethod: 'slowest' })
+      );
+
+      // samples a, b, c
+      expect(result.consistent.length).toBe(3);
+      expect(result.consistent.includes(sD)).toBeFalsy();
+
+      // The outlier is also the slowest
+      expect(result.order.length).toEqual(4);
+      expect(result.order[result.order.length - 1]).toBe(sD);
+    });
+
+    test('analysis() - 2 clusters of 2', () => {
+      const conf = new Duration(
+        [sF, sB, sA, sE],
+      );
+  
+      const result = postProcess(
+        conf.analyze({ maxEffectSize: 0.5, minSize: 2, maxSize: 5, exclusionMethod: 'slowest' })
+      );
+  
+      // fastest samples
+      expect(result.order.indexOf(sB)).toBeLessThanOrEqual(1);
+      expect(result.order.indexOf(sA)).toBeLessThanOrEqual(1);
+  
+      // slowest samples
+      expect(result.order.indexOf(sE)).toBeGreaterThanOrEqual(2);
+      expect(result.order.indexOf(sF)).toBeGreaterThanOrEqual(2);
+  
+      // No rejections
+      expect(result.rejected.length).toBe(0);
+      
+      // All samples are outliers because the effect-size is too large
+      expect(result.outlier.length).toBe(4);
+      expect(result.consistent.length).toBe(0);
+    });
+  
+    test('maxEffectSize', () => {
+      { // High threshold
+        const conf = new Duration([sA, sF]);
+        const a = postProcess(
+          conf.analyze({ maxEffectSize: 0.8, minSize: 2, exclusionMethod: 'slowest' })
+        );
+  
+        expect(a.consistent).toEqual([sA, sF]);
+        expect(a.outlier.length).toBe(0);
+        expect(a.rejected.length).toBe(0);
+      }
+      { // Low threshold
+        const conf = new Duration([sA, sF]);
+        const a = postProcess(
+          conf.analyze({ maxEffectSize: 0.1, minSize: 2, exclusionMethod: 'slowest' })
+        );
+        
+        expect(a.consistent).toEqual([]);
+        expect(a.outlier.length).toBe(2);
+        expect(a.rejected.length).toBe(0);
+      }
+    });
+  });
+
+  describe('exclusionMethod: "outliers"', () => {
+    test('analysis() - cluster of 3, 1 reject', () => {
       const conf = new Duration();
   
       conf.push(sD);
@@ -49,104 +120,22 @@ describe('Duration', () => {
       conf.push(sA); // <-- outlier
       conf.push(sF);
   
-      const result = postProcess(conf.analyze({ minSize: 2, maxEffectSize: 0.5, exclusionMethod: 'outliers' }));
+      const result = postProcess(conf.analyze({
+        exclusionMethod: 'outliers',
+        minSize: 2,
+        maxSize: 3,
+        maxEffectSize: 0.5,
+      }));
   
       // samples d, e, f
       expect(result.consistent.length).toBe(3);
       expect(result.consistent.includes(sA)).toBeFalsy();
   
-      // The outlier is the last element
+      // The rejected sample is the last element
       expect(result.order.length).toEqual(4);
       expect(result.order[result.order.length - 1]).toBe(sA);
-
-      expect(result.outlier).toEqual([sA]);
+      expect(result.rejected).toEqual([sA]);
     });
-  });
-
-  test('analysis() - cluster of 3, 1 outlier', () => {
-    const conf = new Duration();
-
-    conf.push(sB);
-    conf.push(sA);
-    conf.push(sD); // <-- outlier
-    conf.push(sC);
-
-    const result = postProcess(
-      conf.analyze({ minSize: 2, exclusionMethod: 'slowest' })
-    );
-
-    // samples a, b, c
-    expect(result.consistent.length).toBe(3);
-    expect(result.consistent.includes(sD)).toBeFalsy();
-
-    // The outlier is also the slowest
-    expect(result.order.length).toEqual(4);
-    expect(result.order[result.order.length - 1]).toBe(sD);
-  });
-
-  test('analysis() - 2 clusters of 2', () => {
-    const conf = new Duration(
-      [sF, sB, sA, sE],
-    );
-
-    const result = postProcess(
-      conf.analyze({ maxEffectSize: 0.5, minSize: 2, exclusionMethod: 'slowest' })
-    );
-
-    // fastest samples
-    expect(result.order.indexOf(sB)).toBeLessThanOrEqual(1);
-    expect(result.order.indexOf(sA)).toBeLessThanOrEqual(1);
-
-    // slowest samples
-    expect(result.order.indexOf(sE)).toBeGreaterThanOrEqual(2);
-    expect(result.order.indexOf(sF)).toBeGreaterThanOrEqual(2);
-
-    // No rejections
-    expect(result.rejected.length).toBe(0);
-    
-    // The sparser cluster are outliers
-    expect(result.outlier.length).toBe(2);
-    expect(result.outlier).toHaveValues([sF, sE]);
-
-    // The denser cluster is selected
-    expect(result.consistent.length).toBe(2);
-    expect(result.consistent).toHaveValues([sB, sA]);
-  });
-
-  test('maxEffectSize', () => {
-    { // High threshold
-      const conf = new Duration([sA, sF]);
-      const a = postProcess(
-        conf.analyze({ maxEffectSize: 0.8, minSize: 2, exclusionMethod: 'slowest' })
-      );
-
-      expect(a.consistent).toEqual([sA, sF]);
-      expect(a.outlier.length).toBe(0);
-      expect(a.rejected.length).toBe(0);
-    }
-    { // Low threshold
-      const conf = new Duration([sA, sF]);
-      const a = postProcess(
-        conf.analyze({ maxEffectSize: 0.1, minSize: 2, exclusionMethod: 'slowest' })
-      );
-      
-      expect(a.consistent).toEqual([]);
-      expect(a.rejected.length).toBe(0);
-    }
-  });
-
-  test('minSize', () => {
-    const conf = new Duration([sF, sB, sA, sC, sE]);
-    const a = postProcess(conf.analyze({ maxEffectSize: 0.5, minSize: 3 }));
-
-    // consistent samples
-    expect(a.consistent.length).toBe(3);
-    expect(a.consistent).toHaveValues([sB, sA, sC]);
-    
-    expect(a.outlier.length).toBe(2);
-    expect(a.outlier).toHaveValues([sF, sE]);
-
-    expect(a.rejected.length).toBe(0);
   });
 
   test('maxSize', () => {

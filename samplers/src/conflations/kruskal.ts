@@ -1,4 +1,4 @@
-import { stats, Indexable, array, iterator, partitioning, assert } from '@repris/base';
+import { stats, Indexable, array, iterator, partitioning, assert, uuid } from '@repris/base';
 
 import { AnalysisOptions, ConflatedSampleStatus } from './types.js';
 
@@ -14,7 +14,7 @@ export type KWConflationResult<T> = {
   /** Status of each sample */
   stat: { sample: T; status: ConflatedSampleStatus }[];
 
-  /** Sums of samples by conflation status */
+  /** Counts of samples by conflation status */
   summary: Record<ConflatedSampleStatus, number>;
 
   /** Effect size of the consistent subset */
@@ -55,10 +55,10 @@ export class KWConflation<T> {
     assert.isDefined(kw);
 
     // sort all samples by pairwise-similarity or by average ranking
-    const sorted = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
+    const sortedIndices = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
 
     const statIndex = new Map(
-      iterator.map(sorted, index => [
+      iterator.map(sortedIndices, index => [
         rawSamples[index],
         { sample: samples[index][1], status: 'outlier' as ConflatedSampleStatus },
       ])
@@ -68,7 +68,7 @@ export class KWConflation<T> {
     let subset = rawSamples.slice();
 
     if (N > opts.maxSize) {
-      const sortedSamples = sorted.map(idx => rawSamples[idx]);
+      const sortedSamples = sortedIndices.map(idx => rawSamples[idx]);
 
       // reject the outlier samples
       for (const s of sortedSamples.slice(opts.maxSize)) {
@@ -78,16 +78,6 @@ export class KWConflation<T> {
       // from the remaining samples, compute KW again.
       subset = sortedSamples.slice(0, opts.maxSize);
       kw = stats.kruskalWallis(subset);
-    }
-
-    if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minSize) {
-      // try to find a cluster of samples which are consistent
-      const cluster = dunnsCluster(kw, opts.maxEffectSize);
-      subset = array.subsetOf(subset, cluster, []);
-
-      if (subset.length > 1) {
-        kw = stats.kruskalWallis(subset);
-      }
     }
 
     // mark consistent samples
@@ -114,53 +104,6 @@ export class KWConflation<T> {
     for (const s of stat) result[s.status]++;
     return result;
   }
-}
-
-/**
- * @returns Find the largest, densest cluster of samples
- */
-function dunnsCluster(kw: stats.KruskalWallisResult, minEffectSize: number): number[] {
-  const N = kw.size;
-  const parents = array.fillAscending(new Int32Array(N), 0);
-  // effect-size sums
-  const sums = new Float32Array(N);
-
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      const es = kw.dunnsTest(i, j).effectSize;
-      if (es <= minEffectSize) {
-        partitioning.union(parents, i, j);
-      }
-
-      // The sum of all edges, not just those within components
-      sums[i] += es;
-      sums[j] += es;
-    }
-  }
-
-  const cc = partitioning.DisjointSet.build(parents);
-  const groups = iterator.collect(cc.iterateGroups());
-
-  for (const g of groups) {
-    let sum = 0;
-
-    for (const gi of cc.iterateGroup(g)) {
-      sum += sums[gi];
-      sums[gi] = 0;
-    }
-
-    sums[g] = sum;
-  }
-
-  // Sort by component size, then sum of effect sizes
-  groups.sort((a, b) => {
-    const size = cc.groupSize(b) - cc.groupSize(a);
-    return size === 0 ? sums[a] - sums[b] : size;
-  });
-
-  // if the largest connected component is big enough, return it
-  const g = iterator.collect(cc.iterateGroup(groups[0]));
-  return g.length > 1 ? g : [];
 }
 
 /**

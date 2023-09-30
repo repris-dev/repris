@@ -1,4 +1,4 @@
-import { random, Status, typeid, uuid } from '@repris/base';
+import { random, Status, typeid, uuid, quantity as q, assert } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 import * as wt from '../wireTypes.js';
@@ -7,24 +7,24 @@ import { ConflatedSampleStatus, ConflationResult, Conflator } from './types.js';
 
 export type DurationOptions = typeof defaultDurationOptions;
 
-const defaultDurationOptions = {
+const defaultDurationOptions: KWOptions = {
   /** Minimum number of samples in a valid conflation */
-  minSize: 4,
+  minSize: 5,
 
   /** The maximum number of samples in the cache */
-  maxSize: 7,
+  maxSize: 5,
 
   /**
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: 0.075,
+  maxEffectSize: 0.05,
 
   /**
    * Method to remove samples from a cache when more than the maximum
    * number are supplied.
    */
-  exclusionMethod: 'outliers' as 'slowest' | 'outliers',
+  exclusionMethod: 'slowest' as 'slowest' | 'outliers',
 };
 
 export class Duration implements Conflator<samples.Duration, KWOptions> {
