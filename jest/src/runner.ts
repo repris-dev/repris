@@ -42,7 +42,7 @@ function initializeEnvironment(
   };
 
   const hte = environment.handleTestEvent;
-  const newe: Circus.EventHandler = (evt, state) => {
+  environment.handleTestEvent = (evt, state) => {
     if (evt.name === 'test_start') {
       title = getTestID(evt.test);
       nth = titleCount.increment(JSON.stringify(title));
@@ -54,8 +54,6 @@ function initializeEnvironment(
 
     return hte?.(evt as Circus.SyncEvent, state);
   };
-
-  environment.handleTestEvent = newe;
 
   return {
     getSamples() {
