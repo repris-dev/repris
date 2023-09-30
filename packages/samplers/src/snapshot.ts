@@ -84,42 +84,12 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 
   private fromJsonFixture(fixture: wt.Fixture): f.AggregatedFixture<samples.Duration> {
-    const resultSamples = [] as samples.Duration[];
-    const sampleMap = new Map<uuid, samples.Duration>();
-
-    for (let ws of fixture.samples) {
-      const s = samples.Duration.fromJson(ws.data);
-      if (!Status.isErr(s)) {
-        const sample = Status.get(s);
-        resultSamples.push(sample);
-        sampleMap.set(sample[uuid], sample);
-      } else {
-        throw new Error(
-          `Failed to load sample of type: ${ws.data['@type']}\nReason: ${s[1].message}`
-        );
-      }
+    const fx = f.DefaultFixture.fromJSON(fixture)
+    if (Status.isErr(fx)) {
+      throw new Error(Status.get(fx));
     }
 
-    let c: conflations.DurationResult | undefined;
-
-    if (fixture.conflation) {
-      const cTmp = conflations.DurationResult.fromJson(fixture.conflation, sampleMap);
-
-      if (!Status.isErr(cTmp)) {
-        c = cTmp[0];
-      } else {
-        throw new Error(`Failed to load conflation: ${cTmp[1].message}`);
-      }
-    }
-
-    const result = new f.DefaultFixture(fixture.name, resultSamples, c);
-    const annotations = result.annotations();
-
-    for (const [key, bag] of Object.entries(fixture.annotations ?? {})) {
-      annotations.set(key as uuid, bag);
-    }
-
-    return result;
+    return Status.get(fx);
   }
 
   private indexFixtures(fixtures: wt.Fixture[], tombstones: wt.FixtureName[] = []) {

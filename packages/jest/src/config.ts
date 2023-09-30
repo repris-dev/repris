@@ -27,6 +27,11 @@ export interface ReprisConfig {
     annotations: AnnotationRequest[];
   };
 
+  fixture: {
+    /** The annotations to compute for each conflation */
+    annotations: AnnotationRequest[];
+  };
+
   comparison: {
     /**
      * The annotations to compute for each conflation. In a conflation,

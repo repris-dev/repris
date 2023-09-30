@@ -28,6 +28,23 @@ export default {
     ],
   },
 
+  fixture: {
+    annotations: [
+      [
+        'fixture:summaryText',
+        {
+          displayName: 'Index',
+          grading: [
+            'fixture:stable',
+            {
+              rules: [{ '==': false, apply: chalk.dim }],
+            },
+          ],
+        },
+      ],
+    ]
+  },
+
   conflation: {
     options: {},
     annotations: [
@@ -51,19 +68,7 @@ export default {
             ],
           },
         },
-      ],
-      [
-        'duration:conflation:summaryText',
-        {
-          displayName: 'Index',
-          grading: [
-            'conflation:ready',
-            {
-              rules: [{ '==': false, apply: chalk.dim }],
-            },
-          ],
-        },
-      ],
+      ]
     ],
   },
 

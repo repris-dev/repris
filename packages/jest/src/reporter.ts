@@ -22,7 +22,12 @@ const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
 function loadColumns(cfg: config.ReprisConfig): Column[] {
   // Groups of annotations to report
-  const annotationGroups = [...cfg.sample.annotations, ...cfg.conflation.annotations];
+  const annotationGroups = [
+    ...cfg.sample.annotations,
+    ...cfg.conflation.annotations,
+    ...cfg.fixture.annotations
+  ];
+
   // Create columns
   return gradedColumns(annotationGroups, void 0, 'test');
 }
@@ -50,8 +55,11 @@ export default class SampleReporter extends DefaultReporter {
 
           if (aar.repris?.sample) {
             // annotations produced by the runner
-            const annotations = { ...aar.repris.sample, ...aar.repris?.conflation };
-            return annotators.DefaultBag.fromJson(annotations);
+            return annotators.DefaultBag.fromJson({
+              ...aar.repris.sample,
+              ...aar.repris?.conflation,
+              ...aar.repris?.fixture
+            });
           }
         },
         pathOf(test) {

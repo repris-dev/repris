@@ -58,12 +58,23 @@ export type FixtureName = {
 };
 
 export type Fixture = {
+  '@type': string;
+
+  /** Identifier */
+  '@uuid': uuid;
+
   /**
    * The name of this fixture
    * Note: There can be multiple fixtures in a snapshot which have the same name.
    * Fixtures are therefore keyed on (name.title, name.nth).
    */
   name: FixtureName;
+
+  /**
+   * The total number of runs of this fixture, which can be more
+   * than the number of samples.
+   */
+  totalRuns: number;
 
   /** All collected samples */
   samples: Sample[];
