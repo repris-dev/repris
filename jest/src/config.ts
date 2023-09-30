@@ -87,6 +87,7 @@ const defaultConfig: SCIConfig = {
   conflation: {
     options: {},
     annotations: [
+      ['duration:conflation:summaryText', { displayName: 'cache¹' }],
       ['mode:hsm:conflation', { displayName: 'avg¹' }],
       [
         'mode:hsm:conflation:ci-rme',
@@ -101,7 +102,6 @@ const defaultConfig: SCIConfig = {
           },
         },
       ],
-      ['duration:conflation:summaryText', { displayName: 'cache¹' }],
     ],
   },
 };
