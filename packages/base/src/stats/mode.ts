@@ -1,5 +1,6 @@
 import { sort } from '../array.js';
 import { assert, Indexable, stats } from '../index.js';
+import { centralTendency } from '../stats.js';
 import * as boot from './bootstrap.js';
 import { quantile, qcd } from './util.js';
 
@@ -169,7 +170,7 @@ export function medianConfidence(
 
   sort(sample);
   for (let i = 0, next = boot.resampler(sample, void 0, smoothing); i < K; i++) {
-    hsms[i] = quantile(next(), 0.5);
+    hsms[i] = centralTendency.mean(next());
   }
 
   return [
