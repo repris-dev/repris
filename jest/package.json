@@ -18,7 +18,7 @@
     },
     "./stopwatch-env": {
       "types": "./env/stopwatch-env.d.ts",
-      "default": "./.tsc/setup-stopwatch.js"
+      "default": "./.tsc/setupStopwatch.js"
     },
     "./jest-preset": "./jest-preset.js"
   },
