@@ -61,7 +61,7 @@ export class KWConflation<T> {
       .map(([raw, tag]) => ({ raw, sample: tag, mode: stats.mode.hsm(raw).mode, status: 'outlier' as ConflatedSampleStatus }))
       .sort((a, b) => a.mode - b.mode);
 
-    // HSM of the sampling distribution
+    // median of the sampling distribution
 //    const sDistHsm = stats.mode.hsm(samplingDist.map(x => x.mode)).mode;
     const sDistMedian = stats.median(samplingDist.map(x => x.mode));
 
@@ -73,10 +73,11 @@ console.info('sDistMedian', sDistMedian);
     // Confidence of the sampling dist
     const c99 = stats.mode.medianConfidence(samplingDist.map(x => x.mode), 0.99, 1000);
     const m99 = (c99[1] - c99[0]) / sDistMedian;
+//    const m99 = stats.allPairs.crouxQn(samplingDist.map(x => x.mode)).spread / sDistMedian;
 //
 console.info('m99', m99);
 
-    // Sorting of the sampling distribution, distance from HSM (ascending)
+    // Sorting of the sampling distribution, distance from median (ascending)
     let subset = samplingDist.slice()
       .sort((a, b) => Math.abs(sDistMedian - a.mode) - Math.abs(sDistMedian - b.mode));
 

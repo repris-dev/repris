@@ -244,8 +244,8 @@ const hypothesisAnnotator: ann.Annotator = {
 //    const x1 = concatSamples(xs1);
     const x1 = toHSMSampleDist(c1);
 
-    const hsm0 = stats.centralTendency.mean(x0);
-    const hsm1 = stats.centralTendency.mean(x1);
+    const hsm0 = stats.median(x0);
+    const hsm1 = stats.median(x1);
     const relChange = (hsm0 - hsm1) / hsm1;
 
     const result = new Map<typeid, ann.Annotation>();
@@ -268,8 +268,10 @@ const hypothesisAnnotator: ann.Annotator = {
 //        smoothing1,
 //      ]);
 
-      ci = stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 100)
+      //console.info(x0.reduce((acc, x) => acc + x + ', ', ''));
+      //console.info(x1.reduce((acc, x) => acc + x + ', ', ''));
 
+      ci = stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 100);
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
 

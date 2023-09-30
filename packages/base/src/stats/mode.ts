@@ -3,7 +3,7 @@ import { assert, Indexable, random, stats } from '../index.js';
 import { online } from '../stats.js';
 import * as boot from './bootstrap.js';
 import { mean } from './centralTendency.js';
-import { quantile, qcd } from './util.js';
+import { quantile, qcd, median } from './util.js';
 
 /** A Robust Estimation of the Mode */
 export type REM = {
@@ -230,7 +230,7 @@ export function studentizedHsmDifferenceTest(
   KK: number,
   entropy = random.mathRand
 ): [lo: number, hi: number] {
-  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => mean(x0) - mean(x1);
+  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => median(x0) - median(x1);
   const resampler = boot.pairedStudentizedResampler(
     x0, x1, estimator, KK, entropy
   );
@@ -246,6 +246,7 @@ export function studentizedHsmDifferenceTest(
   }
 
   const bootStd = estStat.std();
+  console.info('K', K, KK, level);
   console.info('jarqueBera', stats.jarqueBera(estStat.N(), estStat.skewness(1), estStat.kurtosis(1), 1))
 
   return [
