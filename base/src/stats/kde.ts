@@ -19,6 +19,11 @@ export function gaussianHat(x: number) {
   return INV_4PI * Math.exp(-0.25 * x * x);
 }
 
+/** Epanechnikov kernel */
+export function epanechnikov(x: number) {
+  return Math.max(0, 0.75 * (1 - (x * x)));
+}
+
 /**
  * Determine a kernel bandwidth based on Silverman's (1986)
  * rule of thumb. Assumes the underlying density being estimated
