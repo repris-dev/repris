@@ -148,29 +148,33 @@ export function mlcv(kernel: Kernel, sample: Indexable<number>, h: number) {
 /**
  * Empirical probability density function mode (EPDFM)
  *
- * Finds the index of the sample with the highest density,
- * and count the number of ties of that density.
+ * Finds the index of the sample with the highest density. When encountering a tie,
+ * the lowest x value is selected
  *
  * @param kernel
  * @param sample
  * @param h Kernel smoothing parameter (bandwidth)
  */
 export function findMaxima(
-  kernel: Kernel, sample: Indexable<number>, h: number
-): [index: number, density: number, count: number] {
+  kernel: Kernel, sample: Indexable<number>, h: number, eps = Number.EPSILON
+): [index: number, density: number, ties: number] {
   let maxD = -Infinity,
       maxi = -1,
-      ties = 0;
+      ties = 0; 
 
   for (let i = 0; i < sample.length; i++) {
     const d = estimate(kernel, sample, h, sample[i]);
 
-    if (d > maxD) {
+    if (d - maxD > eps) {
       maxi = i;
       maxD = d;
       ties = 0;
-    } else if (maxD - d <= Number.EPSILON) {
-      ties++;
+    } else if (maxD - d <= eps) {
+      if (sample[maxi] > sample[i]) {
+        // tie
+        maxi = i;
+        ties++;
+      }
     }
   }
 
