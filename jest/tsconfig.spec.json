@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["./src/**/*.spec.ts"],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": ".tsc",
+    "types": ["jest", "@repris/util/matchers.cjs"]
+  },
+  "references": [{ "path": "." }]
+}
