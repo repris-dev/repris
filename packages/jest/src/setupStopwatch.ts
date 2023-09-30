@@ -13,7 +13,7 @@ declare function onSample(
 declare function getSamplerOptions(): Partial<stopwatch.Options>;
 
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
-const getGC = () => global.gc;
+const getGC = () => global.gc as stopwatch.V8GC | undefined;
 
 async function runStopwatch(
   sw: stopwatch.Sampler<[]>,

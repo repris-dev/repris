@@ -17,10 +17,22 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
   ranges(): number[];
 }
 
+
+
+/**
+ * V8 garbage collection API
+ * See: https://github.com/nodejs/node/blob/main/deps/v8/src/extensions/gc-extension.h
+ */
+export interface V8GC {
+  (): void;
+  (opt: { type: 'major' | 'minor', execution: 'sync' }): void;
+  (opt: { type: 'major' | 'minor', execution: 'async' }): Promise<void>;
+}
+
 const defaultSamplerOptions = {
   /* Time to spend collecting the sample (ms) */
   'duration.min': 250,
-  'duration.max': 7_500,
+  'duration.max': 10_000,
 
   /* The range of observations to take for the sample */
   'sampleSize.min': 10,
@@ -48,6 +60,8 @@ const enum Phase {
   Complete = 3
 }
 
+const NoopGC: V8GC = () => Promise.resolve(); 
+
 const SECOND = timer.HrTime.from(q.create('second', 1));
 
 /**
@@ -74,7 +88,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     private parameter: number[],
     opts?: Partial<Options>,
     timeSource = timer.create(),
-    private readonly gc: () => void = (() => {})
+    private readonly gc: V8GC = NoopGC
   )
   {
     this.clock = timer.createClock(timeSource, this.onObservation.bind(this));
@@ -130,6 +144,8 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     const fn = this.fn as Function;
     const clock = this.clock;
 
+    await this.gc({ type: 'major', execution: 'async' });
+
     try {
       // main sampling loop
       while (this.phase !== Phase.Complete) {
@@ -171,7 +187,6 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
         || elapsed >= durMax;
 
       if (warmupComplete) {
-        this.gc();
         this.phase = Phase.Sampling;
         this.totalElapsed = 0n;
         this.timeSource.start();
@@ -263,7 +278,7 @@ export class Builder<Args extends any[]>
     args: []    as number[][],
     units: null as q.UnitsOf<'time'> | 'auto' | null,
     timer: timer.create(),
-    gc: void 0  as (() => undefined) | undefined,  
+    gc: void 0  as V8GC | undefined,  
   };
 
   opt(key: keyof Options, value: any): this {
@@ -315,7 +330,7 @@ export class Builder<Args extends any[]>
     return this;
   }
 
-  gc(collect: () => undefined): this {
+  gc(collect: V8GC): this {
     this.params.gc = collect;
     return this;
   }
