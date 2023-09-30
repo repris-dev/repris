@@ -12,6 +12,14 @@ export type SampleData = json.Value & {
   '@type': string
 };
 
+export type Conflation = {
+  /** The type of Conflation used */
+  '@type': string;
+
+  /** Annotations of the conflation */
+  annotations: AnnotationBag;
+};
+
 export type Sample = {
   /**
    * The configuration of the sampler used to create this sample. Usually to be
@@ -39,7 +47,7 @@ export type FixtureName = {
 export type Fixture = {
   /**
    * The name of this fixture
-   * Note: There can be multiple fixtures in a report which have the same name.
+   * Note: There can be multiple fixtures in a snapshot which have the same name.
    * Fixtures are therefore keyed on (name.title, name.nth).
    */
   name: FixtureName;
@@ -54,14 +62,6 @@ export type Fixture = {
 export type Epoch = {
   startTime: string;
   endTime: string;
-};
-
-export type Conflation = {
-  /** The type of Conflation used */
-  '@type': string;
-
-  /** Annotations of the conflation */
-  annotations: AnnotationBag;
 };
 
 /** A collection of results of one or more runs of a test suite in a particular epoch */

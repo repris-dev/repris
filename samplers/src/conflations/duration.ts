@@ -253,7 +253,7 @@ function kwRankSort(kw: stats.KruskalWallisResult): number[] {
 }
 
 export const annotations = {
-  /** The conflation is ready for further analysis */
+  /** The sample conflation is ready to snapshot */
   isReady: 'conflation:ready' as typeid,
 
   /**

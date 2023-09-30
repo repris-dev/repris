@@ -40,8 +40,24 @@ function isDurationSampleWT(x: unknown): x is WireType {
 /** A sample of HrTime durations in nanoseconds */
 export class Duration implements MutableSample<timer.HrTime> {
   static [typeid] = '@sample:duration' as typeid;
+
   static is(x?: any): x is Duration {
     return x !== void 0 && x[typeid] === Duration[typeid];
+  }
+
+  static fromJson(x: json.Value): Status<Duration> {
+    if (!isDurationSampleWT(x)) {
+      return Status.err(`Invalid ${Duration[typeid]} sample`);
+    }
+
+    const sample = new Duration({ maxCapacity: x.maxSize });
+    sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
+
+    if (Array.isArray(x.values)) {
+      x.values.forEach((v) => sample.times.push(timer.fromString(v)));
+    }
+
+    return Status.value(sample);
   }
 
   readonly [typeid] = Duration[typeid];
@@ -50,8 +66,8 @@ export class Duration implements MutableSample<timer.HrTime> {
   private times: stats.ReservoirSample<timer.HrTime>;
   private onlineStats: stats.online.Lognormal;
 
-  constructor(opts_: Partial<DurationOptions> = {}) {
-    this.opts = Object.assign({}, defaultDurationOptions, opts_);
+  constructor(opts: Partial<DurationOptions> = {}) {
+    this.opts = Object.assign({}, defaultDurationOptions, opts);
     this.times = new stats.ReservoirSample(this.opts.maxCapacity);
     this.onlineStats = new stats.online.Lognormal();
   }
@@ -116,21 +132,6 @@ export class Duration implements MutableSample<timer.HrTime> {
     }
 
     return obj;
-  }
-
-  static fromJson(x: json.Value): Status<Duration> {
-    if (!isDurationSampleWT(x)) {
-      return Status.err(`Invalid ${Duration[typeid]} sample`);
-    }
-
-    const sample = new Duration({ maxCapacity: x.maxSize });
-    sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
-
-    if (Array.isArray(x.values)) {
-      x.values.forEach((v) => sample.times.push(timer.fromString(v)));
-    }
-
-    return Status.value(sample);
   }
 }
 
