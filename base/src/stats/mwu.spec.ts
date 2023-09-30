@@ -1,3 +1,4 @@
+import { fillAscending } from '../array.js';
 import { kruskalWallis, mwu } from './mwu.js';
 
 describe('mwu', () => {
@@ -68,13 +69,15 @@ describe('kruskalWallis', () => {
    * import scikit_posthocs as sp
    * sp.posthoc_dunn(x, p_adjust='bonferroni')
    */
-  test('3 samples, no ties - Dunns test (adjusted)', () => {    
+  test('3 samples, no ties - Dunns test (adjusted)', () => {
+    // prettier-ignore
     const expectedPs = [
       1,     0.890, 0.994,
       0.890, 1,     0.776,
       0.994, 0.776, 1,
     ];
 
+    // prettier-ignore
     const expectedEs = [
       0,     0.214, 0.072,
       0.214, 0,     0.285,
@@ -148,5 +151,16 @@ describe('kruskalWallis', () => {
 
     expect(result.H).toEqual(2);
     expect(result.effectSize).toEqual(1);
+  });
+
+  test('ranking', () => {
+    const result = kruskalWallis([
+      [3, 4, 6, 5, 1, 6, 6],
+      [2, 2, 5, 4, 2],
+      [7, 21, 18],
+    ]);
+
+    const order = fillAscending(new Array(3), 0).sort((a, b) => result.ranks[a] - result.ranks[b]);
+    expect(order).toEqual([1, 0, 2]);
   });
 });

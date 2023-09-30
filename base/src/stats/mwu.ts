@@ -228,7 +228,7 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     size: G,
     H,
     effectSize: H / ((N * N - 1) / (N + 1)),
-    ranks: rankSums,
+    ranks: rankSums.map((sum, i) => sum / samples[i].length),
     pValue,
     dunnsTest,
   };
