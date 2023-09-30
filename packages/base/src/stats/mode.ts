@@ -159,7 +159,7 @@ function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
 /**
  * Least Median of Squares.
  *
- * A robust estimate of the mode returning the median of the shortest
+ * A robust estimate of the mode returning the midpoint of the shortest
  * interval containing a specified fraction of the sample.
  *
  * The variation is the Quartile coefficient of dispersion of the mode

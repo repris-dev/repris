@@ -1,6 +1,7 @@
 import * as random from '../random.js';
 import * as modes from './mode.js';
 import * as bootstrap from './bootstrap.js';
+import { allPairs, mad, median, online } from '../stats.js';
 
 
 describe('modalSearch', () => {  
