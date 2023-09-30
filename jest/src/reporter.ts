@@ -49,11 +49,8 @@ export default class SampleReporter extends DefaultReporter {
           if (aar.repris?.sample) {
             // annotations produced by the runner
             const annotations = { ...aar.repris.sample, ...aar.repris?.conflation };
-            const bag = annotators.DefaultBag.fromJson(annotations);
-            return bag;
+            return annotators.DefaultBag.fromJson(annotations);
           }
-
-          return void 0;
         },
         pathOf(test) {
           return test.ancestorTitles;
