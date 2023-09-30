@@ -1,0 +1,27 @@
+{
+  "name": "@sampleci/jest-demo",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "package.json",
+    "lib",
+    ".tsc"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "@types/jest": "^28",
+    "@types/node": "^16",
+    "@sampleci/jest": "workspace:*",
+    "@sampleci/samplers": "workspace:*",
+    "jest": "^28",
+    "typescript": "~4.7",
+    "vite": "~2.9"
+  },
+  "scripts": {
+    "build:tsc": "tsc --build tsconfig.json",
+    "build": "build:tsc",
+    "test": "NODE_OPTIONS='--experimental-vm-modules -C development' jest"
+  },
+  "license": "MIT"
+}

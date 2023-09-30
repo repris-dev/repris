@@ -19,8 +19,8 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
 
 export const defaultSamplerOptions = {
   // Time to spend collecting the sample (ms)
-  'duration.min': 200,
-  'duration.max': 1000,
+  'duration.min': 1000,
+  'duration.max': 5000,
 
   // The number of observations to take for the sample
   'sampleSize.min': 5,
