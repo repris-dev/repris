@@ -4,7 +4,6 @@ import { assignDeep, RecursivePartial } from '@sampleci/base';
 import type { samples, stopwatch } from '@sampleci/samplers';
 
 const dbg = debug('sci:config');
-const explorer = lilconfig('sci');
 
 export interface AnnotationConfig {
   opts?: any;
@@ -43,12 +42,20 @@ const defaultConfig: RecursivePartial<SCIConfig> = {
 
   conflation: {
     annotations: [
-      ['mode:hsm:conflation', { displayName: 'mode(*)' }]
+      ['mode:hsm:conflation', { displayName: 'mode(*)' }],
     ],
   },
 };
 
 let sessionConfig: SCIConfig;
+
+const loadEsm = (filepath: string) => import(filepath);
+const explorer = lilconfig('sci', {
+  loaders: {
+    '.js': loadEsm,
+    '.mjs': loadEsm,
+  }
+});
 
 export async function load(rootDir: string): Promise<SCIConfig> {
   if (sessionConfig === void 0) {
