@@ -15,7 +15,7 @@ import {
   samples,
   wiretypes as wt,
   hypothesis,
-  fixture as f
+  benchmark as b
 } from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
@@ -44,8 +44,8 @@ export async function compare(_argv: string[]): Promise<void> {
   await showComparison(projCfg, reprisCfg, testFiles, indexm, baseline);
 }
 
-type ComparedFixtures = {
-  name: wt.FixtureName;
+type ComparedBenchmarks = {
+  name: wt.BenchmarkName;
   annotations: annotators.AnnotationBag;
 };
 
@@ -58,7 +58,7 @@ async function showComparison(
 ) {
   const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.comparison.annotations);
   const columns = gradedColumns(reprisCfg.comparison.annotations, void 0, 'compare');
-  const testRenderer = new TableTreeReporter<ComparedFixtures>(columns, {
+  const testRenderer = new TableTreeReporter<ComparedBenchmarks>(columns, {
     annotate: comparison => comparison.annotations,
     pathOf: comparison => comparison.name.title.slice(0, -1),
     render: comparison => chalk.dim(comparison.name.title.at(-1)),
@@ -77,7 +77,7 @@ async function showComparison(
     println(path);
 
     const comparisons = iterator.map(
-      snapshots.joinSnapshotFixtures(snapIndex!, snapBaseline!),
+      snapshots.joinSnapshotBenchmarks(snapIndex!, snapBaseline!),
       ([index, base]) => annotateComparison(annotationRequests, index, base)
     );
 
@@ -87,9 +87,9 @@ async function showComparison(
 
 function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
-  index?: f.AggregatedFixture<samples.Duration>,
-  base?: f.AggregatedFixture<samples.Duration>
-): { name: wt.FixtureName; annotations: annotators.DefaultBag } {
+  index?: b.AggregatedBenchmark<samples.Duration>,
+  base?: b.AggregatedBenchmark<samples.Duration>
+): { name: wt.BenchmarkName; annotations: annotators.DefaultBag } {
   const annotations = annotators.DefaultBag.from([]);
 
   // Load index conflation and annotations
@@ -122,7 +122,7 @@ function annotateComparison(
   }
 
   return {
-    name: (index?.name ?? base?.name) as wt.FixtureName,
+    name: (index?.name ?? base?.name) as wt.BenchmarkName,
     annotations,
   };
 }

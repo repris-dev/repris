@@ -15,14 +15,14 @@ import { println, panic, yesNoQuestion } from './util.js';
 
 
 type IndexStat = {
-  totalFixtures: number;
+  totalBenchmarks: number;
   totalSamples: number;
   files: IndexFileStat[];
 };
 
 type IndexFileStat = {
   testPath: string;
-  fixtureCount: number;
+  benchmarkCount: number;
   sampleCount: number;
   tombstoneCount: number;
 };
@@ -79,7 +79,7 @@ async function showIndexSummary(
 
   println('Repris Index Status\n');
 
-  let totalFixtures = 0,
+  let totalBenchmarks = 0,
     totalSamples = 0;
 
   for (const t of testFiles) {
@@ -88,22 +88,22 @@ async function showIndexSummary(
 
       if (err) panic(err);
 
-      let fixtureCount = 0;
+      let benchmarkCount = 0;
       let sampleCount = 0;
       let tombstoneCount = 0;
 
-      for (const fixture of snapshot!.allFixtures()) {
-        fixtureCount++;
-        sampleCount += fixture.samples.length;
+      for (const benchmark of snapshot!.allBenchmarks()) {
+        benchmarkCount++;
+        sampleCount += benchmark.samples.length;
       }
 
       for (const _ of snapshot!.allTombstones()) {
         tombstoneCount++;
       }
 
-      if (fixtureCount > 0 || tombstoneCount > 0) {
-        pending.push({ testPath: t.path, fixtureCount, sampleCount, tombstoneCount });
-        totalFixtures += fixtureCount;
+      if (benchmarkCount > 0 || tombstoneCount > 0) {
+        pending.push({ testPath: t.path, benchmarkCount, sampleCount, tombstoneCount });
+        totalBenchmarks += benchmarkCount;
         totalSamples += sampleCount;
       }
     }
@@ -111,18 +111,18 @@ async function showIndexSummary(
 
   if (pending.length > 0) {
     const columns = [
-      { type: 'fixtureStat' as typeid, displayName: 'Pending (samples)' },
+      { type: 'benchmarkStat' as typeid, displayName: 'Pending (samples)' },
       { type: 'tombstoneCount' as typeid, displayName: 'Captured' },
     ];
 
     const report = new TableTreeReporter<IndexFileStat>(columns, {
       annotate: stat => {
-        const captured = stat.tombstoneCount / (stat.tombstoneCount + stat.fixtureCount);
+        const captured = stat.tombstoneCount / (stat.tombstoneCount + stat.benchmarkCount);
         const ann = {
-          fixtureStat:
-            stat.fixtureCount === 0
+          benchmarkStat:
+            stat.benchmarkCount === 0
               ? chalk.dim(`0 (0)`)
-              : `${stat.fixtureCount} (${stat.sampleCount})`,
+              : `${stat.benchmarkCount} (${stat.sampleCount})`,
           tombstoneCount:
             stat.tombstoneCount === 0
               ? chalk.dim('0')
@@ -138,7 +138,7 @@ async function showIndexSummary(
   }
 
   return {
-    totalFixtures,
+    totalBenchmarks,
     totalSamples,
     files: pending,
   };

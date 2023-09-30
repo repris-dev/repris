@@ -6,20 +6,20 @@ import * as samples from './samples.js';
 import * as conflations from './conflations.js';
 
 /**
- * A test run produces a report. The report contains a number of fixtures,
- * and each fixture contains a sample and its annotations.
+ * A test run produces a report. The report contains a number of benchmarks,
+ * and each benchmark contains a sample and its annotations.
  *
  * When multiple reports are combined together it produces a set of aggregated
- * fixtures which can be summarized by a conflation.
+ * benchmarks which can be summarized by a conflation.
  */
-export interface AggregatedFixture<S extends samples.Sample<any>>
-  extends json.Serializable<wt.Fixture> {
+export interface AggregatedBenchmark<S extends samples.Sample<any>>
+  extends json.Serializable<wt.Benchmark> {
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 
   readonly [uuid]: uuid;
 
-  readonly name: wt.FixtureName;
+  readonly name: wt.BenchmarkName;
 
   samples(): Iterable<S>;
 
@@ -29,25 +29,25 @@ export interface AggregatedFixture<S extends samples.Sample<any>>
 
   totalRuns(): number;
 
-  addRun(conflation: conflations.ConflationResult<S>): DefaultFixture;
+  addRun(conflation: conflations.ConflationResult<S>): DefaultBenchmark;
 }
 
-export class DefaultFixture implements AggregatedFixture<samples.Duration> {
-  static readonly [typeid] = '@fixture:duration' as typeid;
+export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
+  static readonly [typeid] = '@benchmark:duration' as typeid;
 
-  static is(x?: any): x is DefaultFixture {
-    return x !== void 0 && x[typeid] === DefaultFixture[typeid];
+  static is(x?: any): x is DefaultBenchmark {
+    return x !== void 0 && x[typeid] === DefaultBenchmark[typeid];
   }
 
-  static fromJSON(fixture: wt.Fixture): Status<DefaultFixture> {
-    if (fixture['@type'] !== DefaultFixture[typeid]) {
+  static fromJSON(benchmark: wt.Benchmark): Status<DefaultBenchmark> {
+    if (benchmark['@type'] !== DefaultBenchmark[typeid]) {
       return Status.err(`Unexpected type`);
     }
 
     const resultSamples = [] as samples.Duration[];
     const sampleMap = new Map<uuid, samples.Duration>();
 
-    for (let ws of fixture.samples) {
+    for (let ws of benchmark.samples) {
       const s = samples.Duration.fromJson(ws.data);
       if (!Status.isErr(s)) {
         const sample = Status.get(s);
@@ -62,8 +62,8 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
 
     let c: conflations.DurationResult | undefined;
 
-    if (fixture.conflation) {
-      const cTmp = conflations.DurationResult.fromJson(fixture.conflation, sampleMap);
+    if (benchmark.conflation) {
+      const cTmp = conflations.DurationResult.fromJson(benchmark.conflation, sampleMap);
 
       if (Status.isErr(cTmp)) {
         return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
@@ -72,23 +72,23 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
       c = cTmp[0];
     }
 
-    const result = new DefaultFixture(fixture.name, resultSamples, c, fixture.totalRuns);
+    const result = new DefaultBenchmark(benchmark.name, resultSamples, c, benchmark.totalRuns);
     const annotations = result.annotations();
 
-    for (const [key, bag] of Object.entries(fixture.annotations ?? {})) {
+    for (const [key, bag] of Object.entries(benchmark.annotations ?? {})) {
       annotations.set(key as uuid, bag);
     }
 
-    result._uuid = fixture['@uuid'];
+    result._uuid = benchmark['@uuid'];
 
     return Status.value(result);
   }
 
-  static empty(name: wt.FixtureName): DefaultFixture {
-    return new DefaultFixture(name, []);
+  static empty(name: wt.BenchmarkName): DefaultBenchmark {
+    return new DefaultBenchmark(name, []);
   }
 
-  readonly [typeid] = DefaultFixture[typeid];
+  readonly [typeid] = DefaultBenchmark[typeid];
 
   get [uuid]() {
     if (!this._uuid) {
@@ -104,7 +104,7 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
   private _totalruns: number;
 
   private constructor(
-    public readonly name: wt.FixtureName,
+    public readonly name: wt.BenchmarkName,
     samples: Iterable<samples.Duration>,
     conflation?: conflations.ConflationResult<samples.Duration>,
     totalRuns = 0
@@ -117,7 +117,7 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
       for (const { sample, status } of this._conflation.stat()) {
         if (status !== 'rejected' && !index.has(sample[uuid])) {
           throw new Error(
-            `Fixture failed validation. The fixture doesn't contain\n` +
+            `Benchmark failed validation. The benchmark doesn't contain\n` +
               `sample ${sample[uuid]} (status: ${status}) which the conflation references.`
           );
         }
@@ -144,8 +144,8 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
     return this._annotations;
   }
 
-  addRun(conflation: conflations.ConflationResult<samples.Duration>): DefaultFixture {
-    // Create a new fixture
+  addRun(conflation: conflations.ConflationResult<samples.Duration>): DefaultBenchmark {
+    // Create a new benchmark
     const samples: samples.Duration[] = [];
     for (const { status, sample } of conflation.stat()) {
       if (status !== 'rejected') {
@@ -153,12 +153,12 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
       }
     }
 
-    const newFixt = new DefaultFixture(this.name, samples, conflation, this.totalRuns() + 1);
+    const newFixt = new DefaultBenchmark(this.name, samples, conflation, this.totalRuns() + 1);
     newFixt._uuid = this[uuid];
 
     // copy sample annotations
     // Note: the conflation annotation isn't copied since
-    // a fixture can only contain one conflation at a time.
+    // a benchmark can only contain one conflation at a time.
     const src = this.annotations();
     const dst = newFixt.annotations();
 
@@ -176,11 +176,11 @@ export class DefaultFixture implements AggregatedFixture<samples.Duration> {
     return newFixt;
   }
 
-  toJson(): wt.Fixture {
+  toJson(): wt.Benchmark {
     return {
       '@type': this[typeid],
       '@uuid': this[uuid],
-      name: assignDeep({} as wt.FixtureName, this.name),
+      name: assignDeep({} as wt.BenchmarkName, this.name),
       samples: iterator.collect(
         iterator.map(this.samples(), sample => ({
           data: sample.toJson(),
@@ -204,18 +204,18 @@ export const annotations = {
    *   <active subset>/<total samples> (<Kruskal-Wallis effect-size>)
    *
    */
-  summaryText: 'fixture:summaryText' as typeid,
+  summaryText: 'benchmark:summaryText' as typeid,
 
-  stable: 'fixture:stable' as typeid,
+  stable: 'benchmark:stable' as typeid,
 } as const;
 
-ann.register('@fixture:annotator' as typeid, {
+ann.register('@benchmark:annotator' as typeid, {
   annotations() {
     return Object.values(annotations);
   },
 
-  annotate(fixt: DefaultFixture, _request: Map<typeid, {}>): Status<ann.AnnotationBag | undefined> {
-    if (!DefaultFixture.is(fixt)) return Status.value(void 0);
+  annotate(fixt: DefaultBenchmark, _request: Map<typeid, {}>): Status<ann.AnnotationBag | undefined> {
+    if (!DefaultBenchmark.is(fixt)) return Status.value(void 0);
 
     let summary;
 

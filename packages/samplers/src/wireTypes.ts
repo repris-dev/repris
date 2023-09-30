@@ -49,29 +49,25 @@ export type Sample = {
 
 export type AnnotationBag = Record<string, json.Value>;
 
-export type FixtureName = {
-  /** hierarchy of names for this fixture */
+export type BenchmarkName = {
+  /** hierarchy of names for this benchmark */
   title: string[];
 
-  /** Uniquely identifies a fixture in a snapshot with the same title */
+  /** Uniquely identifies a benchmark in a snapshot with the same title */
   nth: number;
 };
 
-export type Fixture = {
+export type Benchmark = {
   '@type': string;
 
   /** Identifier */
   '@uuid': uuid;
 
-  /**
-   * The name of this fixture
-   * Note: There can be multiple fixtures in a snapshot which have the same name.
-   * Fixtures are therefore keyed on (name.title, name.nth).
-   */
-  name: FixtureName;
+  /** The name of this benchmark */
+  name: BenchmarkName;
 
   /**
-   * The total number of runs of this fixture, which can be more
+   * The total number of runs of this benchmark, which can be more
    * than the number of samples.
    */
   totalRuns: number;
@@ -82,7 +78,7 @@ export type Fixture = {
   /** Conflation of the samples */
   conflation?: ConflationResult;
 
-  /** Index of annotations of samples/conflations in this fixture */
+  /** Index of annotations of samples/conflations in this benchmark */
   annotations?: Record<string, AnnotationBag>;
 };
 
@@ -93,14 +89,14 @@ export type Epoch = {
 
 /** A collection of results of one or more runs of a test suite in a particular epoch */
 export type Snapshot = {
-  /** All fixtures collected over multiple runs. */
-  fixtures: Fixture[];
+  /** All benchmarks collected over multiple runs. */
+  benchmarks: Benchmark[];
 
   /**
-   * Fixture titles in this cache which have been deleted. For example the fixture
+   * benchmark titles in this cache which have been deleted. For example the benchmark
    * associated with that title has been moved elsewhere.
    */
-  tombstones?: FixtureName[];
+  tombstones?: BenchmarkName[];
 
   /** */
   epoch?: Epoch;

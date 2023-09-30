@@ -17,8 +17,6 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
   ranges(): number[];
 }
 
-
-
 /**
  * V8 garbage collection API
  * See: https://github.com/nodejs/node/blob/main/deps/v8/src/extensions/gc-extension.h
@@ -139,7 +137,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     }
   }
 
-  /** Attempt to run the fixture asynchronously */
+  /** Attempt to run the benchmark asynchronously */
   private async runAsync(args: any[]): Promise<Status> {
     const fn = this.fn as Function;
     const clock = this.clock;
@@ -152,7 +150,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
         const tickId = clock.tick();
         // Run one iteration
         await fn.apply(null, args);
-        // in for-of fixtures (sync or async), this tick will be invalidated
+        // in for-of benchmarks (sync or async), this tick will be invalidated
         clock.tock(tickId);
       }
     } catch (e) {
@@ -264,7 +262,7 @@ class DefaultState implements StopwatchState {
   }
 }
 
-/** Create a sampler or a family of samplers for a single fixture */
+/** Create a sampler or a family of samplers for a single benchmark */
 export class Builder<Args extends any[]>
     implements types.Builder<number, Sampler<Args>>
 {

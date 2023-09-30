@@ -6,7 +6,7 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { snapshotManager, annotators, fixture as f } from '@repris/samplers';
+import { snapshotManager, annotators, benchmark as b } from '@repris/samplers';
 import { iterator, uuid } from '@repris/base';
 
 import { BaselineResolver } from '../snapshotUtils.js';
@@ -39,20 +39,20 @@ async function showSnapshotDetail(
 ) {
   const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
   const columns = gradedColumns(reprisCfg.conflation.annotations, void 0, 'show');
-  const testRenderer = new TableTreeReporter<f.AggregatedFixture<any>>(columns, {
-    annotate(fixture) {
-      const conflation = fixture.conflation();
-      if (conflation && fixture.annotations().has(conflation[uuid])) {
+  const testRenderer = new TableTreeReporter<b.AggregatedBenchmark<any>>(columns, {
+    annotate(benchmark) {
+      const conflation = benchmark.conflation();
+      if (conflation && benchmark.annotations().has(conflation[uuid])) {
         const bag = annotators.DefaultBag.fromJson(
-          fixture.annotations().get(conflation[uuid])!
+          benchmark.annotations().get(conflation[uuid])!
         );
 
         annotators.annotateMissing(bag, annotationRequests, conflation);
         return bag;
       }
     },
-    pathOf: fixture => fixture.name.title.slice(0, -1),
-    render: fixture => chalk.dim(fixture.name.title.at(-1)),
+    pathOf: benchmark => benchmark.name.title.slice(0, -1),
+    render: benchmark => chalk.dim(benchmark.name.title.at(-1)),
   });
 
   for (const t of testFiles) {
@@ -64,8 +64,8 @@ async function showSnapshotDetail(
       const path = jReporters.utils.formatTestPath(projCfg, t.path);
       println(path);
 
-      const fixtures = iterator.collect(snapshot!.allFixtures(), []);
-      testRenderer.render(fixtures, process.stderr);
+      const benchmarks = iterator.collect(snapshot!.allBenchmarks(), []);
+      testRenderer.render(benchmarks, process.stderr);
     }
   }
 }

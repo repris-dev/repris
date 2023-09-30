@@ -25,7 +25,7 @@ function loadColumns(cfg: config.ReprisConfig): Column[] {
   const annotationGroups = [
     ...cfg.sample.annotations,
     ...cfg.conflation.annotations,
-    ...cfg.fixture.annotations
+    ...cfg.benchmark.annotations
   ];
 
   // Create columns
@@ -58,7 +58,7 @@ export default class SampleReporter extends DefaultReporter {
             return annotators.DefaultBag.fromJson({
               ...aar.repris.sample,
               ...aar.repris?.conflation,
-              ...aar.repris?.fixture
+              ...aar.repris?.benchmark
             });
           }
         },

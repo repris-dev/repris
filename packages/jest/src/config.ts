@@ -27,7 +27,7 @@ export interface ReprisConfig {
     annotations: AnnotationRequest[];
   };
 
-  fixture: {
+  benchmark: {
     /** The annotations to compute for each conflation */
     annotations: AnnotationRequest[];
   };
@@ -39,10 +39,10 @@ export interface ReprisConfig {
      * separately based on the corresponding context:
      * 
      *  1. '@index' - The annotations for the conflation stored in the index
-     *  2. '@snapshot' - The annotations for the snapshot conflation
+     *  2. '@baseline' - The annotations for the baseline conflation
      *  3. '@test' - The annotations for the hypothesis test 
      */
-    annotations: AnnotationRequestTree<'@index' | '@snapshot' | '@test'>
+    annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>
   }
 }
 

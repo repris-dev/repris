@@ -13,7 +13,7 @@ import {
   wiretypes as wt,
   snapshots,
   snapshotManager,
-  fixture as f,
+  benchmark as f,
 } from '@repris/samplers';
 import { typeid, assert, iterator as iter, Status, uuid } from '@repris/base';
 
@@ -22,45 +22,45 @@ import { BaselineResolver, IndexResolver } from './snapshotUtils.js';
 
 export interface AugmentedAssertionResult extends AssertionResult {
   repris?: {
-    /** Sample annotations for this fixture */
+    /** Sample annotations for this benchmark */
     sample?: wt.AnnotationBag;
-    /** Conflation annotations for this fixture */
+    /** Conflation annotations for this benchmark */
     conflation?: wt.AnnotationBag;
-    /** Fixture annotations */
-    fixture?: wt.AnnotationBag;
+    /** benchmark annotations */
+    benchmark?: wt.AnnotationBag;
   };
 }
 
 export interface AugmentedTestResult extends TestResult {
   repris?: {
     cacheStat: {
-      /** Count of fixtures run which produced at least one sample */
-      runFixtures: number;
-      /** Count of fixtures skipped in this test run */
-      skippedFixtures: number;
-      /** Count of new fixtures seen in this test run */
-      newFixtures: number;
-      /** Count of all fixtures in the cache after the test run */
-      totalFixtures: number;
+      /** Count of benchmarks run which produced at least one sample */
+      runBenchmarks: number;
+      /** Count of benchmarks skipped in this test run */
+      skippedBenchmarks: number;
+      /** Count of new benchmarks seen in this test run */
+      newBenchmarks: number;
+      /** Count of all benchmarks in the cache after the test run */
+      totalBenchmarks: number;
       /**
-       * Count of fixtures which are ready for snapshotting after
+       * Count of benchmarks which are ready for snapshotting after
        * the test run. This is only positive when shapshots are not being
        * updated.
        */
-      stagedFixtures: number;
+      stagedBenchmarks: number;
     };
     snapshotStat: {
-      /** Count of fixtures moved to snapshots in the current test run */
+      /** Count of benchmarks moved to snapshots in the current test run */
       updated: number;
       /**
-       * Count of fixtures moved to snapshots in the current epoch (i.e.
+       * Count of benchmarks moved to snapshots in the current epoch (i.e.
        * over all runs)
        */
       updatedTotal: number;
     };
     epochStat: {
       /**
-       * True if the snapshots are being updated and all fixtures have
+       * True if the snapshots are being updated and all benchmarks have
        * been committed to their snapshots.
        */
       complete: boolean;
@@ -73,15 +73,15 @@ const dbg = debug('repris:runner');
 function initializeEnvironment(
   environment: JestEnvironment,
   cfg: reprisConfig.ReprisConfig,
-  getState: (title: string[], nth: number) => snapshots.FixtureState
+  getState: (title: string[], nth: number) => snapshots.BenchmarkState
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const newSamples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const titleCount = new RecordCounter<string>();
   const stat = {
-    runFixtures: 0,
-    skippedFixtures: 0,
-    newFixtures: 0,
+    runBenchmarks: 0,
+    skippedBenchmarks: 0,
+    newBenchmarks: 0,
   };
 
   let title: string[] | undefined;
@@ -98,10 +98,10 @@ function initializeEnvironment(
     assert.isDefined(title, 'No test running');
 
     if (newSamples.length === 0) {
-      stat.runFixtures++;
+      stat.runBenchmarks++;
 
-      if (getState(title, nth) === snapshots.FixtureState.Unknown) {
-        stat.newFixtures++;
+      if (getState(title, nth) === snapshots.BenchmarkState.Unknown) {
+        stat.newBenchmarks++;
       }
     }
 
@@ -116,9 +116,9 @@ function initializeEnvironment(
       nth = titleCount.increment(JSON.stringify(title));
 
       const state = getState(title, nth);
-      if (state === snapshots.FixtureState.Tombstoned) {
+      if (state === snapshots.BenchmarkState.Tombstoned) {
         evt.test.mode = 'skip';
-        stat.skippedFixtures++;
+        stat.skippedBenchmarks++;
       }
     } else if (evt.name === 'test_done') {
       if (!evt.test.failing) {
@@ -165,7 +165,7 @@ export default async function testRunner(
 
   // Don't re-run benchmarks which were committed to the snapshot in a previous run
   const skipTest = (title: string[], nth: number) =>
-    indexedSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
+    indexedSnapshot?.benchmarkState(title, nth) ?? snapshots.BenchmarkState.Unknown;
 
   // Sample annotation config
   const sampleAnnotations = reprisConfig.parseAnnotations(reprisCfg.sample.annotations)();
@@ -174,8 +174,8 @@ export default async function testRunner(
     reprisCfg.conflation.annotations
   )();
   // Conflation annotation config
-  const fixtureAnnotationConfig = reprisConfig.parseAnnotations(
-    reprisCfg.fixture.annotations
+  const benchmarkAnnotationConfig = reprisConfig.parseAnnotations(
+    reprisCfg.benchmark.annotations
   )();
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, skipTest);
@@ -224,28 +224,28 @@ export default async function testRunner(
           augmentedResult.repris = { sample: sampleBagJson };
 
           if (indexedSnapshot) {
-            // load the previous samples of this fixture from the cache
-            const indexedFixture =
-              indexedSnapshot.getFixture(title, nth) ?? f.DefaultFixture.empty({ title, nth });
+            // load the previous samples of this benchmark from the cache
+            const indexedBenchmark =
+              indexedSnapshot.getBenchmark(title, nth) ?? f.DefaultBenchmark.empty({ title, nth });
 
-            const newFixture = reconflateFixture(
+            const newBenchmark = reconflateBenchmark(
               { sample, annotations: sampleBagJson },
               reprisCfg.conflation.options,
               conflationAnnotationConfig,
-              fixtureAnnotationConfig,
-              indexedFixture,
+              benchmarkAnnotationConfig,
+              indexedBenchmark,
             );
 
             // Update the index
-            indexedSnapshot.updateFixture(newFixture);
+            indexedSnapshot.updateBenchmark(newBenchmark);
 
             // publish the conflation annotations on the current test case result
-            augmentedResult.repris.conflation = newFixture
-              .annotations().get(newFixture.conflation()?.[uuid]!);
+            augmentedResult.repris.conflation = newBenchmark
+              .annotations().get(newBenchmark.conflation()?.[uuid]!);
 
             // publish the conflation annotations on the current test case result
-            augmentedResult.repris.fixture = newFixture
-              .annotations().get(newFixture[uuid]);
+            augmentedResult.repris.benchmark = newBenchmark
+              .annotations().get(newBenchmark[uuid]);
           }
 
           break;
@@ -263,8 +263,8 @@ export default async function testRunner(
   const stat: AugmentedTestResult['repris'] = {
     cacheStat: {
       ...envState.stat(),
-      stagedFixtures: 0,
-      totalFixtures: 0,
+      stagedBenchmarks: 0,
+      totalBenchmarks: 0,
     },
     snapshotStat: {
       updated: 0,
@@ -288,14 +288,14 @@ export default async function testRunner(
     testResult.snapshot.updated += snapStat.updated;
 
     stat.snapshotStat.updated = snapStat.updated + snapStat.added;
-    stat.cacheStat.totalFixtures = snapStat.pending;
+    stat.cacheStat.totalBenchmarks = snapStat.pending;
     stat.epochStat.complete = snapStat.pending === 0;
   } else if (indexedSnapshot) {
     // update pending/pendingReady
-    for (const fixt of indexedSnapshot.allFixtures()) {
-      stat.cacheStat.totalFixtures++;
+    for (const fixt of indexedSnapshot.allBenchmarks()) {
+      stat.cacheStat.totalBenchmarks++;
       if (fixt.annotations().get(fixt[uuid])?.[f.annotations.stable]) {
-        stat.cacheStat.stagedFixtures++;
+        stat.cacheStat.stagedBenchmarks++;
       }
     }
   }
@@ -308,15 +308,15 @@ export default async function testRunner(
     Status.get(e);
   }
 
-  // only augment the test result if there's any benchmark fixtures
-  if (stat.cacheStat.runFixtures > 0 || stat.cacheStat.skippedFixtures > 0) {
+  // only augment the test result if there's any benchmarks
+  if (stat.cacheStat.runBenchmarks > 0 || stat.cacheStat.skippedBenchmarks > 0) {
     (testResult as AugmentedTestResult).repris = stat;
   }
 
   return testResult;
 }
 
-/** Move fixtures from the index to the baseline snapshot. */
+/** Move benchmarks from the index to the baseline snapshot. */
 async function commitToBaseline(
   config: Config.ProjectConfig,
   testPath: string,
@@ -332,23 +332,23 @@ async function commitToBaseline(
   const snapshot = snapFile[0];
   const stat = { added: 0, updated: 0, pending: 0 };
 
-  for (const fixt of index.allFixtures()) {
-    const bag = fixt.annotations().get(fixt[uuid]) ?? {};
+  for (const bench of index.allBenchmarks()) {
+    const bag = bench.annotations().get(bench[uuid]) ?? {};
 
     if (bag[f.annotations.stable]) {
-      const { title, nth } = fixt.name;
-      if (snapshot.fixtureState(title, nth) === snapshots.FixtureState.Stored) {
+      const { title, nth } = bench.name;
+      if (snapshot.benchmarkState(title, nth) === snapshots.BenchmarkState.Stored) {
         stat.updated++;
       } else {
         stat.added++;
       }
 
-      // copy the fixture to the snapshot
-      snapshot.updateFixture(fixt);
-      // allow the runner to skip this fixture in future runs
+      // copy the benchmark to the snapshot
+      snapshot.updateBenchmark(bench);
+      // allow the runner to skip this benchmark in future runs
       index.tombstone(title, nth);
     } else {
-      // fixture is not ready for snapshotting
+      // benchmark is not ready for snapshotting
       stat.pending++;
     }
   }
@@ -372,30 +372,30 @@ function annotate(
   }
 }
 
-function reconflateFixture(
+function reconflateBenchmark(
   newEntry: { sample: samples.Duration; annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
   conflationRequest: Map<typeid, any>,
-  fixtureRequest: Map<typeid, any>,
-  indexedFixture: f.AggregatedFixture<samples.Duration>
-): f.AggregatedFixture<samples.Duration> {
+  benchmarkRequest: Map<typeid, any>,
+  indexedBenchmark: f.AggregatedBenchmark<samples.Duration>
+): f.AggregatedBenchmark<samples.Duration> {
   // The existing cached samples
-  const fixtureIndex = new Map(
-    iter.map(indexedFixture.samples(), s => [s, indexedFixture.annotations().get(s[uuid])])
+  const benchmarkIndex = new Map(
+    iter.map(indexedBenchmark.samples(), s => [s, indexedBenchmark.annotations().get(s[uuid])])
   );
 
   // Add the new sample and its annotations
-  fixtureIndex.set(newEntry.sample, newEntry.annotations);
+  benchmarkIndex.set(newEntry.sample, newEntry.annotations);
 
   // Conflate the new and previous samples together
-  const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
+  const newConflation = new conflations.Duration(benchmarkIndex.keys()).analyze(opts);
 
-  // Update the aggregated fixture, discarding sample(s) rejected in the conflation analysis.
-  const result = indexedFixture.addRun(newConflation);
+  // Update the aggregated benchmark, discarding sample(s) rejected in the conflation analysis.
+  const result = indexedBenchmark.addRun(newConflation);
 
-  // copy annotations from the existing fixture
+  // copy annotations from the existing benchmark
   for (const s of result.samples()) {
-    const bag = indexedFixture.annotations().get(s[uuid]);
+    const bag = indexedBenchmark.annotations().get(s[uuid]);
     if (bag) {
       result.annotations().set(s[uuid], bag);
     }
@@ -410,13 +410,13 @@ function reconflateFixture(
     result.annotations().set(newConflation[uuid], Status.get(conflationBag).toJson());
   }
 
-  // Annotate the fixture and store these annotations in the fixture itself
-  const fixtureBag = annotators.annotate(result, fixtureRequest);
+  // Annotate the benchmark and store these annotations in the benchmark itself
+  const benchmarkBag = annotators.annotate(result, benchmarkRequest);
 
-  if (Status.isErr(fixtureBag)) {
-    dbg('Failed to annotate fixture %s', fixtureBag[1].message);
+  if (Status.isErr(benchmarkBag)) {
+    dbg('Failed to annotate benchmark %s', benchmarkBag[1].message);
   } else {
-    result.annotations().set(result[uuid], Status.get(fixtureBag).toJson());
+    result.annotations().set(result[uuid], Status.get(benchmarkBag).toJson());
   }
 
   return result;

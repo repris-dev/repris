@@ -18,17 +18,17 @@ export function run(argv: string[] = process.argv) {
 
   program
     .command('reset')
-    .description('Clears the contents of the repris index')
+    .description('Clears the contents of the Repris index')
     .action(async _options => reset(argv));
 
   program
     .command('show')
-    .description('Shows the snapshots and index for the repris project')
+    .description('Shows the snapshots and index for the Repris project')
     .action(async _options => show(argv));
 
   program
     .command('compare')
-    .description('Compare fixtures in the index to their snapshots')
+    .description('Compare benchmarks in the index to their snapshots')
     .action(async _options => compare(argv));
 
   program.parse(argv);

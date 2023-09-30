@@ -7,4 +7,4 @@ export * as annotators from './annotators.js';
 export * as snapshots from './snapshot.js';
 export * as snapshotManager from './snapshotManager.js';
 export * as hypothesis from './hypothesis.js';
-export * as fixture from './fixture.js';
+export * as benchmark from './benchmark.js';

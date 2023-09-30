@@ -1,89 +1,90 @@
 import { json, Status, iterator } from '@repris/base';
+
 import * as wt from './wireTypes.js';
 import * as samples from './samples.js';
-import * as f from './fixture.js';
+import * as f from './benchmark.js';
 
-export const enum FixtureState {
+export const enum BenchmarkState {
   Unknown = 0,
   Stored = 1,
   Tombstoned = 2,
 }
 
-type FixtureKey = `${string}: ${number}`;
+type BenchmarkKey = `${string}: ${number}`;
 
-function cacheKey(title: string[], nth: number): FixtureKey {
+function cacheKey(title: string[], nth: number): BenchmarkKey {
   return `${JSON.stringify(title)}: ${nth}`;
 }
 
 export class Snapshot implements json.Serializable<wt.Snapshot> {
-  private fixtures: Map<FixtureKey, wt.Fixture> = new Map();
-  private tombstones: Map<FixtureKey, wt.FixtureName> = new Map();
+  private benchmarks: Map<BenchmarkKey, wt.Benchmark> = new Map();
+  private tombstones: Map<BenchmarkKey, wt.BenchmarkName> = new Map();
 
   constructor() {}
 
   static fromJson(snap: wt.Snapshot): Snapshot {
     const s = new Snapshot();
-    s.indexFixtures(snap.fixtures, snap.tombstones);
+    s.indexBenchmarks(snap.benchmarks, snap.tombstones);
     return s;
   }
 
   isEmpty() {
-    return this.fixtures.size === 0 && this.tombstones.size === 0;
+    return this.benchmarks.size === 0 && this.tombstones.size === 0;
   }
 
-  fixtureState(title: string[], nth: number) {
+  benchmarkState(title: string[], nth: number) {
     const key = cacheKey(title, nth);
-    return this.fixtures.has(key)
-      ? FixtureState.Stored
+    return this.benchmarks.has(key)
+      ? BenchmarkState.Stored
       : this.tombstones.has(key)
-      ? FixtureState.Tombstoned
-      : FixtureState.Unknown;
+      ? BenchmarkState.Tombstoned
+      : BenchmarkState.Unknown;
   }
 
-  allFixtures(): IterableIterator<f.AggregatedFixture<samples.Duration>> {
-    return iterator.map(this.fixtures.values(), f => this.fromJsonFixture(f));
+  allBenchmarks(): IterableIterator<f.AggregatedBenchmark<samples.Duration>> {
+    return iterator.map(this.benchmarks.values(), f => this.fromJsonBenchmark(f));
   }
 
-  updateFixture(fixture: f.AggregatedFixture<samples.Duration>) {
-    const { title, nth } = fixture.name;
+  updateBenchmark(benchmark: f.AggregatedBenchmark<samples.Duration>) {
+    const { title, nth } = benchmark.name;
     const key = cacheKey(title, nth);
 
-    this.fixtures.set(key, fixture.toJson());
+    this.benchmarks.set(key, benchmark.toJson());
   }
 
-  allTombstones(): Iterable<wt.FixtureName> {
+  allTombstones(): Iterable<wt.BenchmarkName> {
     return this.tombstones.values();
   }
 
   /** @returns true if the given title was found in the cache and tombstoned */
   tombstone(title: string[], nth: number): boolean {
     const key = cacheKey(title, nth);
-    const fixture = this.fixtures.get(key);
+    const benchmark = this.benchmarks.get(key);
 
-    if (fixture) {
-      this.tombstones!.set(key, fixture.name);
+    if (benchmark) {
+      this.tombstones!.set(key, benchmark.name);
       return true;
     }
 
-    // fixture not found in the cache
+    // benchmark not found in the cache
     return false;
   }
 
   /**
-   * @returns The aggregated fixture for the given title, or an empty fixture if
+   * @returns The aggregated benchmark for the given title, or an empty benchmark if
    * the name doesn't exist in the snapshot.
    */
-  getFixture(title: string[], nth: number): f.AggregatedFixture<samples.Duration> | undefined {
-    const fixture = this.fixtures.get(cacheKey(title, nth));
-    if (!fixture) {
+  getBenchmark(title: string[], nth: number): f.AggregatedBenchmark<samples.Duration> | undefined {
+    const benchmark = this.benchmarks.get(cacheKey(title, nth));
+    if (!benchmark) {
       return;
     }
 
-    return this.fromJsonFixture(fixture);
+    return this.fromJsonBenchmark(benchmark);
   }
 
-  private fromJsonFixture(fixture: wt.Fixture): f.AggregatedFixture<samples.Duration> {
-    const fx = f.DefaultFixture.fromJSON(fixture)
+  private fromJsonBenchmark(benchmark: wt.Benchmark): f.AggregatedBenchmark<samples.Duration> {
+    const fx = f.DefaultBenchmark.fromJSON(benchmark)
     if (Status.isErr(fx)) {
       throw new Error(Status.get(fx));
     }
@@ -91,13 +92,13 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return Status.get(fx);
   }
 
-  private indexFixtures(fixtures: wt.Fixture[], tombstones: wt.FixtureName[] = []) {
-    // fixtures
-    for (let i = 0; i < fixtures.length; i++) {
-      const fixture = fixtures[i];
-      const nth = fixture.name.nth;
+  private indexBenchmarks(benchmarks: wt.Benchmark[], tombstones: wt.BenchmarkName[] = []) {
+    // benchmarks
+    for (let i = 0; i < benchmarks.length; i++) {
+      const benchmark = benchmarks[i];
+      const nth = benchmark.name.nth;
 
-      this.fixtures.set(cacheKey(fixture.name.title, nth), fixture);
+      this.benchmarks.set(cacheKey(benchmark.name.title, nth), benchmark);
     }
 
     // tombstones
@@ -108,25 +109,25 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 
   toJson(): wt.Snapshot {
-    const fixtures = [] as wt.Fixture[];
+    const benchmarks = [] as wt.Benchmark[];
 
     // dont save samples which were tombstoned
-    for (const [key, fixture] of this.fixtures.entries()) {
+    for (const [key, benchmark] of this.benchmarks.entries()) {
       if (!this.tombstones?.has(key)) {
-        fixtures.push(fixture);
+        benchmarks.push(benchmark);
       }
     }
 
     return {
       tombstones: Array.from(this.tombstones!.values()),
-      fixtures,
+      benchmarks: benchmarks,
     };
   }
 }
 
-/** Join the fixtures across two snapshots */
-export function joinSnapshotFixtures(a: Snapshot, b: Snapshot) {
-  return iterator.outerJoin(a.allFixtures(), b.allFixtures(), f =>
+/** Join the benchmarks across two snapshots */
+export function joinSnapshotBenchmarks(a: Snapshot, b: Snapshot) {
+  return iterator.outerJoin(a.allBenchmarks(), b.allBenchmarks(), f =>
     cacheKey(f.name.title, f.name.nth)
   );
 }

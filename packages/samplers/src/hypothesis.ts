@@ -13,7 +13,7 @@ export interface PooledHypothesisTest<T extends ConflationResult<any>> {
   operands(): [lhs: T, rhs: T];
 }
 
-export interface FixtureComparison<C extends ConflationResult<any>> {
+export interface BenchmarkComparison<C extends ConflationResult<any>> {
   test: PooledHypothesisTest<C>;
   annotations: anno.AnnotationBag;
 }
@@ -39,7 +39,7 @@ export function compare<C extends ConflationResult<any>>(
   a: C,
   b: C,
   annotations: Map<typeid, any>
-): Status<FixtureComparison<C>> {
+): Status<BenchmarkComparison<C>> {
   if (!a.ready() || !b.ready()) {
     return Status.err('Conflations(s) are not ready for comparison');
   }

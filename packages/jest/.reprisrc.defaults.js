@@ -28,14 +28,14 @@ export default {
     ],
   },
 
-  fixture: {
+  benchmark: {
     annotations: [
       [
-        'fixture:summaryText',
+        'benchmark:summaryText',
         {
           displayName: 'Index',
           grading: [
-            'fixture:stable',
+            'benchmark:stable',
             {
               rules: [{ '==': false, apply: chalk.dim }],
             },

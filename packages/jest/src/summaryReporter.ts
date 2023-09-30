@@ -2,7 +2,9 @@ import chalk from 'chalk';
 import type { AggregatedResult, Test, TestContext } from '@jest/test-result';
 import type { Config } from '@jest/types';
 import { SummaryReporter } from '@jest/reporters';
+
 import { snapshotManager } from '@repris/samplers';
+
 import type { AugmentedTestResult } from './runner.js';
 import { IndexResolver } from './snapshotUtils.js';
 
@@ -11,11 +13,11 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
   aggregatedBenchStats = {
     cacheStat: {
-      runFixtures: 0,
-      skippedFixtures: 0,
-      newFixtures: 0,
-      totalFixtures: 0,
-      stagedFixtures: 0,
+      runBenchmarks: 0,
+      skippedBenchmarks: 0,
+      newBenchmarks: 0,
+      totalBenchmarks: 0,
+      stagedBenchmarks: 0,
     },
     snapshotStat: { updated: 0, updatedTotal: 0 },
     epochStat: { complete: true },
@@ -36,11 +38,11 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
       // The epoch is complete when *all* snapshots updated
       stats.epochStat.complete = stats.epochStat.complete && stat.epochStat.complete;
 
-      stats.cacheStat.runFixtures += stat.cacheStat.runFixtures;
-      stats.cacheStat.skippedFixtures += stat.cacheStat.skippedFixtures;
-      stats.cacheStat.newFixtures += stat.cacheStat.newFixtures;
-      stats.cacheStat.totalFixtures += stat.cacheStat.totalFixtures;
-      stats.cacheStat.stagedFixtures += stat.cacheStat.stagedFixtures;
+      stats.cacheStat.runBenchmarks += stat.cacheStat.runBenchmarks;
+      stats.cacheStat.skippedBenchmarks += stat.cacheStat.skippedBenchmarks;
+      stats.cacheStat.newBenchmarks += stat.cacheStat.newBenchmarks;
+      stats.cacheStat.totalBenchmarks += stat.cacheStat.totalBenchmarks;
+      stats.cacheStat.stagedBenchmarks += stat.cacheStat.stagedBenchmarks;
 
       stats.snapshotStat.updated += stat.snapshotStat.updated;
       stats.snapshotStat.updatedTotal += stat.snapshotStat.updatedTotal;
@@ -81,28 +83,28 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
       if (stats.epochStat.complete) {
         summary.push(
           chalk.greenBright(
-            ` › All ${stats.snapshotStat.updatedTotal} baselines updated.` +
+            ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
               ' Index cleared.'
           )
         );
       } else {
-        const totalFixtures = stats.cacheStat.totalFixtures + stats.snapshotStat.updatedTotal;
+        const totalBenchmarks = stats.cacheStat.totalBenchmarks + stats.snapshotStat.updatedTotal;
         summary.push(
-          ` › ${stats.snapshotStat.updatedTotal} of ${totalFixtures} baselines updated.` +
+          ` › ${stats.snapshotStat.updatedTotal} of ${totalBenchmarks} benchmark snapshots updated.` +
             ' Re-run to collect additional samples.'
         );
       }
     } else {
-      if (stats.cacheStat.totalFixtures === 0) {
+      if (stats.cacheStat.totalBenchmarks === 0) {
         if (stats.snapshotStat.updatedTotal > 0) {
           summary.push(
-            ` › All ${stats.snapshotStat.updatedTotal} baselines updated.` +
+            ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
               ' Re-run with -u to reset the index.'
           );
         }
       } else {
         summary.push(
-          ` › ${stats.cacheStat.stagedFixtures} of ${stats.cacheStat.totalFixtures} baselines can be updated.` +
+          ` › ${stats.cacheStat.stagedBenchmarks} of ${stats.cacheStat.totalBenchmarks} benchmark snapshots can be updated.` +
             ' Re-run to collect additional samples.'
         );
       }
@@ -114,14 +116,14 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
     const rows = [
       [
-        chalk.bold(' Baselines: '),
+        chalk.bold(' Snapshots: '),
         `${stats.snapshotStat.updatedTotal} ${deltaStr(stats.snapshotStat.updated)}updated`,
       ],
       [
         chalk.bold(' Index:     '),
-        `${stats.cacheStat.stagedFixtures.toString()} stable, ${
-          stats.cacheStat.totalFixtures
-        } ${deltaStr(stats.cacheStat.newFixtures - stats.snapshotStat.updated)}total`,
+        `${stats.cacheStat.stagedBenchmarks.toString()} stable, ${
+          stats.cacheStat.totalBenchmarks
+        } ${deltaStr(stats.cacheStat.newBenchmarks - stats.snapshotStat.updated)}total`,
       ],
     ];
 
