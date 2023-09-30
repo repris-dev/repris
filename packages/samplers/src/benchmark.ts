@@ -22,7 +22,7 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   readonly name: wt.BenchmarkName;
 
-  samples(): Iterable<{ sample: S, run: number }>;
+  samples(): IterableIterator<{ sample: S, run: number }>;
 
   conflation(): conflations.Conflation<S> | undefined;
 
@@ -134,7 +134,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._totalruns;
   }
 
-  samples(): Iterable<{ sample: duration.Duration, run: number }> {
+  samples(): IterableIterator<{ sample: duration.Duration, run: number }> {
     return this._samples.values();
   }
 

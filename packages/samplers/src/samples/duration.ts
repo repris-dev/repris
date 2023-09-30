@@ -68,7 +68,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
       return Status.err(`Sample values are not in expected units. Got ${ x.units } but expected ${ UNIT }`);
     }
 
-    const sample = new Duration(x.opts);
+    const sample = new Duration(x.opts ?? {});
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
     sample.uuid = x['@uuid'];
 
@@ -103,7 +103,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
   }
 
   values() {
-    return this.times.values.values();
+    return this.times.values;
   }
 
   asQuantity(value: number): q.Quantity {

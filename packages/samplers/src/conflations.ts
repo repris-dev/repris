@@ -7,6 +7,7 @@ export const defaults = {
     minSize: 5,
     maxSize: 5,
     maxEffectSize: 0.05,
-    exclusionMethod: 'slowest' as 'slowest' | 'outliers',
+    exclusionMethod: 'slowest' as const,
+    inputOrder: 'oldestFirst',
   } as const satisfies import('./conflations/duration.js').Options
 };

@@ -8,10 +8,12 @@ export interface KWOptions extends AnalysisOptions {
    * number are supplied.
    */
   exclusionMethod: 'slowest' | 'outliers';
+
+  inputOrder?: 'oldestFirst',
 }
 
 export type KWConflationResult<T> = {
-  /** Status of each sample */
+  /** Status/classification of each sample */
   stat: { sample: T; status: ConflatedSampleStatus }[];
 
   /** Effect size of the consistent subset */
@@ -34,6 +36,7 @@ export class KWConflation<T> {
   }
 
   conflate(opts: KWOptions): KWConflationResult<T> {
+    const concordanceThres = 0.05;
     let { taggedSamples: samples, raw: rawSamples, kw } = this;
 
     const N = samples.length;
@@ -74,6 +77,24 @@ export class KWConflation<T> {
       // from the remaining samples, compute KW again.
       subset = sortedSamples.slice(0, opts.maxSize);
       kw = stats.kruskalWallis(subset);
+
+      console.info('s>', sortedIndices);
+
+      // reject the oldest sample if it is fastest and doing so gives a sufficiently
+      // small effect-size
+      if (kw.effectSize > concordanceThres && opts.inputOrder === 'oldestFirst' && sortedIndices[0] === 0) {
+        const kwPrev = kw.effectSize;
+        
+        const subset1 = rawSamples.slice(N - opts.maxSize);
+        const kw1 = stats.kruskalWallis(subset1);
+
+        if (kw1.effectSize < concordanceThres) {
+          subset = subset1;
+          kw = kw1;
+        }
+
+        console.info('>>', kwPrev, kw1.effectSize);
+      }
     }
 
     // mark consistent samples
@@ -81,10 +102,8 @@ export class KWConflation<T> {
       subset.forEach(sample => (statIndex.get(sample)!.status = 'consistent'));
     }
 
-    const stat = iterator.collect(statIndex.values());
-
     return {
-      stat,
+      stat: iterator.collect(statIndex.values()),
       effectSize: kw.effectSize,
     };
   }

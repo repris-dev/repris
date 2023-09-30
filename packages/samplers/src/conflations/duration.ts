@@ -19,6 +19,8 @@ export type Options = {
    * number are supplied.
    */
   exclusionMethod: 'slowest' | 'outliers',
+
+  inputOrder?: 'oldestFirst',
 }
 
 export function conflate(samples: Iterable<duration.Duration>, opts: Options): Result {
