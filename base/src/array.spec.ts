@@ -30,7 +30,7 @@ describe('partitionEqual', () => {
     const last = array.partitionEqual(arr, -1, 0, arr.length - 1);
 
     expect(last).toEqual(3);
-    expect(arr).toEqual([4, 3, 2, -1, -1, -1])
+    expect(arr).toEqual([4, 3, 2, -1, -1, -1]);
   });
 
   test('moves one value within a subset', () => {
