@@ -1,7 +1,7 @@
 import { Indexable } from './array.js';
 import { assert } from './index.js';
 
-export const empty = (function* (): IterableIterator<any> { })();
+export const empty = (function* (): IterableIterator<any> {})();
 
 export function* single<T>(value: T): IterableIterator<T> {
   yield value;
@@ -11,7 +11,9 @@ export function returnWith<T>(value: T): Iterator<T, T> {
   return { next: () => ({ done: true, value }) };
 }
 
-export function* cartesianProduct<T>(elems: Indexable<Indexable<T>>): IterableIterator<Indexable<T>> {
+export function* cartesianProduct<T>(
+  elems: Indexable<Indexable<T>>
+): IterableIterator<Indexable<T>> {
   let i = 0;
   while (true) {
     const result = [] as T[];
@@ -23,7 +25,9 @@ export function* cartesianProduct<T>(elems: Indexable<Indexable<T>>): IterableIt
       result.push(e[j % e.length]);
       j = (j / e.length) | 0;
     }
-    if (j > 0) { return; }
+    if (j > 0) {
+      return;
+    }
 
     yield result;
     i++;
@@ -52,7 +56,7 @@ export function returnLast<T>(iter: Iterator<T, any>, defaultValue: T): Iterator
       return it;
     }
     return last;
-  }
+  };
 
   return { next };
 }
@@ -107,7 +111,11 @@ export function* range(from: number, n: number): Iterable<number> {
 /**
  * Iterate a subspan of values
  */
-export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n = xs.length - fromIdx): Iterable<T> {
+export function* subSpan<T>(
+  xs: Indexable<T>,
+  fromIdx: number,
+  n = xs.length - fromIdx
+): Iterable<T> {
   if (n <= 0) return;
 
   assert.bounds(xs, fromIdx);
@@ -122,11 +130,14 @@ export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iter
   let i = 0;
 
   for (const x of xs) {
-    yield fn(x, i++)
+    yield fn(x, i++);
   }
 }
 
-export function* filter<T>(xs: Iterable<T>, fn: (x: T, idx?: number) => boolean): IterableIterator<T> {
+export function* filter<T>(
+  xs: Iterable<T>,
+  fn: (x: T, idx?: number) => boolean
+): IterableIterator<T> {
   let i = 0;
 
   for (const x of xs) {
@@ -141,7 +152,7 @@ export function* pairs<T>(xs: Iterable<T>): Iterable<[T, T]> {
   while (true) {
     const a = it.next();
     const b = it.next();
-    
+
     if (a.done === false && b.done === false) {
       pair[0] = a.value;
       pair[1] = b.value;
@@ -161,4 +172,27 @@ export function count<T>(xs: Iterable<T>): number {
   }
 
   return n;
+}
+
+export function* outerJoin<T>(
+  as: Iterable<T>,
+  bs: Iterable<T>,
+  keyOf: (t: T) => any
+): Iterable<[T | undefined, T | undefined]> {
+  const keys = new Map<any, T>;
+  for (const b of bs) {
+    keys.set(keyOf(b), b);
+  }
+
+  for (const a of as) {
+    const aKey = keyOf(a);
+    const bVal = keys.get(aKey);
+    keys.delete(aKey);
+
+    yield [a, bVal];
+  };
+
+  for (const b of keys.values()) {
+    yield [undefined, b];
+  }
 }
