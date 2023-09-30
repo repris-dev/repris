@@ -9,7 +9,7 @@ import type { AssertionResult, TestEvents, TestFileEvent, TestResult } from '@je
 import { annotators, samples, conflations, wiretypes as wt, snapshots } from '@sampleci/samplers';
 import { typeid, assert, iterator, Status } from '@sampleci/base';
 
-import * as snapMgr from './snapshotManager.js';
+import * as sfm from './SnapshotFileManager.js';
 import { buildSnapshotResolver } from './snapshotResolver.js';
 import * as sciConfig from './config.js';
 
@@ -42,7 +42,7 @@ export default async function testRunner(
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> {
   const cfg = await sciConfig.load(globalConfig.rootDir);
-  const cacheMgr = new snapMgr.SnapshotFileManager(HasteResolver(config));
+  const cacheMgr = new sfm.SnapshotFileManager(HasteResolver(config));
 
   let cacheFile: snapshots.Snapshot | undefined;
   if (config.cache) {
@@ -123,7 +123,7 @@ export default async function testRunner(
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const s = new snapMgr.SnapshotFileManager(await SnapshotResolver(config));
+    const s = new sfm.SnapshotFileManager(await SnapshotResolver(config));
     const snapFile = await s.loadOrCreate(testPath);
 
     if (Status.isErr(snapFile)) {
@@ -222,7 +222,7 @@ function conflate(
   return result;
 }
 
-function HasteResolver(config: Config.ProjectConfig): snapMgr.PathResolver {
+function HasteResolver(config: Config.ProjectConfig): sfm.PathResolver {
   const haste = HasteMap.default.getStatic(config);
   const resolver = (testFilePath: string) => haste.getCacheFilePath(
     config.cacheDirectory,
@@ -233,7 +233,7 @@ function HasteResolver(config: Config.ProjectConfig): snapMgr.PathResolver {
   return resolver;
 }
 
-async function SnapshotResolver(config: Config.ProjectConfig): Promise<snapMgr.PathResolver> {
+async function SnapshotResolver(config: Config.ProjectConfig): Promise<sfm.PathResolver> {
   const resolver = await buildSnapshotResolver(config);
   return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
 }
