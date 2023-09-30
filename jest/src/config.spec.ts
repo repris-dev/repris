@@ -69,7 +69,7 @@ describe('annotationRequester', () => {
       ],
     }] satisfies config.AnnotationRequestTree;
 
-    const requestBuilder = config.annotationRequester(cfgs);
+    const requestBuilder = config.parseAnnotations(cfgs);
 
     {
       const req = requestBuilder('@ctx');

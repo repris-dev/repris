@@ -159,10 +159,10 @@ export default async function testRunner(
   const skipTest = (title: string[], nth: number) =>
     idxSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
 
+  // Sample annotation config
+  const sampleAnnotations = reprisConfig.parseAnnotations(reprisCfg.sample.annotations)();
   // Conflation annotation config
-  const sampleAnnotations = createAnnotationRequest(reprisCfg.sample.annotations);
-  // Conflation annotation config
-  const conflationAnnotationConfig = createAnnotationRequest(reprisCfg.conflation.annotations);
+  const conflationAnnotationConfig = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, skipTest);
 
@@ -336,18 +336,6 @@ async function commitToBaseline(
   Status.get(e);
 
   return stat;
-}
-
-// TODO - rationalize config parsing
-function createAnnotationRequest(
-  annotations: (string | [id: string, config: reprisConfig.AnnotationConfig])[]
-): Map<typeid, any> {
-  return new Map(
-    iter.map(annotations, c => {
-      const [id, conf] = reprisConfig.normalize.simpleOpt(c, {} as reprisConfig.AnnotationConfig);
-      return [id as typeid, conf.options];
-    })
-  );
 }
 
 function annotate(

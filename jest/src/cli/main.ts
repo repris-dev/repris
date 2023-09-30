@@ -158,7 +158,7 @@ async function showComparison(
   index: snapshotManager.SnapshotFileManager,
   baseline: snapshotManager.SnapshotFileManager
 ) {
-  const annotationRequests = reprisConfig.annotationRequester(reprisCfg.comparison.annotations);
+  const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.comparison.annotations);
   const columns = gradedColumns(reprisCfg.comparison.annotations);
   const testRenderer = new TableTreeReporter<ComparedFixtures>(columns, {
     annotate: comparison => comparison.annotations,
@@ -363,16 +363,4 @@ async function showIndexSummary(
     totalSamples,
     files: pending,
   };
-}
-
-// TODO - rationalize config parsing
-function createAnnotationRequest(
-  annotations: (string | [id: string, config: reprisConfig.AnnotationConfig])[]
-): Map<typeid, any> {
-  return new Map(
-    iterator.map(annotations, c => {
-      const [id, conf] = reprisConfig.normalize.simpleOpt(c, {} as reprisConfig.AnnotationConfig);
-      return [id as typeid, conf.options];
-    })
-  );
 }

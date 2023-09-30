@@ -194,13 +194,16 @@ export function* iterateAnnotationTree(
   }
 }
 
-export function annotationRequester(
+/**
+ * @returns A function which creates annotation requests derived from
+ * the given configuration.
+ */
+export function parseAnnotations(
   annotations: AnnotationRequestTree,
 ): (context?: Ctx) => Map<typeid, any> {
   const requests = iterator.collect(iterateAnnotationTree(annotations));
 
   return (context?: Ctx) => {
-    // TODO - Nested contexts
     assert.eq(Array.isArray(context), false, 'Nested Contexts not supported');
     const result = new Map<typeid, any>();
     
