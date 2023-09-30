@@ -105,7 +105,7 @@ export function lowerBound<T, T2 = T>(
 }
 
 /**
- * Returns the n-th smallest element of list within
+ * Returns the index of the n-th smallest element of list within
  * lo..hi inclusive (i.e. lo <= n <= hi).
  * Time complexity: O(N).
  * @param {Array} arr Input array.

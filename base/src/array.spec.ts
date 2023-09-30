@@ -56,3 +56,30 @@ describe('partitionEqual', () => {
     expect(array.partitionEqual(arr, -1, 1, 3)).toEqual(-1);
   });
 });
+
+describe('quickSelect', () => {
+  test('finds values', () => {
+    const arr = [5, 5, 3, 2, 1];
+
+    {
+      const idx = array.quickselect(arr, 4);
+      expect(arr[idx]).toBe(5);
+    }
+    {
+      const idx = array.quickselect(arr, 3);
+      expect(arr[idx]).toBe(5);
+    }
+    {
+      const idx = array.quickselect(arr, 2);
+      expect(arr[idx]).toBe(3);
+    }
+    {
+      const idx = array.quickselect(arr, 1);
+      expect(arr[idx]).toBe(2);
+    }
+    {
+      const idx = array.quickselect(arr, 0);
+      expect(arr[idx]).toBe(1);
+    }
+  });
+});
