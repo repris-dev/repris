@@ -90,9 +90,13 @@ export class DefaultBag implements AnnotationBag {
 
   union(child: AnnotationBag, context?: `@${string}`): void {
     if (context !== void 0) {
-      assert.eq(this.contexts.has(context), false);
-      this.contexts.set(context, child);
+      if (this.contexts.has(context)) {
+        this.contexts.get(context)!.union(child);
+      } else {
+        this.contexts.set(context, child);
+      }
     } else {
+      // Union with the root context, not overriding existing annotations
       for (const [id, ann] of child.annotations) {
         if (!this.index.has(id)) {
           this.index.set(id, ann);
