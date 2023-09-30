@@ -16,4 +16,7 @@ export interface Conflation<V>
    * Default: true
    */
   samples(excludeOutliers?: boolean): Iterable<Sample<V>>;
+
+  /** The conflation contains a sufficient quantity of homogeneous samples */
+  isReady(): boolean;
 }

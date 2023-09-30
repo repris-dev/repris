@@ -58,6 +58,8 @@ export interface MWUConflationAnalysis {
   stat: { index: number; status: SampleStatus }[];
 
   effectSize: number;
+
+  ready: boolean;
 }
 
 export class Duration implements Conflation<timer.HrTime> {
@@ -101,6 +103,10 @@ export class Duration implements Conflation<timer.HrTime> {
     return (this.analysisCache ??= Duration.analyze(this.rawSamples, this.opts));
   }
 
+  isReady(): boolean {
+    return this.analysis().ready;
+  }
+
   push(sample: samples.Duration) {
     this.allSamples.push(sample);
     this.rawSamples.push(sample.toF64Array());
@@ -111,6 +117,7 @@ export class Duration implements Conflation<timer.HrTime> {
     if (samples.length < 2) {
       return {
         stat: samples.length === 1 ? [{ index: 0, status: 'consistent' }] : [],
+        ready: false,
         effectSize: 0,
       };
     }
@@ -162,6 +169,7 @@ export class Duration implements Conflation<timer.HrTime> {
       // indices ordered by best-first
       stat: iterator.collect(stat.values()),
       effectSize: kw.effectSize,
+      ready: subset.length >= opts.minConflationSize,
     };
   }
 }
@@ -249,9 +257,9 @@ function kwRankSort(kw: stats.KruskalWallisResult): number[] {
     .sort((a, b) => kw.ranks[a] - kw.ranks[b]);
 }
 
-const annotations = {
-  /** The number of samples selected for the conflation */
-  consistentCount: 'duration:conflation:consistentCount' as typeid,
+export const annotations = {
+  /** The conflation is ready for further analysis */
+  isReady: 'conflation:ready' as typeid,
 
   /**
    * A summary of the cache status. Legend:
@@ -260,7 +268,7 @@ const annotations = {
    *
    */
   summaryText: 'duration:conflation:summaryText' as typeid,
-};
+} as const;
 
 ann.register('@conflation:duration-annotator' as typeid, {
   annotations() {
@@ -268,12 +276,13 @@ ann.register('@conflation:duration-annotator' as typeid, {
   },
 
   annotate(
-    sample: Conflation<timer.HrTime>,
+    confl: Conflation<timer.HrTime>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (!Duration.is(sample)) return Status.value(void 0);
+    if (!Duration.is(confl)) return Status.value(void 0);
 
-    const analysis = sample.analysis();
+    const analysis = confl.analysis();
+  
     let outlier = 0,
       rejected = 0,
       consistent = 0;
@@ -296,7 +305,7 @@ ann.register('@conflation:duration-annotator' as typeid, {
 
     const bag = ann.DefaultBag.from([
       [annotations.summaryText, summary],
-      [annotations.consistentCount, consistent],
+      [annotations.isReady, confl.isReady()],
     ]);
 
     return Status.value(bag);

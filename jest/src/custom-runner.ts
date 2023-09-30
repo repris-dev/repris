@@ -135,7 +135,7 @@ export default async function testRunner(
     for (const f of cacheFile.allFixtures()) {
       const bag = f.conflation?.annotations ?? {};
 
-      if (bag['duration:conflation:includedCount'] >= 3) {
+      if (bag['conflation:ready']) {
         // allow the runner to skip this fixture in future runs
         cacheFile.tombstone(f.name.title, f.name.nth);
         // copy the fixture to the snapshot
@@ -185,7 +185,7 @@ function conflate(
   // The existing cached samples
   const index = new Map(cacheState.samples.map(s => [s.sample, s]));
 
-  // create the new sample and its annotations
+  // the new sample and its annotations
   index.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the current and previous samples together
