@@ -72,6 +72,27 @@ test('uniformi distribution', () => {
   expect(tot).toBe(N);
 });
 
+describe('discreteDistribution', () => {
+  const weights = [100, 50, 1, 0];
+
+  test('Biased towards selecting outliers', () => {
+    const entropy = random.PRNGi32(571);
+    const counts = new Int32Array(weights.length);
+    const rng = random.discreteDistribution(weights, entropy);
+
+    for (let index = 0; index < 10_000; index++) {
+      const x = rng();
+      expect(x).toBeInRange(0, 3);
+      expect(x).toEqual(Math.round(x));
+      counts[x]++;
+    }
+
+    expect(counts[0]).toBeGreaterThan(counts[1]);
+    expect(counts[1]).toBeGreaterThan(counts[2]);
+    expect(counts[3]).toEqual(0);
+  });
+});
+
 describe('newUuid', () => {
   test('seeded', () => {
     const entropy1 = random.PRNGi32(91);

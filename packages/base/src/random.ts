@@ -1,3 +1,4 @@
+import { Indexable } from './array.js';
 import * as assert from './assert.js';
 import { uuid } from './util.js';
 
@@ -40,12 +41,43 @@ export function PRNGi32(seed = mathRand()): Generator {
   const R = randMax % A;
 
   return () => {
-    const lo = (prev % Q) | 0;
+    const lo = prev % Q | 0;
     const hi = (prev / Q) | 0;
-    const test = (A * lo) - (R * hi);
+    const test = A * lo - R * hi;
 
     prev = test > 0 ? test : test + randMax;
     return prev - 1;
+  };
+}
+
+/**
+ * Produces random integers on the interval [​0​, n), where the probability of each individual
+ * integer i is defined as w_i/S, that is the weight of the ith integer divided by the sum
+ * of all n weights.
+ */
+export function discreteDistribution(weights: Indexable<number>, entropy: Generator = mathRand): Generator {
+  const N = weights.length;
+  let sum = 0;
+
+  for (let i = 0; i < weights.length; i++) {
+    assert.gte(weights[i], 0);
+    sum += weights[i];
+  }
+
+  assert.gt(sum, 0);
+  const rng = uniform(0, sum, entropy);
+
+  return () => {
+    let thresh = rng();
+
+    for (let i = 0; i < N; i++) {
+      if (thresh < weights[i]) {
+        return i;
+      }
+      thresh -= weights[i];
+    }
+
+    assert.never();
   };
 }
 
@@ -90,17 +122,16 @@ export function gaussian(mean = 0, stdDev = 1, generator = mathRand): Distributi
     do {
       u = uni();
       v = uni();
-      s = (u * u) + (v * v);
+      s = u * u + v * v;
     } while (s >= 1 || s === 0);
 
-    const mul = Math.sqrt(-2.0 * Math.log(s) / s);
-    return mean + (stdDev * u * mul);
+    const mul = Math.sqrt((-2.0 * Math.log(s)) / s);
+    return mean + stdDev * u * mul;
   };
 
   fn.rng = generator;
   return fn;
 }
-
 
 export function newUuid(): uuid;
 export function newUuid(crypto?: Crypto): uuid;
@@ -122,8 +153,7 @@ export function newUuid(opt?: Crypto | Generator) {
   // pseudo-random uuid
   const generator = opt as Generator;
   // Inspired by https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid
-  return (<any>[1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c: any) =>
-    (c ^ (generator() % 256) & 15 >> c / 4).toString(16)
+  return (<any>[1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
+    (c ^ (generator() % 256 & (15 >> (c / 4)))).toString(16)
   );
 }
-

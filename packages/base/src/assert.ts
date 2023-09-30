@@ -2,7 +2,7 @@ export function assertionsEnabled() {
   return __DEBUG;
 }
 
-function err (msg: string) {
+function err (msg: string): never {
   throw new Error('[Failed assertion] ' + msg);
 }
 
@@ -69,6 +69,10 @@ export function finite(val: any, msg?: string): void {
       err(msg ?? `Expected ${val} to be a finite number`);
     }
   }
+}
+
+export function never(msg?: string): never {
+  err(msg ?? 'Unexpected');
 }
 
 export function valuesEq(a: ArrayLike<any>, b: ArrayLike<any>): void {
