@@ -70,7 +70,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
 
   constructor (
     private readonly fn: SamplerFn<Args>,
-    parameter: number[],
+    private parameter: number[],
     opts: Partial<SamplerOptions> = { },
     timeSource = timer.create(),
     private readonly gc: () => void = (() => {})
@@ -166,7 +166,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
    */
   private onObservation(valid: boolean, duration: timer.HrTime): boolean {
     assert.is(this.phase !== Phase.Ready);
-    const { result, timeSource: progress, opts, durationBounds } = this;
+    const { result, timeSource, opts, durationBounds } = this;
 
     let e1 = this.totalElapsed, e2 = e1;
 
@@ -191,7 +191,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
         this.totalElapsed = 0n;
 
         result.reset();
-        progress.start();
+        timeSource.start();
       }
       return true;
     }
@@ -250,15 +250,15 @@ class DefaultState implements StopwatchState {
   }
 
   static createIterator(time: timer.Clock): Iterator<number> {
-    const result = { done: false, value: -1 };
+    const tickid = { done: false, value: -1 };
 
     return {
       next: () => {
-        result.done = !time.tock(result.value);
-        if (!result.done) {
-          result.value = time.tick();
+        tickid.done = !time.tock(tickid.value);
+        if (!tickid.done) {
+          tickid.value = time.tick();
         }
-        return result;
+        return tickid;
       }
     };
   }
