@@ -33,4 +33,14 @@ describe('ReservoirSample', () => {
     expect(sample.N()).toBe(0);
     expect(sample.values).toEqual([]);
   });
+
+  test('Unbounded size', () => {
+    const sample = new R<number>();
+    for (let i = 0; i < 1e3; i++) { expect(sample.push(i)).toBe(false); }
+    
+    expect(sample.capacity).toBe(Infinity);
+    expect(sample.count).toBe(1e3);
+    expect(sample.N()).toBe(1e3);
+    expect(sample.values.length).toBe(1e3);
+  });
 });

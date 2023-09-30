@@ -25,7 +25,7 @@ export default class ReservoirSample<T>
   private w!: number;
 
   constructor(
-    public readonly capacity: number,
+    public readonly capacity = Infinity,
     rng: random.Generator = random.mathRand
   ) {
     this.sample1 = random.uniform(0, 1, rng);
