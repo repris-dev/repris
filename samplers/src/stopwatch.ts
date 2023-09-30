@@ -56,12 +56,12 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
   progress: timer.Timer;
 
   constructor (
-      private readonly fn: SamplerFn<Args>,
-      parameter: number[],
-      opts: Partial<SamplerOptions> = { },
-      time = timer.create(),
-      private readonly gc: () => void = (() => {})
-      )
+    private readonly fn: SamplerFn<Args>,
+    parameter: number[],
+    opts: Partial<SamplerOptions> = { },
+    time = timer.create(),
+    private readonly gc: () => void = (() => {})
+  )
   {
     this.hand = timer.createHand(time, this.onObservation.bind(this));
     this.opts = Object.assign({}, defaultSamplerOptions, opts);
@@ -158,6 +158,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
       if (!keepWarming) {
         this.gc();
         this.phase = Phase.Sampling;
+
         result.reset();
         progress.start();
       }
