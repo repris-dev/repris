@@ -1,9 +1,9 @@
-import { stopwatch } from '@repris/samplers';
+import { samplers } from '@repris/samplers';
 
 declare global {
   function sample<Args extends any[]>(
     name: string,
-    fn: stopwatch.SamplerFn<Args>,
+    fn: samplers.stopwatch.SamplerFn<Args>,
     timeout?: number,
   ): void;
 }

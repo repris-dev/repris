@@ -1,14 +1,15 @@
 // @ts-check
 import chalk from 'chalk';
+import { defaults } from '@repris/samplers';
 
 /** @type {import("./src/config").ReprisConfig} */
 export default {
   sampler: {
-    options: {},
+    options: defaults.STOPWATCH_SAMPLER
   },
 
   sample: {
-    options: {},
+    options: defaults.DURATION_SAMPLE,
     annotations: [
       ['duration:iter', { displayName: 'N' }],
       ['mode:hsm', { displayName: 'Mode' }],
@@ -46,7 +47,7 @@ export default {
   },
 
   conflation: {
-    options: {},
+    options: defaults.DURATION_CONFLATION,
     annotations: [
       [
         'mode:hsm:conflation',

@@ -1,6 +1,6 @@
 import { Indexable, quantity, stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
-import * as samples from '../samples.js';
+import { duration, Sample } from '../samples.js';
 import * as conflations from '../conflations.js';
 import { hypothesis } from '../index.js';
 
@@ -92,14 +92,14 @@ const sampleAnnotator: ann.Annotator = {
   },
 
   annotate(
-    sample: samples.Sample<unknown>,
+    sample: Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (!samples.Duration.is(sample)) {
+    if (!duration.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
@@ -165,14 +165,14 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.ConflationResult<samples.Sample<unknown>>,
+    conflation: conflations.ConflationResult<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (!conflations.DurationResult.is(conflation) || !conflation.ready()) {
+    if (!conflations.duration.DurationResult.is(conflation) || !conflation.ready()) {
       return Status.value(void 0);
     }
 
@@ -222,7 +222,7 @@ const hypothesisAnnotator: ann.Annotator = {
   },
 
   annotate(
-    hypot: hypothesis.DefaultHypothesis<conflations.ConflationResult<samples.Duration>>,
+    hypot: hypothesis.DefaultHypothesis<conflations.ConflationResult<duration.Duration>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex(id => request.has(id)) < 0) {
@@ -323,7 +323,7 @@ function bootstrapSmoothing(xs: Float64Array, level: number) {
   return (std / xs.length ** (-1 / 5)) * level;
 }
 
-function tof64Samples(conflation: conflations.ConflationResult<samples.Duration>) {
+function tof64Samples(conflation: conflations.ConflationResult<duration.Duration>) {
   return conflation
     .stat()
     .filter(s => s.status === 'consistent')
@@ -370,7 +370,7 @@ function hsmConflation(
   };
 }
 
-function concatSamples(samples: (readonly [Float64Array, samples.Duration])[]) {
+function concatSamples(samples: (readonly [Float64Array, duration.Duration])[]) {
   const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
   const concatSample = new Float64Array(N);
 
@@ -383,7 +383,7 @@ function concatSamples(samples: (readonly [Float64Array, samples.Duration])[]) {
   return concatSample;
 }
 
-function kdeModeConflation(samples: (readonly [Float64Array, samples.Duration])[]) {
+function kdeModeConflation(samples: (readonly [Float64Array, duration.Duration])[]) {
   // MISE-optimized bandwidth
   const hs: [raw: Float64Array, h: number][] = [];
 

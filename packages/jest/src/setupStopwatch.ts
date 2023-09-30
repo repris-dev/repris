@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { samples, stopwatch } from '@repris/samplers';
+import { samples, samplers } from '@repris/samplers';
 import { Status } from '@repris/base';
 
 /** defined by the stopwatch test-runner  */
@@ -10,15 +10,18 @@ declare function onSample(
 ): void;
 
 /** Current stopwatch opts, defined by the test-runner */
-declare function getSamplerOptions(): Partial<stopwatch.Options>;
+declare function getSamplerOptions(): samplers.stopwatch.Options;
+
+/** Current sample opts, defined by the test-runner */
+declare function getSampleOptions(): samples.duration.Options;
 
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
-const getGC = () => global.gc as stopwatch.V8GC | undefined;
+const getGC = () => global.gc as samplers.stopwatch.V8GC | undefined;
 
 async function runStopwatch(
-  sw: stopwatch.Sampler<[]>,
+  sw: samplers.stopwatch.Sampler<[]>,
 ): Promise<void> {
-  // Give jest an opportunity to render when running in-band
+  // Give jest reporters an opportunity to render when running in-band
   await delay(0);
 
   const result = await sw.run();
@@ -34,11 +37,12 @@ async function runStopwatch(
   return delay(0);
 }
 
-(globalThis as any).sample = function(testName: string, fn: stopwatch.SamplerFn<[]>, timeout?: number) {
+(globalThis as any).sample = function(testName: string, fn: samplers.stopwatch.SamplerFn<[]>, timeout?: number) {
   const gc = getGC();
-  const sw = new stopwatch.Sampler(fn, [], getSamplerOptions(), void 0, gc);
+  const sample = new samples.duration.Duration(getSampleOptions());
+  const sw = new samplers.stopwatch.Sampler(fn, [], getSamplerOptions(), sample, void 0, gc);
   const f = runStopwatch.bind(null, sw) as jest.ProvidesCallback;
 
   // create the jest test-case
-  test(testName, f, timeout);
+  return test(testName, f, timeout);
 }

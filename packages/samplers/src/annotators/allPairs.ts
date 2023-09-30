@@ -1,6 +1,7 @@
 import { stats, Status, typeid } from '@repris/base';
+
 import * as ann from '../annotators.js';
-import * as samples from '../samples.js';
+import { duration, Sample } from '../samples.js';
 
 const Annotations = {
   /** */
@@ -18,14 +19,14 @@ const annotator = {
   },
 
   annotate(
-    sample: samples.Sample<unknown>,
+    sample: Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex((id) => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (!samples.Duration.is(sample)) {
+    if (!duration.Duration.is(sample)) {
       return Status.value(void 0);
     }
 

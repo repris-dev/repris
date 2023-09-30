@@ -14,19 +14,28 @@ import * as ann from '../annotators.js';
 import * as wt from '../wireTypes.js';
 import { Sample, MutableSample } from './types.js';
 
-export type DurationOptions = typeof defaultDurationOptions;
+export type Options = {
+  /**
+   * The maximum size of the collected sample, using reservoir sampling.
+   * A value < 0 disables reservoir sampling and the returned sample
+   * will contain all observations.
+   * 
+   * See: https://en.wikipedia.org/wiki/Reservoir_sampling
+   */
+  maxCapacity: number;
 
-export const defaultDurationOptions = {
-  maxCapacity: Number.MAX_SAFE_INTEGER,
-  significanceThreshold: 0.025,
-};
+  /**
+   * 
+   */
+  significanceThreshold: number;
+}
 
 /** Json representation of a duration sample */
 type WireType = wt.SampleData & {
   summary: ReturnType<stats.online.Lognormal['toJson']>;
   units: q.UnitsOf<'time'>;
+  opts: Options;
   values?: number[];
-  maxSize?: number;
 };
 
 function isDurationSampleWT(x: unknown): x is WireType {
@@ -59,7 +68,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
       return Status.err(`Sample values are not in expected units. Got ${ x.units } but expected ${ UNIT }`);
     }
 
-    const sample = new Duration({ maxCapacity: x.maxSize });
+    const sample = new Duration(x.opts);
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
     sample.uuid = x['@uuid'];
 
@@ -76,14 +85,12 @@ export class Duration implements MutableSample<timer.HrTime, number> {
     return this.uuid ??= random.newUuid();
   }
   
-  private opts: DurationOptions;
   private times: stats.ReservoirSample<number>;
   private onlineStats: stats.online.Lognormal;
   private uuid: uuid | undefined;
 
-  constructor(opts: Partial<DurationOptions> = {}) {
-    this.opts = Object.assign({}, defaultDurationOptions, opts);
-    this.times = new stats.ReservoirSample(this.opts.maxCapacity);
+  constructor(private opts: Options) {
+    this.times = new stats.ReservoirSample(opts.maxCapacity);
     this.onlineStats = new stats.online.Lognormal();
   }
 
@@ -137,19 +144,14 @@ export class Duration implements MutableSample<timer.HrTime, number> {
   }
 
   toJson(): WireType {
-    const obj: WireType = {
+    return {
       '@type': Duration[typeid],
       '@uuid': this[uuid],
       summary: this.onlineStats.toJson(),
       units: UNIT,
       values: this.times.values,
+      opts: this.opts
     };
-
-    if (this.opts.maxCapacity !== void 0) {
-      obj.maxSize = this.opts.maxCapacity;
-    }
-
-    return obj;
   }
 }
 

@@ -2,8 +2,8 @@ import { json, assignDeep, iterator, uuid, typeid, random, assert, Status } from
 
 import * as ann from './annotators.js';
 import * as wt from './wireTypes.js';
-import * as samples from './samples.js';
 import * as conflations from './conflations.js';
+import { duration, Sample } from './samples.js';
 
 /**
  * A test run produces a report. The report contains a number of benchmarks,
@@ -12,8 +12,9 @@ import * as conflations from './conflations.js';
  * When multiple reports are combined together it produces a set of aggregated
  * benchmarks which can be summarized by a conflation.
  */
-export interface AggregatedBenchmark<S extends samples.Sample<any>>
-  extends json.Serializable<wt.Benchmark> {
+export interface AggregatedBenchmark<S extends Sample<any>>
+  extends json.Serializable<wt.Benchmark>
+{
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 
@@ -32,7 +33,7 @@ export interface AggregatedBenchmark<S extends samples.Sample<any>>
   addRun(conflation: conflations.ConflationResult<S>): DefaultBenchmark;
 }
 
-export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
+export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> {
   static readonly [typeid] = '@benchmark:duration' as typeid;
 
   static is(x?: any): x is DefaultBenchmark {
@@ -44,11 +45,11 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
       return Status.err(`Unexpected type`);
     }
 
-    const resultSamples = [] as samples.Duration[];
-    const sampleMap = new Map<uuid, samples.Duration>();
+    const resultSamples = [] as duration.Duration[];
+    const sampleMap = new Map<uuid, duration.Duration>();
 
     for (let ws of benchmark.samples) {
-      const s = samples.Duration.fromJson(ws.data);
+      const s = duration.Duration.fromJson(ws.data);
       if (!Status.isErr(s)) {
         const sample = Status.get(s);
         resultSamples.push(sample);
@@ -60,10 +61,10 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
       }
     }
 
-    let c: conflations.DurationResult | undefined;
+    let c: conflations.duration.DurationResult | undefined;
 
     if (benchmark.conflation) {
-      const cTmp = conflations.DurationResult.fromJson(benchmark.conflation, sampleMap);
+      const cTmp = conflations.duration.DurationResult.fromJson(benchmark.conflation, sampleMap);
 
       if (Status.isErr(cTmp)) {
         return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
@@ -98,15 +99,15 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
   }
 
   private _uuid!: uuid;
-  private _samples: samples.Duration[];
-  private _conflation?: conflations.ConflationResult<samples.Duration>;
+  private _samples: duration.Duration[];
+  private _conflation?: conflations.ConflationResult<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
-    samples: Iterable<samples.Duration>,
-    conflation?: conflations.ConflationResult<samples.Duration>,
+    samples: Iterable<duration.Duration>,
+    conflation?: conflations.ConflationResult<duration.Duration>,
     totalRuns = 0
   ) {
     this._samples = iterator.collect(samples[Symbol.iterator]());
@@ -132,11 +133,11 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
     return this._totalruns;
   }
 
-  samples(): Iterable<samples.Duration> {
+  samples(): Iterable<duration.Duration> {
     return this._samples;
   }
 
-  conflation(): conflations.ConflationResult<samples.Duration> | undefined {
+  conflation(): conflations.ConflationResult<duration.Duration> | undefined {
     return this._conflation;
   }
 
@@ -144,9 +145,9 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
     return this._annotations;
   }
 
-  addRun(conflation: conflations.ConflationResult<samples.Duration>): DefaultBenchmark {
+  addRun(conflation: conflations.ConflationResult<duration.Duration>): DefaultBenchmark {
     // Create a new benchmark
-    const samples: samples.Duration[] = [];
+    const samples: duration.Duration[] = [];
     for (const { status, sample } of conflation.stat()) {
       if (status !== 'rejected') {
         samples.push(sample);
@@ -168,7 +169,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<samples.Duration> {
       }
     }
 
-    // copy the self-annotation (if one exists)
+    // copy the self-annotation of this benchmark (if one exists)
     if (src.has(this[uuid])) {
       dst.set(this[uuid], src.get(this[uuid])!);
     }

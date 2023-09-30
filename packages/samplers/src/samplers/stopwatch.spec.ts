@@ -1,69 +1,24 @@
-import { timer, Status } from '@repris/base';
+import { timer, Status, assignDeep } from '@repris/base';
 import * as stopwatch from './stopwatch.js';
+import * as defaults from '../defaults.js';
+import { duration } from '../samples.js';
 
-describe('Builder', () => {
-  test('arg', function(this: any) {
-    const b = new stopwatch.Builder();
-    expect(b.parameterFamily()).toEqual([]);
-
-    b.arg(11);
-    expect(b.parameterFamily()).toEqual([[11]]);
-  
-    b.arg(22);
-    expect(b.parameterFamily()).toEqual([[11], [22]]);
-  });
-  
-  test('args', () => {
-    const b = new stopwatch.Builder();
-  
-    b.args(11, 12, 13);
-    expect(b.parameterFamily()).toEqual([[11, 12, 13]]);
-  
-    b.args(21, 22, 23);
-    expect(b.parameterFamily()).toEqual([[11, 12, 13], [21, 22, 23]]);
-  });
-  
-  test('range', () => {
-    { // uses a default multiplier of 8
-      const b = new stopwatch.Builder().range(8, 8e3);
-      expect(b.parameterFamily()).toEqual([[8], [64], [512], [4096], [8e3]]);
-    }
-    {
-      const b = new stopwatch.Builder().range(8, 8);
-      expect(b.parameterFamily()).toEqual([[8]]);
-    }
-    {
-      const b = new stopwatch.Builder().range(8, 64).rangeMultiplier(2);
-      expect(b.parameterFamily()).toEqual([[8], [16], [32], [64]]);
-    }
-  });
-  
-  test('ranges', () => {
-    {
-      const b = new stopwatch.Builder().ranges([8, 512], [1024, 2048]);
-      expect(b.parameterFamily()).toEqual([
-            [8, 1024], [64, 1024], [512, 1024],
-            [8, 2048], [64, 2048], [512, 2048]
-          ]);
-    }
-    {
-      const b = new stopwatch.Builder().ranges([8, 8], [1024, 2048]);
-      expect(b.parameterFamily()).toEqual([[8, 1024], [8, 2048]]);
-    }
-  });
-});
-
-var opts: Partial<stopwatch.Options> = {
-  'warmup.duration.max': 100,
-  'duration.max': 500
-}
+const opts: stopwatch.Options = assignDeep(
+  {},
+  defaults.STOPWATCH_SAMPLER,
+  <any>{
+    warmup: { duration: { max: 100 } },
+    duration: { max: 500 },
+  },
+);
 
 describe('Sampler', () => {
   test('run (synchronous)', async () => {
     let n = 0;
   
     const fn = () => { n++ };
-    const s = new stopwatch.Sampler<[]>(fn, [], opts);
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const s = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await s.run();
   
     expect(result).toEqual(Status.ok);
@@ -81,11 +36,12 @@ describe('Sampler', () => {
       n++;
     }
   
-    const result =
-        await new stopwatch.Sampler<[number, string]>(fn, [], opts)
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw =
+        await new stopwatch.Sampler<[number, string]>(fn, [], opts, sample)
           .run(1337, 'hello');
   
-    expect(result).toEqual(Status.ok);
+    expect(sw).toEqual(Status.ok);
     expect(n).toBeGreaterThanOrEqual(0);
   });
   
@@ -98,8 +54,10 @@ describe('Sampler', () => {
       n++;
     }
   
-    const result = await new stopwatch.Sampler<[]>(fn, [345, 678], opts).run();
-    expect(result).toEqual(Status.ok);
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = await new stopwatch.Sampler<[]>(fn, [345, 678], opts, sample).run();
+
+    expect(sw).toEqual(Status.ok);
     expect(n).toBeGreaterThanOrEqual(0);
   });
   
@@ -110,7 +68,8 @@ describe('Sampler', () => {
       n++; throw new Error('oops');
     }
   
-    const sw = new stopwatch.Sampler<[]>(fn, []);
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
 
     expect(n).toBeGreaterThan(0);
@@ -124,23 +83,25 @@ describe('Sampler', () => {
       state.set(56_000_000n as timer.HrTime);
     }
   
-    const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = await s.run();
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
+    const result = await sw.run();
   
     expect(result).toEqual(Status.ok);
   
-    for (let val of s.sample().values()) {
+    for (let val of sw.sample().values()) {
       expect(val).toBe(56_000 /* us */);
     }
   });
   
   test('run (synchronous) skips observations', async () => {
     const fn = (state: stopwatch.StopwatchState) => { state.skip(); }
-    const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = await s.run();
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
+    const result = await sw.run();
   
     expect(result).toEqual(Status.ok);
-    expect(s.sample().observationCount()).toBe(0);
+    expect(sw.sample().observationCount()).toBe(0);
   });
   
   test('run (synchronous) for-of', async () => {
@@ -154,8 +115,9 @@ describe('Sampler', () => {
       }
     }
   
-    const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = await s.run();
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
+    const result = await sw.run();
   
     expect(result).toEqual(Status.ok);
     expect(m).toEqual(1);
@@ -174,14 +136,15 @@ describe('Sampler', () => {
       }
     }
   
-    const s = new stopwatch.Sampler<[]>(fn, [], opts);
-    const result = await s.run();
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
+    const result = await sw.run();
   
     expect(result).toEqual(Status.ok);
     expect(m).toEqual(1);
     expect(n).toBeGreaterThan(m);
 
-    for (let v of s.sample().values()) {
+    for (let v of sw.sample().values()) {
       expect(v).toBe(0.031 /* us */);
     }
   });
@@ -200,7 +163,8 @@ describe('Sampler', () => {
       });
     }
   
-    const sw = new stopwatch.Sampler<[]>(fn, [], opts);
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = sw.run() as Promise<Status>;
 
     expect(result).toBeInstanceOf(Promise);
@@ -225,10 +189,12 @@ describe('Sampler', () => {
       });
     }
   
-    const result = new stopwatch.Sampler<[]>(fn, [], opts).run() as Promise<Status>;
-    expect(result).toBeInstanceOf(Promise);
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample).run() as Promise<Status>;
+
+    expect(sw).toBeInstanceOf(Promise);
   
-    return result.then((s) => {
+    return sw.then((s) => {
       expect(Status.isErr(s)).toBe(true);
       expect(n >= 0 && m === n).toBe(true);
     });
@@ -247,7 +213,8 @@ describe('Sampler', () => {
       }
     }
   
-    const result = new stopwatch.Sampler<[]>(fn, [], opts).run() as Promise<Status>;
+    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const result = new stopwatch.Sampler<[]>(fn, [], opts, sample).run() as Promise<Status>;
     expect(result).toBeInstanceOf(Promise);
   
     return result.then(s => {

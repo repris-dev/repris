@@ -87,8 +87,8 @@ async function showComparison(
 
 function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
-  index?: b.AggregatedBenchmark<samples.Duration>,
-  base?: b.AggregatedBenchmark<samples.Duration>
+  index?: b.AggregatedBenchmark<samples.duration.Duration>,
+  base?: b.AggregatedBenchmark<samples.duration.Duration>
 ): { name: wt.BenchmarkName; annotations: annotators.DefaultBag } {
   const annotations = annotators.DefaultBag.from([]);
 

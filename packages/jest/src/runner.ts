@@ -93,6 +93,7 @@ function initializeEnvironment(
     },
   } as any;
 
+  environment.global.getSampleOptions = () => cfg.sample.options;
   environment.global.getSamplerOptions = () => cfg.sampler.options;
   environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
     assert.isDefined(title, 'No test running');
@@ -212,7 +213,7 @@ export default async function testRunner(
           }
 
           // Only duration samples supported
-          if (!samples.Duration.is(sample)) {
+          if (!samples.duration.Duration.is(sample)) {
             throw new Error('Unknown sample type ' + sample[typeid]);
           }
 
@@ -360,7 +361,7 @@ async function commitToBaseline(
 }
 
 function annotate(
-  newSample: samples.Duration,
+  newSample: samples.duration.Duration,
   request: Map<typeid, any>
 ): annotators.AnnotationBag {
   const [bag, err] = annotators.annotate(newSample, request);
@@ -373,16 +374,16 @@ function annotate(
 }
 
 function reconflateBenchmark(
-  bench: f.AggregatedBenchmark<samples.Duration>,
-  newEntry: { sample: samples.Duration; annotations: wt.AnnotationBag },
-  opts: Partial<conflations.DurationOptions>,
+  bench: f.AggregatedBenchmark<samples.duration.Duration>,
+  newEntry: { sample: samples.duration.Duration; annotations: wt.AnnotationBag },
+  opts: conflations.duration.Options,
   conflationRequest: Map<typeid, any>,
   benchmarkRequest: Map<typeid, any>,
-): f.AggregatedBenchmark<samples.Duration> {
+): f.AggregatedBenchmark<samples.duration.Duration> {
   const allSamples = iter.concat([bench.samples(), [newEntry.sample]]);
 
   // Conflate the new and previous samples together
-  const newConflation = new conflations.Duration(allSamples).analyze(opts);
+  const newConflation = new conflations.duration.Duration(allSamples).analyze(opts);
 
   // Update the aggregated benchmark, discarding sample(s)
   // rejected during the conflation analysis.

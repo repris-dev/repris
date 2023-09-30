@@ -1,60 +1,53 @@
 import { random, Status, typeid, uuid, quantity as q, assert } from '@repris/base';
-import * as ann from '../annotators.js';
-import * as samples from '../samples.js';
+import { duration } from '../samples.js';
 import * as wt from '../wireTypes.js';
 import { KWConflation, KWConflationResult, KWOptions } from './kruskal.js';
 import { ConflatedSampleStatus, ConflationResult, Conflator } from './types.js';
 
-export type DurationOptions = typeof defaultDurationOptions;
-
-const defaultDurationOptions: KWOptions = {
+export type Options = {
   /** Minimum number of samples in a valid conflation */
-  minSize: 5,
-
+  minSize: number,
   /** The maximum number of samples in the cache */
-  maxSize: 5,
-
+  maxSize: number,
   /**
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: 0.05,
-
+  maxEffectSize: number,
   /**
    * Method to remove samples from a cache when more than the maximum
    * number are supplied.
    */
-  exclusionMethod: 'slowest' as 'slowest' | 'outliers',
-};
+  exclusionMethod: 'slowest' | 'outliers',
+}
 
-export class Duration implements Conflator<samples.Duration, KWOptions> {
-  private allSamples: samples.Duration[] = [];
-  private analysisCache?: KWConflation<samples.Duration>;
+export class Duration implements Conflator<duration.Duration, KWOptions> {
+  private allSamples: duration.Duration[] = [];
+  private analysisCache?: KWConflation<duration.Duration>;
 
-  constructor(initial?: Iterable<samples.Duration>) {
+  constructor(initial?: Iterable<duration.Duration>) {
     if (initial !== void 0) {
       for (const x of initial) this.push(x);
     }
   }
 
-  analyze(opts?: Partial<DurationOptions>): DurationResult {
-    const defaultedOpts = Object.assign({}, defaultDurationOptions, opts);
+  analyze(opts: Options): DurationResult {
     this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
 
-    const kwAnalysis = this.analysisCache!.conflate(defaultedOpts);
+    const kwAnalysis = this.analysisCache!.conflate(opts);
     const summary = summarize(kwAnalysis.stat);
-    const isReady = summary.consistent >= defaultedOpts.minSize;
+    const isReady = summary.consistent >= opts.minSize;
 
     return new DurationResult(isReady, kwAnalysis);
   }
 
-  push(sample: samples.Duration) {
+  push(sample: duration.Duration) {
     this.allSamples.push(sample);
     this.analysisCache = undefined;
   }
 }
 
-export class DurationResult implements ConflationResult<samples.Duration> {
+export class DurationResult implements ConflationResult<duration.Duration> {
   static [typeid] = '@conflation:duration' as typeid;
 
   static is(x?: any): x is DurationResult {
@@ -63,7 +56,7 @@ export class DurationResult implements ConflationResult<samples.Duration> {
 
   static fromJson(
     obj: wt.ConflationResult,
-    refs: Map<uuid, samples.Duration>
+    refs: Map<uuid, duration.Duration>
   ): Status<DurationResult> {
     let stat = [];
 
@@ -100,7 +93,7 @@ export class DurationResult implements ConflationResult<samples.Duration> {
     return this._uuid;
   }
 
-  constructor(private _isReady: boolean, private _kwResult: KWConflationResult<samples.Duration>) {}
+  constructor(private _isReady: boolean, private _kwResult: KWConflationResult<duration.Duration>) {}
 
   stat() {
     return this._kwResult.stat;

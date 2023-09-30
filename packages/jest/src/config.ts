@@ -1,6 +1,6 @@
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
-import { assert, assignDeep, iterator, RecursivePartial, typeid } from '@repris/base';
+import { assert, assignDeep, iterator, typeid } from '@repris/base';
 
 const dbg = debug('repris:config');
 const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
@@ -8,12 +8,12 @@ const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
 export interface ReprisConfig {
   sampler: {
     /** Configuration of the sampler */
-    options: RecursivePartial<import('@repris/samplers').stopwatch.Options>;
+    options: import('@repris/samplers').samplers.stopwatch.Options;
   };
 
   sample: {
     /** Configuration of each sample */
-    options: RecursivePartial<import('@repris/samplers').samples.DurationOptions>;
+    options: import('@repris/samplers').samples.duration.Options;
 
     /** The annotations to compute for each sample */
     annotations: AnnotationRequest[];
@@ -21,7 +21,7 @@ export interface ReprisConfig {
 
   conflation: {
     /** Configuration of each conflation */
-    options: RecursivePartial<import('@repris/samplers').conflations.DurationOptions>;
+    options: import('@repris/samplers').conflations.duration.Options;
 
     /** The annotations to compute for each conflation */
     annotations: AnnotationRequest[];
@@ -145,13 +145,13 @@ export async function load(rootDir: string): Promise<ReprisConfig> {
     const defaultCfg = await defaultConfig;
 
     if (sr?.filepath) {
-      const config = assignDeep(
+      const config = assignDeep<ReprisConfig>(
         {},
         defaultCfg,
         !sr?.isEmpty ? sr?.config : {}
       );
 
-      dbg(config);
+      dbg('%s', config);
       sessionConfigs.set(rootDir, config);
     } else {
       dbg(`Config file Not found`);

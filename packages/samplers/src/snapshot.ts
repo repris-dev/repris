@@ -1,7 +1,7 @@
 import { json, Status, iterator } from '@repris/base';
 
 import * as wt from './wireTypes.js';
-import * as samples from './samples.js';
+import { duration } from './samples.js';
 import * as f from './benchmark.js';
 
 export const enum BenchmarkState {
@@ -41,11 +41,11 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
       : BenchmarkState.Unknown;
   }
 
-  allBenchmarks(): IterableIterator<f.AggregatedBenchmark<samples.Duration>> {
+  allBenchmarks(): IterableIterator<f.AggregatedBenchmark<duration.Duration>> {
     return iterator.map(this.benchmarks.values(), f => this.fromJsonBenchmark(f));
   }
 
-  updateBenchmark(benchmark: f.AggregatedBenchmark<samples.Duration>) {
+  updateBenchmark(benchmark: f.AggregatedBenchmark<duration.Duration>) {
     const { title, nth } = benchmark.name;
     const key = cacheKey(title, nth);
 
@@ -74,7 +74,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
    * @returns The aggregated benchmark for the given title, or an empty benchmark if
    * the name doesn't exist in the snapshot.
    */
-  getBenchmark(title: string[], nth: number): f.AggregatedBenchmark<samples.Duration> | undefined {
+  getBenchmark(title: string[], nth: number): f.AggregatedBenchmark<duration.Duration> | undefined {
     const benchmark = this.benchmarks.get(cacheKey(title, nth));
     if (!benchmark) {
       return;
@@ -83,7 +83,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return this.fromJsonBenchmark(benchmark);
   }
 
-  private fromJsonBenchmark(benchmark: wt.Benchmark): f.AggregatedBenchmark<samples.Duration> {
+  private fromJsonBenchmark(benchmark: wt.Benchmark): f.AggregatedBenchmark<duration.Duration> {
     const fx = f.DefaultBenchmark.fromJSON(benchmark)
     if (Status.isErr(fx)) {
       throw new Error(Status.get(fx));

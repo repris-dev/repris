@@ -1,5 +1,6 @@
-import { timer, random, iterator, quantity as q, stats } from '@repris/base';
+import { timer, random, iterator, quantity as q } from '@repris/base';
 import * as duration from '../samples/duration.js';
+import * as defaults from '../defaults.js';
 import { DurationResult, Duration } from './duration.js';
 import { ConflatedSampleStatus } from './types.js';
 
@@ -7,7 +8,7 @@ const gen = random.PRNGi32(52);
 
 function create(mean: number, std: number, size: number) {
   const rng3 = random.gaussian(mean, std, gen);
-  const s = new duration.Duration();
+  const s = new duration.Duration(defaults.DURATION_SAMPLE);
 
   for (const x of iterator.take(size, iterator.gen(rng3))) {
     s.push(timer.HrTime.from(q.create('nanosecond', x)));
@@ -50,7 +51,7 @@ describe('Duration', () => {
       conf.push(sC);
 
       const result = postProcess(
-        conf.analyze({ minSize: 2, maxSize: 3, exclusionMethod: 'slowest' })
+        conf.analyze({ maxEffectSize: 0.1, minSize: 2, maxSize: 3, exclusionMethod: 'slowest' })
       );
 
       // samples a, b, c
@@ -91,7 +92,7 @@ describe('Duration', () => {
       { // High threshold
         const conf = new Duration([sA, sF]);
         const a = postProcess(
-          conf.analyze({ maxEffectSize: 0.8, minSize: 2, exclusionMethod: 'slowest' })
+          conf.analyze({ maxEffectSize: 0.8, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
         );
   
         expect(a.consistent).toEqual([sA, sF]);
@@ -101,7 +102,7 @@ describe('Duration', () => {
       { // Low threshold
         const conf = new Duration([sA, sF]);
         const a = postProcess(
-          conf.analyze({ maxEffectSize: 0.1, minSize: 2, exclusionMethod: 'slowest' })
+          conf.analyze({ maxEffectSize: 0.1, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
         );
         
         expect(a.consistent).toEqual([]);

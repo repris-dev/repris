@@ -30,7 +30,7 @@ const annotator = {
       return Status.value(void 0);
     }
 
-    if (!samples.Duration.is(sample)) {
+    if (!samples.duration.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
