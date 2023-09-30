@@ -1,4 +1,4 @@
-import { Indexable, quickselect, sort } from '../array.js';
+import { Indexable, quickselect } from '../array.js';
 import { gt } from '../assert.js';
 
 /** median absolute deviation result */
@@ -21,6 +21,7 @@ export function iqr(sample: Indexable<number>): [number, number] {
   return [lo, hi];
 }
 
+/** Median of the given sample */
 export function median(sample: Indexable<number>): number {
   gt(sample.length, 0);
 
@@ -37,7 +38,7 @@ export function median(sample: Indexable<number>): number {
   }
 }
 
-/** median absolute deviation */
+/** median absolute deviation of the given sample */
 export function mad(sample: Indexable<number>, x: number): MADResult {
   const devs = new Float64Array(sample.length);
 
@@ -50,4 +51,12 @@ export function mad(sample: Indexable<number>, x: number): MADResult {
   return {
     mad, normMad: 1.4826 * mad
   }
+}
+
+/**
+ * Quartile coefficient of dispersion
+ * https://en.wikipedia.org/wiki/Quartile_coefficient_of_dispersion
+ */
+export function qcd(iqr: [number, number]) {
+  return (iqr[1] - iqr[0]) / (iqr[0] + iqr[1]);
 }
