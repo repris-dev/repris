@@ -1,0 +1,19 @@
+{
+  "name": "@sampleci/util",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./globals": {
+      "types": "./globals.d.ts"
+    },
+    "./globals.config": {
+      "node": "./globals.config.js"
+    },
+    "./assert": {
+      "default": "./assert.js"
+    },
+    "./snapshotResolver.cjs": {
+      "default": "./snapshotResolver.cjs"
+    }
+  }
+}

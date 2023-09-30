@@ -1,0 +1,15 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.exclude": {},
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "$(capture).spec.*, $(capture).snap.*",
+    "*.tsx": "$(capture).spec.*, $(capture).snap.*",
+    "package.json": "pnpm-lock.yaml",
+  }
+}

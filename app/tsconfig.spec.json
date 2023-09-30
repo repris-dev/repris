@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["./src/**/*.spec.ts"],
+  "references": [{ "path": "." }],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": ".tsc",
+    "lib": ["DOM"]
+  }
+}

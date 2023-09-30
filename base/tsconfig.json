@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["./src/**/*.ts", "./src/**/*.json"],
+  "exclude": ["./src/**/*.spec.ts"],
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": ".tsc",
+    "rootDir": "src",
+    "outDir": ".tsc",
+    "types": ["@sampleci/util/globals"]
+  }
+}

@@ -1,0 +1,11 @@
+// A 'solution' tsconfig, used to support Typescript Project References
+// https://www.typescriptlang.org/docs/handbook/project-references.html#overall-structure
+{
+  "references": [
+    { "path": "./base" },
+    { "path": "./base/tsconfig.spec.json" },
+    { "path": "./app" },
+    { "path": "./app/tsconfig.spec.json" }
+  ],
+  "files": []
+}
