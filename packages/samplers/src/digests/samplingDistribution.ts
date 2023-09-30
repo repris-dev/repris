@@ -40,7 +40,7 @@ export function process(
     } else {
       // todo: annotate the sample
       return Status.err(
-        `Sample could not be conflated. Annotation '${opts.locationEstimationType}' is missing`
+        `Sample could not be digested. Annotation '${opts.locationEstimationType}' is missing`
       );
     }
   }

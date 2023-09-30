@@ -10,11 +10,11 @@ import { duration, Sample } from './samples.js';
  * and each benchmark contains a sample and its annotations.
  *
  * When multiple reports are combined together it produces a set of aggregated
- * benchmarks which can be summarized by a conflation.
+ * benchmarks summarized by a digest.
  */
 export interface AggregatedBenchmark<S extends Sample<any>>
   extends json.Serializable<wt.Benchmark> {
-  /** The kind of conflation result */
+
   readonly [typeid]: typeid;
 
   readonly [uuid]: uuid;
@@ -66,7 +66,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       const cTmp = digests.duration.Digest.fromJson(benchmark.digest, sampleMap);
 
       if (Status.isErr(cTmp)) {
-        return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
+        return Status.err(`Failed to load digest: ${cTmp[1].message}`);
       }
 
       c = cTmp[0];
@@ -100,26 +100,26 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
   private _uuid!: uuid;
   private _samples: Map<duration.Duration, { sample: duration.Duration; run: number }>;
-  private _conflation?: digests.Digest<duration.Duration>;
+  private _digest?: digests.Digest<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
     samples: Iterable<{ sample: duration.Duration; run: number }>,
-    conflation?: digests.Digest<duration.Duration>,
+    digest?: digests.Digest<duration.Duration>,
     totalRuns = 0
   ) {
     this._samples = new Map(iterator.map(samples, s => [s.sample, s]));
-    this._conflation = conflation;
+    this._digest = digest;
 
-    if (this._conflation) {
+    if (this._digest) {
       const index = new Set(iterator.map(this._samples.keys(), s => s[uuid]));
-      for (const { sample, status } of this._conflation.stat()) {
+      for (const { sample, status } of this._digest.stat()) {
         if (status !== 'rejected' && !index.has(sample[uuid])) {
           throw new Error(
             `Benchmark failed validation. The benchmark doesn't contain\n` +
-              `sample ${sample[uuid]} (status: ${status}) which the conflation references.`
+              `sample ${sample[uuid]} (status: ${status}) which the digest references.`
           );
         }
       }
@@ -138,31 +138,31 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   }
 
   digest(): digests.Digest<duration.Duration> | undefined {
-    return this._conflation;
+    return this._digest;
   }
 
   annotations(): Map<uuid, wt.AnnotationBag> {
     return this._annotations;
   }
 
-  addRun(conflation: digests.Digest<duration.Duration>): DefaultBenchmark {
+  addRun(digest: digests.Digest<duration.Duration>): DefaultBenchmark {
     const nextRun = this.totalRuns() + 1;
 
     // Create a new benchmark
     const samples: { sample: duration.Duration; run: number }[] = [];
-    for (const { status, sample } of conflation.stat()) {
+    for (const { status, sample } of digest.stat()) {
       if (status !== 'rejected') {
         const run = this._samples.get(sample)?.run ?? nextRun;
         samples.push({ sample, run });
       }
     }
 
-    const newFixt = new DefaultBenchmark(this.name, samples, conflation, nextRun);
+    const newFixt = new DefaultBenchmark(this.name, samples, digest, nextRun);
     newFixt._uuid = this[uuid];
 
     // copy sample annotations
-    // Note: the conflation annotation isn't copied since
-    // a benchmark can only contain one conflation at a time.
+    // Note: the digest annotation isn't copied since
+    // a benchmark can only contain one digest at a time.
     const src = this.annotations();
     const dst = newFixt.annotations();
 
@@ -232,11 +232,11 @@ ann.register('@benchmark:annotator' as typeid, {
 
     let summary: string;
 
-    const confl = fixt.digest();
-    if (confl) {
+    const digest = fixt.digest();
+    if (digest) {
       let totalIndexed = 0;
 
-      confl.stat().forEach(x => {
+      digest.stat().forEach(x => {
         switch (x.status) {
           case 'consistent':
           case 'outlier':
@@ -246,7 +246,7 @@ ann.register('@benchmark:annotator' as typeid, {
 
       // <uncertainty> (<total stored>/<total runs>)
       summary = `${
-        totalIndexed > 1 ? confl.uncertainty().toFixed(2) : '-'
+        totalIndexed > 1 ? digest.uncertainty().toFixed(2) : '-'
       } (${totalIndexed}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)
@@ -256,11 +256,11 @@ ann.register('@benchmark:annotator' as typeid, {
     const result = new Map<typeid, ann.Annotation>([
       [annotations.runs, fixt.totalRuns()],
       [annotations.summaryText, summary],
-      [annotations.stable, confl?.ready() ?? false],
+      [annotations.stable, digest?.ready() ?? false],
     ]);
 
-    if (confl) {
-      result.set(annotations.uncertainty, confl.uncertainty());
+    if (digest) {
+      result.set(annotations.uncertainty, digest.uncertainty());
     }
 
     return Status.value(ann.DefaultBag.from(result));

@@ -39,11 +39,11 @@ const SampleAnnotations = Object.freeze({
   },
 });
 
-const ConflationAnnotations = Object.freeze({
-  hsmMode: 'conflation:hsm' as typeid,
+const DigestAnnotations = Object.freeze({
+  hsmMode: 'digest:hsm' as typeid,
 
   hsmCIRel: {
-    id: 'conflation:hsm:ci-rme' as typeid,
+    id: 'digest:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
 });
@@ -119,41 +119,41 @@ const sampleAnnotator: ann.Annotator = {
   },
 };
 
-const conflationAnnotator: ann.Annotator = {
+const digestAnnotator: ann.Annotator = {
   annotations() {
-    return Object.values(ConflationAnnotations).map(x => (typeof x === 'object' ? x.id : x));
+    return Object.values(DigestAnnotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
-    conflation: digests.Digest<Sample<unknown>>,
+    digest: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (!conflation.ready()) {
+    if (!digest.ready()) {
       return Status.value(void 0);
     }
 
     // run pooled analysis only on the best samples
-    const samplingDist = conflation.samplingDistribution?.();
+    const samplingDist = digest.samplingDistribution?.();
 
     if (samplingDist && samplingDist?.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
 
       // HSM statistics on the sampling distribution
       if (
-        request.has(ConflationAnnotations.hsmMode) ||
-        request.has(ConflationAnnotations.hsmCIRel.id)
+        request.has(DigestAnnotations.hsmMode) ||
+        request.has(DigestAnnotations.hsmCIRel.id)
       ) {
         const opts = {
-          ...ConflationAnnotations.hsmCIRel.opts,
-          ...request.get(ConflationAnnotations.hsmCIRel.id),
+          ...DigestAnnotations.hsmCIRel.opts,
+          ...request.get(DigestAnnotations.hsmCIRel.id),
         };
 
         array.sort(samplingDist);
 
         const hsm = stats.mode.hsm(samplingDist);
-        result.set(ConflationAnnotations.hsmMode, conflation.asQuantity(hsm.mode));
+        result.set(DigestAnnotations.hsmMode, digest.asQuantity(hsm.mode));
 
-        if (request.has(ConflationAnnotations.hsmCIRel.id)) {
+        if (request.has(DigestAnnotations.hsmCIRel.id)) {
           const smoothing = hsmBootstrapSmoothing(samplingDist, opts.smoothing);
           const hsmCI = stats.bootstrap.confidenceInterval(samplingDist,
             xs => stats.mode.hsm(xs).mode,
@@ -162,7 +162,7 @@ const conflationAnnotator: ann.Annotator = {
             smoothing
           );
 
-          result.set(ConflationAnnotations.hsmCIRel.id, stats.rme(hsmCI, hsm.mode));
+          result.set(DigestAnnotations.hsmCIRel.id, stats.rme(hsmCI, hsm.mode));
         }
       }
 
@@ -173,9 +173,8 @@ const conflationAnnotator: ann.Annotator = {
   },
 };
 
-ann.register('@annotator:conflation:modal-interval', conflationAnnotator);
+ann.register('@annotator:digest:modal-interval', digestAnnotator);
 ann.register('@annotator:samples:modal-interval', sampleAnnotator);
-
 
 /**
  * Bootstrap smoothing. This is especially important when bootstrapping

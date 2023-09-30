@@ -93,7 +93,7 @@ function annotateComparison(
 ): ComparedBenchmarks {
   const annotations = annotators.DefaultBag.from([]);
 
-  // Load index conflation and annotations
+  // Load index digest and annotations
   const x0 = index?.digest();
 
   if (x0) {
@@ -102,7 +102,7 @@ function annotateComparison(
     annotations.union(bag, '@index');
   }
 
-  // Load snapshot conflation and annotations
+  // Load snapshot digest and annotations
   const x1 = base?.digest();
 
   if (x1) {
@@ -118,7 +118,7 @@ function annotateComparison(
     if (!Status.isErr(comparison)) {
       annotations.union(comparison[0].annotations, '@test');
     } else {
-      dbg('Failed to compare conflations', comparison[1]);
+      dbg('Failed to compare digests', comparison[1]);
     }
   }
 

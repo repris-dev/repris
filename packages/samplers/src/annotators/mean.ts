@@ -5,13 +5,13 @@ import * as digests from '../digests.js';
 import { Sample } from '../samples.js';
 import { hypothesis } from '../index.js';
 
-const ConflationAnnotations = Object.freeze({
+const DigestAnnotations = Object.freeze({
   /** The mean of the sampling distribution */
-  mean: 'conflation:mean' as typeid,
+  mean: 'digest:mean' as typeid,
 
   /** confidence interval of the mean */
   meanCI: {
-    id: 'conflation:mean:ci' as typeid,
+    id: 'digest:mean:ci' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   }
 });
@@ -36,27 +36,27 @@ const HypothesisAnnotations = Object.freeze({
   differenceSummary: 'hypothesis:mean:summary-text' as typeid,
 });
 
-ann.register('@annotator:conflation:mean', {
+ann.register('@annotator:digest:mean', {
   annotations() {
-    return Object.values(ConflationAnnotations).map(x => (typeof x === 'object' ? x.id : x));
+    return Object.values(DigestAnnotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
-    conflation: digests.Digest<Sample<unknown>>,
+    digest: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     const result = new Map<typeid, ann.Annotation>();
-    const xs = conflation.samplingDistribution?.();
+    const xs = digest.samplingDistribution?.();
 
     if (xs !== void 0 && xs.length > 0) {
       const os = stats.online.Gaussian.fromValues(xs);
 
-      result.set(ConflationAnnotations.mean, conflation.asQuantity(os.mean()));
+      result.set(DigestAnnotations.mean, digest.asQuantity(os.mean()));
 
-      if (request.has(ConflationAnnotations.meanCI.id)) {
+      if (request.has(DigestAnnotations.meanCI.id)) {
         const opts = {
-          ...ConflationAnnotations.meanCI.opts,
-          ...request.get(ConflationAnnotations.meanCI.id),
+          ...DigestAnnotations.meanCI.opts,
+          ...request.get(DigestAnnotations.meanCI.id),
         };
       
         const smoothing = stats.kde.silvermansRule(os.std(), xs.length) * opts.smoothing;
@@ -68,7 +68,7 @@ ann.register('@annotator:conflation:mean', {
           smoothing,
         );
   
-        result.set(ConflationAnnotations.meanCI.id, stats.rme(ci, os.mean()));
+        result.set(DigestAnnotations.meanCI.id, stats.rme(ci, os.mean()));
       }
     }
 

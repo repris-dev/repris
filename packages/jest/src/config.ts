@@ -17,8 +17,8 @@ export interface ReprisConfig {
   };
 
   digest: {
-    /** Configuration of each conflation */
-    options: import('@repris/samplers').conflations.duration.Options;
+    /** Configuration of each digest */
+    options: import('@repris/samplers').digests.duration.Options;
   };
 
   commands: {

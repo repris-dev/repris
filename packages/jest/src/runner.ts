@@ -9,7 +9,7 @@ import type { AssertionResult, TestFileEvent, TestResult } from '@jest/test-resu
 import {
   annotators,
   samples,
-  conflations,
+  digests,
   wiretypes as wt,
   snapshots,
   snapshotManager,
@@ -222,7 +222,7 @@ export default async function testRunner(
             const indexedBenchmark =
               indexedSnapshot.getBenchmark(title, nth) ?? f.DefaultBenchmark.empty({ title, nth });
 
-            const newBenchmark = reconflateBenchmark(
+            const newBenchmark = redigestBenchmark(
               indexedBenchmark,
               { sample, annotations: sampleBagJson },
               reprisCfg.digest.options,
@@ -232,7 +232,7 @@ export default async function testRunner(
             // Update the index
             indexedSnapshot.updateBenchmark(newBenchmark);
 
-            // publish the conflation annotations on the current test case result
+            // publish the digest annotations on the current test case result
             augmentedResult.repris.digest = newBenchmark
               .annotations().get(newBenchmark.digest()?.[uuid]!);
 
@@ -365,10 +365,10 @@ function annotate(
   }
 }
 
-function reconflateBenchmark(
+function redigestBenchmark(
   bench: f.AggregatedBenchmark<samples.duration.Duration>,
   newEntry: { sample: samples.duration.Duration; annotations: wt.AnnotationBag },
-  opts: conflations.duration.Options,
+  opts: digests.duration.Options,
   annotationRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
   const allSamples = iter.collect(bench.samples())
@@ -376,33 +376,33 @@ function reconflateBenchmark(
 
   allSamples.push([newEntry.sample, newEntry.annotations]);
 
-  // Conflate the new and previous samples together
-  const newConflation = conflations.duration.process(allSamples, opts);
+  // digest the new and previous samples together
+  const newDigest = digests.duration.process(allSamples, opts);
 
-  if (Status.isErr(newConflation)) {
-    dbg('Failed to create conflation %s', newConflation[1].message);
+  if (Status.isErr(newDigest)) {
+    dbg('Failed to create digest %s', newDigest[1].message);
     // return the original benchmark
     return bench;
   }
 
   // Update the aggregated benchmark, discarding sample(s)
-  // rejected during the conflation analysis.
-  const result = bench.addRun(newConflation[0]);
+  // rejected during the digest analysis.
+  const result = bench.addRun(newDigest[0]);
 
   // set sample annotation
   for (const { sample: s } of result.samples()) {
     if (s === newEntry.sample) result.annotations().set(s[uuid], newEntry.annotations);
   }
 
-  // Annotate this conflation
-  const conflationBag = annotators.annotate(newConflation[0], annotationRequest);
+  // Annotate this digest
+  const digestBag = annotators.annotate(newDigest[0], annotationRequest);
 
-  if (Status.isErr(conflationBag)) {
-    dbg('Failed to annotate conflation %s', conflationBag[1].message);
+  if (Status.isErr(digestBag)) {
+    dbg('Failed to annotate digest %s', digestBag[1].message);
   } else {
     result.annotations().set(
-      newConflation[0][uuid],
-      Status.get(conflationBag).toJson()
+      newDigest[0][uuid],
+      Status.get(digestBag).toJson()
     );
   }
 

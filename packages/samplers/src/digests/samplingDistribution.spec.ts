@@ -34,7 +34,7 @@ function postProcess(mwu: Digest) {
   return { order, ...a };
 }
 
-describe('conflate', () => {
+describe('process()', () => {
   const sA = create(300, 5, 250);
   const sB = create(300, 10, 250);
   const sC = create(300, 50, 250);
@@ -54,14 +54,14 @@ describe('conflate', () => {
 
     const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
 
-    const conflation = process(annotated, {
+    const digest = process(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
       maxUncertainty: 0.1,
       minSize: 2,
       maxSize: 3,
     });
 
-    const result = postProcess(Status.get(conflation));
+    const result = postProcess(Status.get(digest));
 
     // samples a, b, c
     expect(result.consistent.length).toBe(3);

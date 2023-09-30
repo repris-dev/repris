@@ -28,7 +28,7 @@ export default {
     options: defaults.samplers.stopwatch
   },
   digest: {
-    options: defaults.conflations.duration
+    options: defaults.digests.duration
   },
   
   commands: {
@@ -53,11 +53,11 @@ export default {
     show: {
       annotations: [{
         '@index': [
-          ['conflation:mean', { displayName: 'mean'}],
+          ['digest:mean', { displayName: 'mean'}],
           benchmarkSummary('Index', '@index'),
         ],
         '@baseline': [
-          ['conflation:mean', { displayName: 'mean'}],
+          ['digest:mean', { displayName: 'mean'}],
           benchmarkSummary('Baseline', '@baseline'),
         ]
       }]
@@ -66,7 +66,7 @@ export default {
     compare: {
       annotations: [{
         '@index': [
-          ['conflation:mean', {
+          ['digest:mean', {
             displayName: 'Index',
             grading: [
               // highlight if this snapshot is significantly faster
@@ -105,7 +105,7 @@ export default {
         ],
 
         '@baseline': [
-          ['conflation:mean', {
+          ['digest:mean', {
               displayName: 'Baseline',
               grading: [
                 // highlight if this snapshot is significantly faster

@@ -2,7 +2,6 @@ import { Indexable, stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
-import * as digests from '../digests.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
@@ -16,14 +15,6 @@ const SampleAnnotations = Object.freeze({
    * empirical PDF located at the mode
    */
   kdeDispersion: 'sample:kde:dispersion' as typeid,
-});
-
-const ConflationAnnotations = Object.freeze({
-  /**
-   * Minimum value of the conflation of samples where the density estimation
-   * function is globally maximized
-   */
-  kdeMode: 'conflation:kde' as typeid,
 });
 
 const sampleAnnotator: ann.Annotator = {
@@ -52,40 +43,6 @@ const sampleAnnotator: ann.Annotator = {
   },
 };
 
-const conflationAnnotator: ann.Annotator = {
-  annotations() {
-    return Object.values(ConflationAnnotations);
-  },
-
-  annotate(
-    conflation: digests.Digest<Sample<unknown>>,
-    request: Map<typeid, {}>
-  ): Status<ann.AnnotationBag | undefined> {
-    if (!conflation.ready()) {
-      return Status.value(void 0);
-    }
-
-    // run pooled analysis only on the best samples
-    const samplingDist = conflation.samplingDistribution?.();
-
-    if (samplingDist && samplingDist?.length > 0) {
-      const result = new Map<typeid, ann.Annotation>();
-
-      // KDE statistics
-      if (request.has(ConflationAnnotations.kdeMode)) {
-        const os = stats.online.Gaussian.fromValues(samplingDist);
-        const mode = kdeMode(samplingDist, os);
-        result.set(ConflationAnnotations.kdeMode, mode.mode);
-      }
-
-      return Status.value(ann.DefaultBag.from(result));
-    }
-
-    return Status.value(void 0);
-  },
-};
-
-ann.register('@annotator:conflation:kde', conflationAnnotator);
 ann.register('@annotator:samples:kde', sampleAnnotator);
 
 interface KDEAnalysis {
@@ -100,21 +57,6 @@ interface KDEAnalysis {
 
   /** The full-width of the half-sample located at the mode */
   dispersion: number;
-}
-
-/**
- * Bootstrap smoothing. This is especially important when bootstrapping
- * confidence intervals of rank-based point estimates (median, HSM, etc.)
- * since these tend to produce non-normal sampling distributions.
- * However, an optimal smoothing parameter is hard to calculate. Instead
- * it is estimated here.
- */
-function hsmBootstrapSmoothing(xs: Indexable<number>, level: number) {
-  if (level <= 0) return 0;
-  // Estimate standard deviation from a proportion of the sample
-  const std = stats.mode.estimateStdDev(xs, .66);
-  // Use Scott's estimate
-  return stats.kde.silvermansRule(std, xs.length);
 }
 
 function kdeMode(
@@ -137,36 +79,4 @@ function kdeMode(
     dispersion: dispersion.std,
     cvBandwidth: h,
   };
-}
-
-
-function concatSamples(samples: (readonly [Float64Array, Sample<unknown>])[]) {
-  const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
-  const concatSample = new Float64Array(N);
-
-  for (let i = 0, off = 0; i < samples.length; i++) {
-    const [raw] = samples[i];
-    concatSample.set(raw, off);
-    off += raw.length;
-  }
-
-  return concatSample;
-}
-
-function kdeModeConflation(samples: (readonly [Float64Array, Sample<unknown>])[]) {
-  // MISE-optimized bandwidth
-  const hs: [raw: Float64Array, h: number][] = [];
-
-  for (let i = 0; i < samples.length; i++) {
-    const [raw, _] = samples[i];
-    const os = stats.online.Gaussian.fromValues(raw);
-    const h = stats.kde.cvBandwidth(raw, os.std());
-
-    hs.push([raw, h]);
-  }
-
-  // find the mode
-  const [mode] = stats.kde.findConflationMaxima(stats.kde.gaussian, hs);
-
-  return mode;
 }

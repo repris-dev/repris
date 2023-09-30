@@ -109,13 +109,13 @@ function annotateBenchmark(
   ctx: reprisConfig.Ctx
 ) {
   const req = annotationRequests(ctx);
-  const confl = bench.digest();
+  const digest = bench.digest();
 
   const benchBag = loadOrReannotate(bench, req, bench.annotations().get(bench[uuid]) ?? {});
   annotations.union(benchBag, ctx);
 
-  if (confl) {
-    const conflBag = loadOrReannotate(confl, req, bench.annotations().get(confl[uuid]) ?? {});
+  if (digest) {
+    const conflBag = loadOrReannotate(digest, req, bench.annotations().get(digest[uuid]) ?? {});
     annotations.union(conflBag, ctx);
   }
 }
