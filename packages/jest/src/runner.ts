@@ -197,7 +197,7 @@ export default async function testRunner(
         const ar = allTestResults[i++];
         const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
 
-        if (key === arKey) {
+        if (key === arKey && ar.status !== 'pending') {
           matched = true;
 
           if (ar.status !== 'passed') {
