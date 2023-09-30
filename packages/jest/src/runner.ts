@@ -380,7 +380,9 @@ function reconflateBenchmark(
   conflationRequest: Map<typeid, any>,
   benchmarkRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
-  const allSamples = iter.concat([bench.samples(), [newEntry.sample]]);
+  const allSamples = iter.concat([
+    iter.map(bench.samples(), ({ sample }) => sample), [newEntry.sample]]
+  );
 
   // Conflate the new and previous samples together
   const newConflation = conflations.duration.conflate(allSamples, opts);
@@ -390,7 +392,7 @@ function reconflateBenchmark(
   const result = bench.addRun(newConflation);
 
   // set sample annotation
-  for (const s of result.samples()) {
+  for (const { sample: s } of result.samples()) {
     if (s === newEntry.sample) result.annotations().set(s[uuid], newEntry.annotations);
   }
 

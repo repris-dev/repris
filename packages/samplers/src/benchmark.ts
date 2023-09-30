@@ -22,7 +22,7 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   readonly name: wt.BenchmarkName;
 
-  samples(): Iterable<S>;
+  samples(): Iterable<{ sample: S, run: number }>;
 
   conflation(): conflations.Conflation<S> | undefined;
 
@@ -45,14 +45,14 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       return Status.err(`Unexpected type`);
     }
 
-    const resultSamples = [] as duration.Duration[];
+    const resultSamples = [] as { sample: duration.Duration, run: number }[];
     const sampleMap = new Map<uuid, duration.Duration>();
 
     for (let ws of benchmark.samples) {
       const s = duration.Duration.fromJson(ws.data);
       if (!Status.isErr(s)) {
         const sample = Status.get(s);
-        resultSamples.push(sample);
+        resultSamples.push({ sample, run: (ws as any).run ?? 0 });
         sampleMap.set(sample[uuid], sample);
       } else {
         return Status.err(
@@ -85,6 +85,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return Status.value(result);
   }
 
+  /** Create a benchmark without any samples */
   static empty(name: wt.BenchmarkName): DefaultBenchmark {
     return new DefaultBenchmark(name, []);
   }
@@ -99,22 +100,22 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   }
 
   private _uuid!: uuid;
-  private _samples: duration.Duration[];
+  private _samples: Map<duration.Duration, { sample: duration.Duration, run: number }>;
   private _conflation?: conflations.Conflation<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
-    samples: Iterable<duration.Duration>,
+    samples: Iterable<{ sample: duration.Duration, run: number }>,
     conflation?: conflations.Conflation<duration.Duration>,
     totalRuns = 0
   ) {
-    this._samples = iterator.collect(samples[Symbol.iterator]());
+    this._samples = new Map(iterator.map(samples, s => [s.sample, s]));
     this._conflation = conflation;
 
     if (this._conflation) {
-      const index = new Set(iterator.map(this._samples, s => s[uuid]));
+      const index = new Set(iterator.map(this._samples.keys(), s => s[uuid]));
       for (const { sample, status } of this._conflation.stat()) {
         if (status !== 'rejected' && !index.has(sample[uuid])) {
           throw new Error(
@@ -133,8 +134,8 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._totalruns;
   }
 
-  samples(): Iterable<duration.Duration> {
-    return this._samples;
+  samples(): Iterable<{ sample: duration.Duration, run: number }> {
+    return this._samples.values();
   }
 
   conflation(): conflations.Conflation<duration.Duration> | undefined {
@@ -146,15 +147,18 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   }
 
   addRun(conflation: conflations.Conflation<duration.Duration>): DefaultBenchmark {
+    const nextRun = this.totalRuns() + 1;
+
     // Create a new benchmark
-    const samples: duration.Duration[] = [];
+    const samples: { sample: duration.Duration, run: number }[] = [];
     for (const { status, sample } of conflation.stat()) {
       if (status !== 'rejected') {
-        samples.push(sample);
+        const run = this._samples.get(sample)?.run ?? nextRun; 
+        samples.push({ sample, run });
       }
     }
 
-    const newFixt = new DefaultBenchmark(this.name, samples, conflation, this.totalRuns() + 1);
+    const newFixt = new DefaultBenchmark(this.name, samples, conflation, nextRun);
     newFixt._uuid = this[uuid];
 
     // copy sample annotations
@@ -163,9 +167,10 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     const src = this.annotations();
     const dst = newFixt.annotations();
 
-    for (const s of samples) {
-      if (src.has(s[uuid])) {
-        dst.set(s[uuid], src.get(s[uuid])!);
+    for (const { sample } of samples) {
+      const sId = sample[uuid];
+      if (src.has(sId)) {
+        dst.set(sId, src.get(sId)!);
       }
     }
 
@@ -183,8 +188,9 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       '@uuid': this[uuid],
       name: assignDeep({} as wt.BenchmarkName, this.name),
       samples: iterator.collect(
-        iterator.map(this.samples(), sample => ({
+        iterator.map(this.samples(), ({ sample, run }) => ({
           data: sample.toJson(),
+          run
         }))
       ),
       conflation: this.conflation()?.toJson(),
