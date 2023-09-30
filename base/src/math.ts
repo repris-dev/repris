@@ -1,5 +1,5 @@
-import { gt, gte, is } from "./assert.js";
-import { assert } from "./index.js";
+import { gte, is } from './assert.js';
+import { assert } from './index.js';
 
 /**
  * Divide a (positive) bigint by the given divisor rounded to the nearest integer
