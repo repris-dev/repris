@@ -134,7 +134,7 @@ export default async function testRunner(
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> {
-  const cfg = await reprisConfig.load(globalConfig.rootDir);
+  const reprisCfg = await reprisConfig.load(globalConfig.rootDir);
   const stagingAreaMgr = new snapshotManager.SnapshotFileManager(StagingAreaResolver(config));
 
   // cache
@@ -155,11 +155,11 @@ export default async function testRunner(
     saSnapshot?.fixtureState(title, nth) ?? snapshots.FixtureState.Unknown;
 
   // Conflation annotation config
-  const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
+  const sampleAnnotations = createAnnotationRequest(reprisCfg.sample.annotations);
   // Conflation annotation config
-  const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
+  const conflationAnnotations = createAnnotationRequest(reprisCfg.conflation.annotations);
   // Wire up the environment
-  const envState = initializeEnvironment(environment, cfg, skipTest);
+  const envState = initializeEnvironment(environment, reprisCfg, skipTest);
 
   const testResult: TestResult = await circus(
     globalConfig,
@@ -211,7 +211,7 @@ export default async function testRunner(
               sample,
               cachedFixture,
               conflationAnnotations,
-              cfg.conflation.options
+              reprisCfg.conflation.options
             )?.annotations;
 
             // Update the cache
@@ -328,13 +328,15 @@ async function commitToSnapshot(
   return stat;
 }
 
-function normaliseAnnotationCfg(
+// TODO - rationalize config parsing
+function createAnnotationRequest(
   annotations: (string | [id: string, config: reprisConfig.AnnotationConfig])[]
 ): Map<typeid, any> {
   return new Map(
-    iterator.map(annotations, (c) =>
-      typeof c === 'string' ? [c as typeid, {}] : [c[0] as typeid, c[1].options ?? {}]
-    )
+    iterator.map(annotations, (c) => {
+      const [id, conf] = reprisConfig.normalize.simpleOpt(c, {} as reprisConfig.AnnotationConfig);
+      return [id as typeid, conf.options];
+    })
   );
 }
 

@@ -118,7 +118,7 @@ export function* subSpan<T>(xs: Indexable<T>, fromIdx: number, n = xs.length - f
   }
 }
 
-export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iterable<B> {
+export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): IterableIterator<B> {
   let i = 0;
 
   for (const x of xs) {
@@ -126,7 +126,7 @@ export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iter
   }
 }
 
-export function* filter<T>(xs: Iterable<T>, fn: (x: T, idx?: number) => boolean): Iterable<T> {
+export function* filter<T>(xs: Iterable<T>, fn: (x: T, idx?: number) => boolean): IterableIterator<T> {
   let i = 0;
 
   for (const x of xs) {

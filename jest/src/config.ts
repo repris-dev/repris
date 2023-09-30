@@ -1,6 +1,6 @@
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
-import { assignDeep, RecursivePartial } from '@repris/base';
+import { assignDeep, iterator, RecursivePartial, typeid } from '@repris/base';
 
 const dbg = debug('repris:config');
 
@@ -29,7 +29,7 @@ export interface SCIConfig {
 
 export interface GradingConfig {
   /** Annotation configuration */
-  options?: any;
+  options?: Record<string, any>;
 
   /**
    * For numeric annotations, the thresholds field is used to convert the
@@ -45,7 +45,7 @@ export interface AnnotationConfig {
   displayName?: string;
 
   /** Configuration of the annotation */
-  options?: any;
+  options?: Record<string, any>;
 
   /**
    * A grading can be configured to annotate the 'quality' of an annotation.
@@ -105,6 +105,12 @@ const defaultConfig: SCIConfig = {
     ],
   },
 };
+
+export const normalize = {
+  simpleOpt<T>(opt: string | [id: string, opt: T], defaultOpt: T): [id: string, opt: T] {
+    return typeof opt === 'string' ? [opt, defaultOpt] : opt;
+  }
+}
 
 /** Map of rootDir to config */
 const sessionConfigs = new Map<string, SCIConfig>();

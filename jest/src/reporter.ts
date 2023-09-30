@@ -10,45 +10,19 @@ import type { Config } from '@jest/types';
 import { specialChars, preRunMessage } from 'jest-util';
 import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 
-import { typeid } from '@repris/base';
 import { annotators } from '@repris/samplers';
 
 import { Column, TableTreeReporter } from './tableReport.js';
 import * as config from './config.js';
+import { gradedColumns } from './reporterUtils.js';
 
 const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
-async function loadReporter(rootDir: string): Promise<Column[]> {
-  const cfg = await config.load(rootDir);
-
+function loadColumns(cfg: config.SCIConfig): Column[] {
   // groups of annotations to report
-  const annotationGroups = [cfg.sample.annotations, cfg.conflation.annotations];
-  const columns: Column[] = [];
-
-  // one column for each visible annotation
-  for (const g of annotationGroups) {
-    for (const ann of g) {
-      const a = typeof ann !== 'string' ? { id: ann[0], ...ann[1] } : { id: ann };
-
-      if (typeof a.display === 'undefined' || a.display) {
-        const grading =
-          a.grading !== undefined
-            ? Array.isArray(a.grading)
-              ? { id: a.grading[0] as typeid, thresholds: a.grading[1].thresholds }
-              : { id: a.id as typeid, thresholds: a.grading?.thresholds }
-            : undefined;
-
-        columns.push({
-          id: a.id as typeid,
-          displayName: a.displayName ?? a.id,
-          grading,
-        });
-      }
-    }
-  }
-
-  return columns;
+  const annotationGroups = [...cfg.sample.annotations, ...cfg.conflation.annotations];
+  return gradedColumns(annotationGroups);
 }
 
 export default class SampleReporter extends DefaultReporter {
@@ -65,12 +39,15 @@ export default class SampleReporter extends DefaultReporter {
     super(globalConfig);
     this._globalConfig = globalConfig;
 
-    this.loadingMutex = loadReporter(globalConfig.rootDir).then((columns) => {
+    this.loadingMutex = config.load(globalConfig.rootDir).then((cfg) => {
+      const columns = loadColumns(cfg);
+
       this.testRenderer = new TableTreeReporter(columns, {
         annotate(test) {
           const aar = test as import('./runner.js').AugmentedAssertionResult;
 
           if (aar.repris?.sample) {
+            // annotations produced by the runner
             const annotations = { ...aar.repris.sample, ...aar.repris?.conflation };
             const bag = annotators.DefaultBag.fromJson(annotations);
             return bag;

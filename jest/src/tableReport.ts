@@ -255,17 +255,17 @@ export class TableTreeReporter<Leaf> {
     this.table = new TerminalReport(columns);
   }
 
-  render(items: Leaf[], stream: NodeJS.WriteStream) {
+  render(items: Iterable<Leaf>, stream: NodeJS.WriteStream) {
     const strat = this.strategy;
 
-    items.forEach((item) => {
+    for (const item of items) {
       const bag = strat.annotate(item);
       if (bag) {
         this.table.load(item, bag);
       }
-    });
+    }
 
-    const tree = this.createTreeFrom(items);
+    const tree = this.#createTreeFrom(items);
 
     this.#renderColumns(stream, stream.columns);
     this.#logSuite(tree, stream);
@@ -310,11 +310,11 @@ export class TableTreeReporter<Leaf> {
     }
   }
 
-  createTreeFrom(items: Leaf[]): ReportTree<Leaf> {
+  #createTreeFrom(items: Iterable<Leaf>): ReportTree<Leaf> {
     const pathOf = this.strategy.pathOf;
     const root: ReportTree<Leaf> = { depth: 0, children: [], items: [], node: '' };
   
-    items.forEach((testResult) => {
+    for (const testResult of items) {
       let targetSuite = root;
       let depth = 1;
       
@@ -332,7 +332,7 @@ export class TableTreeReporter<Leaf> {
       }
   
       targetSuite.items.push(testResult);
-    });
+    }
   
     return root;
   }

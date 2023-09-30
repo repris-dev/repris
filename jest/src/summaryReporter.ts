@@ -1,16 +1,10 @@
 import chalk from 'chalk';
 import type { AggregatedResult, Test, TestContext } from '@jest/test-result';
 import type { Config } from '@jest/types';
-import { specialChars } from 'jest-util';
 import { SummaryReporter } from '@jest/reporters';
 import { snapshotManager } from '@repris/samplers';
 import type { AugmentedTestResult } from './runner.js';
 import { StagingAreaResolver } from './snapshotUtils.js';
-
-type TableRowKey = `${string}-${string}`;
-
-const { ICONS } = specialChars;
-const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
 export default class BenchmarkSummaryReporter extends SummaryReporter {
   projectTestMap = new Map<Config.ProjectConfig, string[]>();
@@ -34,7 +28,7 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
   override onTestResult(
     test?: Test,
     testResult?: AugmentedTestResult,
-    results?: AggregatedResult
+    _results?: AggregatedResult
   ): void {
     const stats = this.aggregatedBenchStats;
     if (testResult?.repris) {
