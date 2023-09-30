@@ -13,8 +13,9 @@ import {
   wiretypes as wt,
   snapshots,
   snapshotManager,
+  fixture as f,
 } from '@repris/samplers';
-import { typeid, assert, iterator as iter, Status } from '@repris/base';
+import { typeid, assert, iterator as iter, Status, uuid } from '@repris/base';
 
 import * as reprisConfig from './config.js';
 import { BaselineResolver, IndexResolver } from './snapshotUtils.js';
@@ -85,7 +86,9 @@ function initializeEnvironment(
   let nth = -1;
 
   environment.global.crypto ??= globalThis.crypto ??= {
-    randomUUID() { return crypto.randomUUID() as any }
+    randomUUID() {
+      return crypto.randomUUID() as any;
+    },
   } as any;
 
   environment.global.getSamplerOptions = () => cfg.sampler.options;
@@ -165,7 +168,9 @@ export default async function testRunner(
   // Sample annotation config
   const sampleAnnotations = reprisConfig.parseAnnotations(reprisCfg.sample.annotations)();
   // Conflation annotation config
-  const conflationAnnotationConfig = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
+  const conflationAnnotationConfig = reprisConfig.parseAnnotations(
+    reprisCfg.conflation.annotations
+  )();
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, skipTest);
 
@@ -214,9 +219,10 @@ export default async function testRunner(
 
           if (indexedSnapshot) {
             // load the previous samples of this fixture from the cache
-            const indexedFixture = indexedSnapshot.getOrCreateFixture(title, nth);
-            
-            reconflateFixture(
+            const indexedFixture =
+              indexedSnapshot.getFixture(title, nth) ?? new f.DefaultFixture({ title, nth }, []);
+
+            const newFixture = reconflateFixture(
               { sample, annotations: sampleBagJson },
               reprisCfg.conflation.options,
               conflationAnnotationConfig,
@@ -224,10 +230,11 @@ export default async function testRunner(
             );
 
             // Update the index
-            indexedSnapshot.updateFixture(indexedFixture);
+            indexedSnapshot.updateFixture(newFixture);
 
             // publish the conflation annotations on the current test case result
-            augmentedResult.repris.conflation = indexedFixture.conflation?.annotations;
+            augmentedResult.repris.conflation = newFixture
+              .annotations().get(newFixture.conflation()?.[uuid]!);
           }
 
           break;
@@ -235,7 +242,9 @@ export default async function testRunner(
       }
 
       if (!matched) {
-        throw new Error(`Couldn't pair sample "${title.concat(' ')}" to the test which produced it`);
+        throw new Error(
+          `Couldn't pair sample "${title.concat(' ')}" to the test which produced it`
+        );
       }
     }
   }
@@ -275,7 +284,8 @@ export default async function testRunner(
     for (const f of indexedSnapshot.allFixtures()) {
       stat.cacheStat.totalFixtures++;
 
-      if (f.conflation?.annotations?.[conflations.annotations.isReady]) {
+      const conf = f.conflation();
+      if (conf && f.annotations().get(conf[uuid])?.[conflations.annotations.isReady]) {
         stat.cacheStat.stagedFixtures++;
       }
     }
@@ -314,7 +324,8 @@ async function commitToBaseline(
   const stat = { added: 0, updated: 0, pending: 0 };
 
   for (const f of index.allFixtures()) {
-    const bag = f.conflation?.annotations ?? {};
+    const conf = f.conflation();
+    const bag = conf ? f.annotations().get(conf[uuid]) ?? {} : {};
 
     if (bag[conflations.annotations.isReady]) {
       const { title, nth } = f.name;
@@ -354,42 +365,51 @@ function annotate(
 }
 
 function reconflateFixture(
-  newEntry: { sample: samples.Duration, annotations: wt.AnnotationBag },
+  newEntry: { sample: samples.Duration; annotations: wt.AnnotationBag },
   opts: Partial<conflations.DurationOptions>,
   request: Map<typeid, any>,
-  indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
-): annotators.AnnotationBag {
+  indexedFixture: f.AggregatedFixture<samples.Duration>
+): f.AggregatedFixture<samples.Duration> {
   // The existing cached samples
-  const fixtureIndex = new Map(indexedFixture.samples.map(s => [s.sample, s]));
+  const fixtureIndex = new Map(
+    iter.map(indexedFixture.samples(), s => [s, indexedFixture.annotations().get(s[uuid])])
+  );
 
   // Add the new sample and its annotations
-  fixtureIndex.set(newEntry.sample, newEntry);
+  fixtureIndex.set(newEntry.sample, newEntry.annotations);
 
   // Conflate the new and previous samples together
   const newConflation = new conflations.Duration(fixtureIndex.keys()).analyze(opts);
 
   // Annotate this conflation if its ready
-  const [bag, err] = annotators.annotate(newConflation, request);
+  const [conflationBag, err] = annotators.annotate(newConflation, request);
 
   if (err) {
     dbg('Failed to annotate conflation %s', err.message);
   }
 
-  // Overwrite the previous conflation annotations
-  indexedFixture.conflation = {
-    result: newConflation.toJson(),
-    annotations: bag?.toJson() ?? {}
-  };
-
-  // Update the aggregated fixture, discarding sample(s) rejected in the analysis.
-  indexedFixture.samples = iter.collect(
+  // Update the aggregated fixture, discarding sample(s) rejected in the conflation analysis.
+  const fx = new f.DefaultFixture(
+    indexedFixture.name,
     iter.map(
       newConflation.stat().filter(x => x.status !== 'rejected'),
-      best => fixtureIndex.get(best.sample)!
-    )
+      best => best.sample!
+    ),
+    newConflation
   );
 
-  return bag ?? annotators.DefaultBag.from([]);
+  for (const s of fx.samples()) {
+    const bag = indexedFixture.annotations().get(s[uuid]);
+    if (bag) {
+      fx.annotations().set(s[uuid], bag);
+    }
+  }
+
+  if (newConflation) {
+    fx.annotations().set(newConflation[uuid], conflationBag!.toJson());
+  }
+
+  return fx;
 }
 
 // Return a string that identifies the test (concat of parent describe block
@@ -422,4 +442,3 @@ export class RecordCounter<T> {
     return this.index.get(item) ?? 0;
   }
 }
-

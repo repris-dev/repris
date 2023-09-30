@@ -1,34 +1,14 @@
-import { json, Status, assignDeep, iterator, uuid } from '@repris/base';
+import { json, Status, iterator, uuid } from '@repris/base';
 import * as wt from './wireTypes.js';
 import * as samples from './samples.js';
-
-/**
- * A test run produces a report. The report contains a number of fixtures,
- * and each fixture contains a sample and its annotations.
- *
- * When multiple reports are combined together it produces a set of aggregated
- * fixtures which can be summarized by a conflation.
- */
-export interface AggregatedFixture<S extends samples.Sample<any>> {
-  name: wt.FixtureName;
-
-  samples: {
-    sample: S;
-    annotations: wt.AnnotationBag;
-  }[];
-
-  /** An analysis of the samples together */
-  conflation?: {
-    result: wt.ConflationResult;
-    annotations: wt.AnnotationBag;
-  };
-};
+import * as f from './fixture.js';
+import { conflations } from './index.js';
 
 export const enum FixtureState {
   Unknown = 0,
   Stored = 1,
-  Tombstoned = 2
-};
+  Tombstoned = 2,
+}
 
 type FixtureKey = `${string}: ${number}`;
 
@@ -61,35 +41,15 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
       : FixtureState.Unknown;
   }
 
-  allFixtures(): IterableIterator<AggregatedFixture<samples.Duration>> {
-    return iterator.map(this.fixtures.values(), (f) => this.fromJsonFixture(f));
+  allFixtures(): IterableIterator<f.AggregatedFixture<samples.Duration>> {
+    return iterator.map(this.fixtures.values(), f => this.fromJsonFixture(f));
   }
 
-  updateFixture(fixture: AggregatedFixture<samples.Duration>) {
+  updateFixture(fixture: f.AggregatedFixture<samples.Duration>) {
     const { title, nth } = fixture.name;
     const key = cacheKey(title, nth);
-    const annotationIndex = {} as Record<string, wt.AnnotationBag>;
 
-    fixture.samples.forEach(f => {
-      if (f.annotations) annotationIndex[f.sample[uuid]] = f.annotations;
-    });
-
-    if (fixture.conflation) {
-      annotationIndex[fixture.conflation.result['@uuid']] = assignDeep({}, fixture.conflation.annotations);
-    }
-
-    const s: wt.Fixture = {
-      name: assignDeep({} as wt.FixtureName, fixture.name),
-      samples: fixture.samples.map(({ sample }) => ({
-        data: sample.toJson()
-      })),
-      conflation: fixture.conflation
-        ? assignDeep({} as wt.ConflationResult, fixture.conflation.result)
-        : undefined,
-      annotations: annotationIndex
-    };
-
-    this.fixtures.set(key, s);
+    this.fixtures.set(key, fixture.toJson());
   }
 
   allTombstones(): Iterable<wt.FixtureName> {
@@ -114,42 +74,52 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
    * @returns The aggregated fixture for the given title, or an empty fixture if
    * the name doesn't exist in the snapshot.
    */
-  getOrCreateFixture(title: string[], nth: number): AggregatedFixture<samples.Duration> {
+  getFixture(title: string[], nth: number): f.AggregatedFixture<samples.Duration> | undefined {
     const fixture = this.fixtures.get(cacheKey(title, nth));
     if (!fixture) {
-      return {
-        name: { title, nth },
-        samples: [],
-      };
+      return;
     }
 
     return this.fromJsonFixture(fixture);
   }
 
-  private fromJsonFixture(fixture: wt.Fixture): AggregatedFixture<samples.Duration> {
-    const resultSamples = [] as AggregatedFixture<samples.Duration>['samples'];
+  private fromJsonFixture(fixture: wt.Fixture): f.AggregatedFixture<samples.Duration> {
+    const resultSamples = [] as samples.Duration[];
+    const sampleMap = new Map<uuid, samples.Duration>();
 
     for (let ws of fixture.samples) {
       const s = samples.Duration.fromJson(ws.data);
       if (!Status.isErr(s)) {
         const sample = Status.get(s);
-        const annotations = fixture.annotations?.[sample[uuid]] ?? {};
-
-        resultSamples.push({ sample, annotations });
+        resultSamples.push(sample);
+        sampleMap.set(sample[uuid], sample);
       } else {
-        throw new Error(`Failed to load sample of type: ${ws.data['@type']}\nReason: ${s[1].message}`);
+        throw new Error(
+          `Failed to load sample of type: ${ws.data['@type']}\nReason: ${s[1].message}`
+        );
       }
     }
 
-    const conflation = fixture.conflation ?
-      { result: fixture.conflation, annotations: fixture.annotations?.[fixture.conflation['@uuid']] ?? {} }
-      : void 0;
+    let c: conflations.DurationResult | undefined;
 
-    return {
-      name: fixture.name,
-      samples: resultSamples,
-      conflation
-    };
+    if (fixture.conflation) {
+      const cTmp = conflations.DurationResult.fromJson(fixture.conflation, sampleMap);
+
+      if (!Status.isErr(cTmp)) {
+        c = cTmp[0];
+      } else {
+        throw new Error(`Failed to load conflation: ${cTmp[1].message}`);
+      }
+    }
+
+    const result = new f.DefaultFixture(fixture.name, resultSamples, c);
+    const annotations = result.annotations();
+
+    for (const [key, bag] of Object.entries(fixture.annotations ?? {})) {
+      annotations.set(key as uuid, bag);
+    }
+
+    return result;
   }
 
   private indexFixtures(fixtures: wt.Fixture[], tombstones: wt.FixtureName[] = []) {
@@ -187,6 +157,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
 
 /** Join the fixtures across two snapshots */
 export function joinSnapshotFixtures(a: Snapshot, b: Snapshot) {
-  return iterator.outerJoin(a.allFixtures(), b.allFixtures(), f => cacheKey(f.name.title, f.name.nth))
+  return iterator.outerJoin(a.allFixtures(), b.allFixtures(), f =>
+    cacheKey(f.name.title, f.name.nth)
+  );
 }
-

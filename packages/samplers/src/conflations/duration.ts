@@ -126,13 +126,18 @@ export class DurationResult implements ConflationResult<samples.Duration> {
   }
 
   toJson(): wt.ConflationResult {
+    const samples = this._kwResult.stat
+      // filter samples which were excluded from the analysis
+      .filter(s => s.status !== 'rejected')
+      .map(s => ({
+        '@ref': s.sample[uuid],
+        outlier: s.status !== 'consistent',
+      }));
+
     return {
       '@type': this[typeid],
       '@uuid': this[uuid],
-      samples: this._kwResult.stat.map(s => ({
-        '@ref': s.sample[uuid],
-        outlier: s.status !== 'consistent',
-      })),
+      samples,
       effectSize: this._kwResult.effectSize,
       isReady: this._isReady,
     };

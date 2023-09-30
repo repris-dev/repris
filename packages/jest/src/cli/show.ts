@@ -6,8 +6,8 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { snapshotManager, annotators, snapshots, conflations } from '@repris/samplers';
-import { Status, iterator, uuid } from '@repris/base';
+import { snapshotManager, annotators, fixture as f } from '@repris/samplers';
+import { iterator, uuid } from '@repris/base';
 
 import { BaselineResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
@@ -39,19 +39,15 @@ async function showSnapshotDetail(
 ) {
   const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
   const columns = gradedColumns(reprisCfg.conflation.annotations, void 0, 'show');
-  const testRenderer = new TableTreeReporter<snapshots.AggregatedFixture<any>>(columns, {
+  const testRenderer = new TableTreeReporter<f.AggregatedFixture<any>>(columns, {
     annotate(fixture) {
-      if (fixture.conflation?.annotations) {
-        const conflation = Status.get(
-          conflations.DurationResult.fromJson(
-            fixture.conflation.result,
-            new Map(iterator.map(fixture.samples, ({ sample }) => [sample[uuid], sample]))
-          )
+      const conflation = fixture.conflation();
+      if (conflation && fixture.annotations().has(conflation[uuid])) {
+        const bag = annotators.DefaultBag.fromJson(
+          fixture.annotations().get(conflation[uuid])!
         );
 
-        const bag = annotators.DefaultBag.fromJson(fixture.conflation.annotations);
         annotators.annotateMissing(bag, annotationRequests, conflation);
-
         return bag;
       }
     },

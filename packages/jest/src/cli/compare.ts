@@ -15,7 +15,7 @@ import {
   samples,
   wiretypes as wt,
   hypothesis,
-  conflations,
+  fixture as f
 } from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
@@ -87,25 +87,25 @@ async function showComparison(
 
 function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
-  index?: snapshots.AggregatedFixture<samples.Duration>,
-  base?: snapshots.AggregatedFixture<samples.Duration>
+  index?: f.AggregatedFixture<samples.Duration>,
+  base?: f.AggregatedFixture<samples.Duration>
 ): { name: wt.FixtureName; annotations: annotators.DefaultBag } {
   const annotations = annotators.DefaultBag.from([]);
 
   // Load index conflation and annotations
-  const x0 = index ? tryLoadConflation(index) : void 0;
+  const x0 = index?.conflation();
   
   if (x0) {
-    const bag = annotators.DefaultBag.fromJson(index?.conflation?.annotations ?? {});
+    const bag = annotators.DefaultBag.fromJson(index?.annotations().get(x0[uuid]) ?? {});
     annotators.annotateMissing(bag, annotationRequests('@index'), x0);
     annotations.union(bag, '@index');
   }
 
   // Load snapshot conflation and annotations
-  const x1 = base ? tryLoadConflation(base) : void 0;
+  const x1 = base?.conflation();
 
   if (x1) {
-    const bag = annotators.DefaultBag.fromJson(base?.conflation?.annotations ?? {});
+    const bag = annotators.DefaultBag.fromJson(base?.annotations().get(x1[uuid]) ?? {});
     annotators.annotateMissing(bag, annotationRequests('@snapshot'), x1);
     annotations.union(bag, '@snapshot');
   }
@@ -125,21 +125,4 @@ function annotateComparison(
     name: (index?.name ?? base?.name) as wt.FixtureName,
     annotations,
   };
-}
-
-function tryLoadConflation(
-  fixture: snapshots.AggregatedFixture<samples.Duration>
-): conflations.DurationResult | undefined {
-  if (!fixture.conflation) return;
-
-  const result = conflations.DurationResult.fromJson(
-    fixture.conflation.result,
-    new Map(iterator.map(fixture.samples, ({ sample }) => [sample[uuid], sample]))
-  );
-
-  if (Status.isErr(result)) {
-    dbg('Failed to load conflation', Status.get(result));
-  } else {
-    return Status.get(result);
-  }
 }
