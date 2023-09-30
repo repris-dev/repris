@@ -46,23 +46,55 @@ describe('mwu', () => {
 });
 
 describe('kruskalWallis', () => {
+  const x = [
+    [2.9, 3.0, 2.5, 2.6, 3.2],
+    [3.8, 2.7, 4.0, 2.4],
+    [2.8, 3.4, 3.7, 2.2, 2.0],
+  ];
+
   /**
-   *  from scipy import stats
-   *  stats.kruskal(
-   *    [2.9, 3.0, 2.5, 2.6, 3.2],
-   *    [3.8, 2.7, 4.0, 2.4],
-   *    [2.8, 3.4, 3.7, 2.2, 2.0]
-   *  )
+   * from scipy import stats
+   * stats.kruskal(x)
    */
   test('3 samples, no ties', () => {
-    const result = kruskalWallis([
-      [2.9, 3.0, 2.5, 2.6, 3.2],
-      [3.8, 2.7, 4.0, 2.4],
-      [2.8, 3.4, 3.7, 2.2, 2.0],
-    ]);
+    const result = kruskalWallis(x);
 
     expect(result.H).toBeCloseTo(0.77143, 4);
     expect(result.effectSize).toBeCloseTo(0.0593, 4);
+    expect(result.pValue()).toBeCloseTo(0.67995, 4);
+  });
+
+  /**
+   * import scikit_posthocs as sp
+   * sp.posthoc_dunn(x, p_adjust='bonferroni')
+   */
+  test('3 samples, no ties - Dunns test (adjusted)', () => {    
+    const expectedPs = [
+      1,     0.890, 0.994,
+      0.890, 1,     0.776,
+      0.994, 0.776, 1,
+    ];
+
+    const expectedEs = [
+      0,     0.214, 0.072,
+      0.214, 0,     0.285,
+      0.072, 0.285, 0,
+    ]
+
+    const result = kruskalWallis(x);
+    const pVals = [] as number[];
+    const esVals = [] as number[];
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const { p, effectSize } = result.dunnsTest(i, j, true);
+        pVals.push(+p.toFixed(3));
+        esVals.push(+effectSize.toFixed(3));
+      }
+    }
+
+    expect(pVals).toEqual(expectedPs);
+    expect(esVals).toEqual(expectedEs);
   });
 
   test('3 samples, ties', () => {
@@ -74,6 +106,7 @@ describe('kruskalWallis', () => {
 
     expect(result.H).toEqual(7);
     expect(result.effectSize).toEqual(1);
+    expect(result.pValue()).toBeCloseTo(0.03019, 4);
   });
 
   test('2 samples, ties, repeats', () => {
@@ -84,6 +117,17 @@ describe('kruskalWallis', () => {
 
     expect(result.H).toBeCloseTo(0.19937, 4);
     expect(result.effectSize).toBeCloseTo(0.02848, 4);
+    expect(result.pValue()).toBeCloseTo(0.65523, 4);
+  });
+
+  test('2 samples, separated', () => {
+    const result = kruskalWallis([
+      [5, 4, 3, 2, 1],
+      [10, 9, 8, 7, 6],
+    ]);
+
+    expect(result.effectSize).toBeGreaterThan(0.5);
+    expect(result.dunnsTest(0, 1).effectSize).toBeGreaterThan(0.8);
   });
 
   test('3 samples, identical', () => {

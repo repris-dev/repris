@@ -97,7 +97,7 @@ export function stbPhi(x: number) {
   return 0.5 * (1 + sign * y);
 }
 
-/* Returns the adjusted Bonferroni P-value */
-export function bonferroni(p: number, comparisons: number) {
+/* Returns the adjusted Šidák P-value */
+export function sidak(p: number, comparisons: number) {
   return 1.0 - Math.pow(1.0 - p, comparisons);
 }

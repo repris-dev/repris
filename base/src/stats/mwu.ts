@@ -1,7 +1,8 @@
 import { fillAscending } from '../array.js';
 import { assert } from '../index.js';
 import { Indexable } from '../util.js';
-import { bonferroni, stbPhi } from './util.js';
+import * as chiSq from './chiSq.js';
+import { sidak, stbPhi } from './util.js';
 
 export type MWUResult = {
   u1: number;
@@ -87,12 +88,18 @@ export type KruskalWallisResult = {
   /** Average rank of each sample */
   ranks: Indexable<number>;
 
-  /** Performs the post-hoc Dunn's test on the given pair of sample indices */
-  dunnsTest: (i: number, j: number) => number;
+  pValue(): number;
+
+  /**
+   * Performs the post-hoc Dunn's test on the given pair of sample indices.
+   * @returns p-value, or Šidák-adjusted p-value
+   */
+  dunnsTest(i: number, j: number, adjust?: boolean): { p: number; effectSize: number };
 };
 
 /**
  * Kruskal–Wallis one-way analysis of variance and post-hoc Dunn's test
+ * Reference: Voshol, G.P. (2022). STB: A simple Statistics Tool Box (Version 1.23).
  */
 export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult {
   assert.gt(samples.length, 1, 'There must be at least two samples');
@@ -192,7 +199,7 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     }
   }
 
-  function dunnsTest(i: number, j: number) {
+  function dunnsTest(i: number, j: number, adjust?: boolean) {
     assert.inRange(i, 0, G - 1);
     assert.inRange(j, 0, G - 1);
 
@@ -200,16 +207,21 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     const Nj = samples[j].length;
 
     if (Ni === 0 || Nj === 0) {
-      return 0.0;
+      return { p: 0.0, effectSize: 0 };
     }
 
     const sigma = Math.sqrt(((N * (N + 1) - ties / (N - 1)) / 12) * (1 / Ni + 1 / Nj));
     const z = Math.abs((rankSums[i] / Ni - rankSums[j] / Nj) / sigma);
     const p = 2 * (1 - stbPhi(z));
 
-    const adjustedP = bonferroni(p, (G * (G - 1)) / 2.0);
+    return {
+      p: adjust ? sidak(p, (G * (G - 1)) / 2) : p,
+      effectSize: z / Math.sqrt(Ni + Nj),
+    };
+  }
 
-    return adjustedP;
+  function pValue() {
+    return 1 - chiSq.cdf(H, G - 1);
   }
 
   return {
@@ -217,6 +229,7 @@ export function kruskalWallis(samples: Indexable<number>[]): KruskalWallisResult
     H,
     effectSize: H / ((N * N - 1) / (N + 1)),
     ranks: rankSums,
+    pValue,
     dunnsTest,
   };
 }
