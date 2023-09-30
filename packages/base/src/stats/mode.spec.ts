@@ -81,6 +81,13 @@ describe('hsm', () => {
       expect(r.bound).toEqual([1, 2]);
     }
   });
+  
+  test('shallow peak', () => {
+    const sample = [1, 3, 4, 5, 6, 7, 8, 10];
+    const r = modes.hsm(sample);
+
+    expect(r.mode).toBeCloseTo(5.5, 10);
+  });
 
   describe('larger bounds', () => {
     test('bound length (3)', () => {

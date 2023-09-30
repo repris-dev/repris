@@ -54,8 +54,16 @@ export function modalSearch(sample: Indexable<number>, k: number, i = 0, len = s
       hi = j;
       ties = 0;
     } else if (range - minRange < EPS) {
+      if (j === hi + 1) hi++;
       ties++;
     }
+  }
+
+  if (ties > 0) {
+    // When the final range is larger than k, pick the middle k
+    // values of the range
+    lo = lo + Math.floor(ties / 2);
+    hi = lo + k - 1;
   }
 
   return {
