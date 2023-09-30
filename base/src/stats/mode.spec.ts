@@ -58,3 +58,43 @@ describe('hsm', () => {
     }
   });
 });
+
+describe('hsmDifferenceTest', () => {
+  test('difference in two normal distributions', () => {
+    const rng = random.PRNGi32(52);
+    const rng0 = random.gaussian(100, 5, rng);
+    const rng1 = random.gaussian(105, 5, rng);
+    
+    const N = 30;
+    const x0 = new Float32Array(N);
+    const x1 = new Float32Array(N);
+    
+    for (let i = 0; i < N; i++) {
+      x0[i] = rng0();
+      x1[i] = rng1();
+    }
+  
+    const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
+    expect(p05).toBeLessThan(-5);
+    expect(p95).toBeGreaterThan(0);
+  });
+
+  test('difference in two very similar normal distributions', () => {
+    const rng = random.PRNGi32(52)
+    const rng0 = random.gaussian(1000, 5, rng);
+    const rng1 = random.gaussian(1000, 50, rng);
+    
+    const N = 30;
+    const x0 = new Float32Array(N);
+    const x1 = new Float32Array(N);
+    
+    for (let i = 0; i < N; i++) {
+      x0[i] = rng0();
+      x1[i] = rng1();
+    }
+  
+    const [p05, p95] = modes.hsmDifferenceTest(x0, x1, 0.9, 1000);
+    expect(p05).toBeLessThan(-25);
+    expect(p95).toBeGreaterThan(25);
+  });
+});

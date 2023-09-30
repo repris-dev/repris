@@ -101,25 +101,49 @@ export function hsm(sample: Indexable<number>): REM {
 export function hsmConfidence(
   sample: Indexable<number>,
   level = 0.95,
-  K = 100,
+  K = 100
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
 
+  // bootstrap distribution of HSMs
+  const hsms = new Float64Array(K);
+
   sort(sample);
-
-  const next = resampler(sample),
-    // bootstrap distribution of HSMs
-    hsms = new Float64Array(K);
-
-  for (let i = 0; i < K; i++) {
+  for (let i = 0, next = resampler(sample); i < K; i++) {
     hsms[i] = hsmImpl(next()).mode;
   }
 
-  return [
-    percentile(hsms, 0.5 - level / 2),
-    percentile(hsms, 0.5 + level / 2)
-  ];
+  return [percentile(hsms, 0.5 - level / 2), percentile(hsms, 0.5 + level / 2)];
+}
+
+/**
+ * A bootstrapped paired HSM difference test of two samples.
+ * x0 - x1
+ */
+export function hsmDifferenceTest(
+  x0: Indexable<number>,
+  x1: Indexable<number>,
+  level = 0.95,
+  K = 100
+): [lo: number, hi: number] {
+  assert.inRange(level, 0, 1);
+  assert.gt(K, 1);
+
+  // bootstrap distribution of HSM differences
+  const hsms = new Float64Array(K);
+
+  sort(x0);
+  for (let i = 0, next0 = resampler(x0); i < K; i++) {
+    hsms[i] = hsmImpl(next0()).mode;
+  }
+
+  sort(x1);
+  for (let i = 0, next1 = resampler(x1); i < K; i++) {
+    hsms[i] -= hsmImpl(next1()).mode;
+  }
+
+  return [percentile(hsms, 0.5 - level / 2), percentile(hsms, 0.5 + level / 2)];
 }
 
 /** Note: Assumes the given sample is sorted */
@@ -210,7 +234,7 @@ export function lms(sample: Indexable<number>, alpha = 0.5): REM {
 export function shorth(
   sample: Indexable<number>,
   alpha = 0.5,
-  dist: stats.online.OnlineStat<number> = new stats.online.Lognormal(),
+  dist: stats.online.OnlineStat<number> = new stats.online.Lognormal()
 ): REM {
   assert.gt(sample.length, 0);
   assert.gt(alpha, 0);
