@@ -11,4 +11,5 @@ export default {
   snapshotResolver: '@sampleci/util/snapshotResolver.cjs',
   testEnvironmentOptions: { customExportConditions: ['development'] },
   globals: defaults(pkg),
+  cacheDirectory: '<rootDir>/.jestcache/',
 };
