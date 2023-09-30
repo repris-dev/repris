@@ -8,7 +8,8 @@
   "files.exclude": {},
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
-    "*.ts": "$(capture).spec.*, $(capture).snap.*",
+    "*.js": "$(capture).d.ts, $(capture).d.ts.map, $(capture).js.map",
+    "*.ts": "$(capture).spec.*, $(capture).snap.*, $(capture).d.ts",
     "*.tsx": "$(capture).spec.*, $(capture).snap.*",
     "package.json": "pnpm-lock.yaml",
   }
