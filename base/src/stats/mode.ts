@@ -1,7 +1,7 @@
 import { sort } from '../array.js';
 import { assert, Indexable, stats } from '../index.js';
 import { resampler } from './bootstrap.js';
-import { percentile, qcd } from './util.js';
+import { quantile, qcd } from './util.js';
 
 /** Robust Estimation of the Mode */
 export type REM = {
@@ -114,7 +114,10 @@ export function hsmConfidence(
     hsms[i] = hsmImpl(next()).mode;
   }
 
-  return [percentile(hsms, 0.5 - level / 2), percentile(hsms, 0.5 + level / 2)];
+  return [
+    quantile(hsms, 0.5 - level / 2),
+    quantile(hsms, 0.5 + level / 2),
+  ];
 }
 
 /**
@@ -143,7 +146,10 @@ export function hsmDifferenceTest(
     hsms[i] -= hsmImpl(next1()).mode;
   }
 
-  return [percentile(hsms, 0.5 - level / 2), percentile(hsms, 0.5 + level / 2)];
+  return [
+    quantile(hsms, 0.5 - level / 2),
+    quantile(hsms, 0.5 + level / 2),
+  ];
 }
 
 /** Note: Assumes the given sample is sorted */

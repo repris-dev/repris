@@ -16,13 +16,13 @@ export type MADResult = {
 export function iqr(sample: Indexable<number>): [number, number] {
   gt(sample.length, 0);
 
-  return [percentile(sample, 0.25), percentile(sample, 0.75)];
+  return [quantile(sample, 0.25), quantile(sample, 0.75)];
 }
 
 /** Median of the given sample */
 export function median(sample: Indexable<number>): number {
   gt(sample.length, 0);
-  return percentile(sample, 0.5);
+  return quantile(sample, 0.5);
 }
 
 /** median absolute deviation of the given sample */
@@ -33,7 +33,7 @@ export function mad(sample: Indexable<number>, x: number, p = 0.5): MADResult {
     devs[i] = Math.abs(x - sample[i]);
   }
 
-  const mad = percentile(devs, p);
+  const mad = quantile(devs, p);
 
   return {
     mad,
@@ -56,7 +56,7 @@ export function qcd(iqr: [number, number]) {
   return (iqr[1] - iqr[0]) / (iqr[1] + iqr[0]);
 }
 
-export function percentile(sample: Indexable<number>, q: number) {
+export function quantile(sample: Indexable<number>, q: number) {
   assert.inRange(q, 0, 1);
 
   let index = q * (sample.length - 1);

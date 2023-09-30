@@ -74,11 +74,11 @@ describe('percentile', () => {
   test('Interpolates correctly', () => {
     const arr = [2, 0, 3, 1]; // 0, 1, 2, 3
 
-    expect(util.percentile(arr, 0)).toEqual(0);
-    expect(util.percentile(arr, 1)).toEqual(3);
-    expect(util.percentile(arr, 0.5)).toEqual(1.5);
-    expect(util.percentile(arr, 0.3333)).toBeCloseTo(1, 3);
-    expect(util.percentile(arr, 0.6666)).toBeCloseTo(2, 3);
+    expect(util.quantile(arr, 0)).toEqual(0);
+    expect(util.quantile(arr, 1)).toEqual(3);
+    expect(util.quantile(arr, 0.5)).toEqual(1.5);
+    expect(util.quantile(arr, 0.3333)).toBeCloseTo(1, 3);
+    expect(util.quantile(arr, 0.6666)).toBeCloseTo(2, 3);
   });
 });
 
