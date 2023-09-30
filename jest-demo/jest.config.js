@@ -7,7 +7,6 @@ Object.assign(globalThis, defaults(pkg));
 export default {
   preset: '@sampleci/jest',
   roots: ['<rootDir>/.tsc/'],
-  testEnvironmentOptions: { customExportConditions: ['development'], foobar: 1 },
+  testMatch: ['**/*.spec.[tj]s'],
   globals: defaults(pkg),
-  testRegex: '\\.tsc/.*\\.js$',
 };
