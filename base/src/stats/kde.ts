@@ -3,7 +3,6 @@ import { lowerBound, sort } from '../array.js';
 import { Indexable } from '../util.js';
 import { MADResult } from './util.js';
 
-// @ts-check
 const PI_SQRT = Math.sqrt(Math.PI);
 const INV_2PI = 1 / Math.sqrt(2 * Math.PI);
 const INV_4PI = 1 / Math.sqrt(4 * Math.PI);
@@ -166,19 +165,70 @@ export function findMaxima(
     const d = estimate(kernel, sample, h, sample[i]);
 
     if (d - maxD > eps) {
+      // new Maximum
       maxi = i;
       maxD = d;
       ties = 0;
     } else if (maxD - d <= eps) {
+      // tie
+      ties++;
+
       if (sample[maxi] > sample[i]) {
-        // tie
-        maxi = i;
-        ties++;
+        // select the lower x
+        maxi = i;        
       }
     }
   }
 
   return [maxi, maxD, ties];
+}
+
+/**
+ * Performs a simple conflation of several samples with their associated
+ * kernel bandwidth.
+ *
+ * @returns The location of observation with the maximum probability density 
+ */
+export function findConflationMaxima(
+  kernel: Kernel,
+  samples: [raw: Indexable<number>, h: number][],
+  eps = 0
+): [x: number, density: number, ties: number] {
+  let maxD = -Infinity,
+      maxX = -1,
+      ties = 0; 
+
+  for (const [s] of samples) {
+    // For each x in each sample, calculate the conflation at that point
+    for (let i = 0; i < s.length; i++) {
+      const x = s[i];
+      let xConv = 0;
+      
+      for (let j = 0; j < samples.length; j++) {
+        const [s2, h2] = samples[j];
+        const d = estimate(kernel, s2, h2, x) * s2.length;
+
+        xConv += d;
+      }
+
+      if (xConv - maxD > eps) {
+        // new Maximum
+        maxX = x;
+        maxD = xConv;
+        ties = 0;
+      } else if (maxD - xConv <= eps) {
+        // tie
+        ties++;
+  
+        if (maxX > x) {
+          // select the lower x
+          maxX = x;        
+        }
+      }
+    }
+  }
+
+  return [maxX, maxD, ties];
 }
 
 /**

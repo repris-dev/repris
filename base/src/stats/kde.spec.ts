@@ -1,3 +1,4 @@
+import { iterator } from '../index.js';
 import * as random from '../random.js';
 import * as kde from './kde.js';
 import * as OS from './OnlineStats.js';
@@ -40,4 +41,33 @@ test('gaussian kernel', () => {
 
   const d3 = kde.estimate(kde.gaussian, [100, 100], 1, 100);
   expect(d3).toBeCloseTo(0.3989, 4);
+});
+
+describe('findConflationMaxima', () => {
+  test('conflates two samples', () => {
+    const gen = random.PRNGi32(33);
+    const std = 1;
+    
+    const rng3 = random.gaussian(3, std, gen);
+    const sample3 = Float32Array.from(iterator.take(250, iterator.gen(rng3)));
+    
+    const rng5 = random.gaussian(5, std, gen);
+    const sample5 = Float32Array.from(iterator.take(250, iterator.gen(rng5)));
+
+    const h3 = kde.cvBandwidth(sample3, std);
+    const h6 = kde.cvBandwidth(sample5, std);
+
+    const m3 = kde.findMaxima(kde.gaussian, sample3, h3);
+    const m5 = kde.findMaxima(kde.gaussian, sample5, h6);
+
+    const c = kde.findConflationMaxima(kde.gaussian,
+      [[sample3, h3], [sample5, h6]]
+    );
+    
+    expect(sample3[m3[0]]).toBeInRange(2.5, 3.5);
+    expect(sample5[m5[0]]).toBeInRange(4.5, 5.5);
+    
+    const mid = (5 + 3) / 2;
+    expect(c[0]).toBeInRange(mid - 0.25, mid + 0.25);
+  });
 });
