@@ -1,4 +1,4 @@
-import { random, array } from "@repris/base";
+import { random, array } from '@repris/base';
 
 function shuffle(array: Int32Array, rng: random.Generator) {
   const dist = random.uniform(0, 1, rng)
