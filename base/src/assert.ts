@@ -6,59 +6,59 @@ function err (msg: string) {
   throw new Error('[Failed assertion] ' + msg);
 }
 
-export function eq(a: any, b: any): void {
+export function eq(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
-    if (a !== b) err(`Expected ${a} to equal ${b}.`);
+    if (a !== b) err(msg ?? `Expected ${a} to equal ${b}.`);
   }
 }
 
-export function is(val: any): void {
+export function is(val: any, msg?: string): void {
   if (__DEBUG) {
-    if (!val) err(`Expected ${val} to be truthy`);
+    if (!val) err(msg ?? `Expected ${val} to be truthy`);
   }
 }
 
-export function le(a: any, b: any): void {
+export function le(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
-    if (a > b) err(`Expected ${a} to be <= ${b}`);
+    if (a > b) err(msg ?? `Expected ${a} to be <= ${b}`);
   }
 }
 
-export function lt(a: any, b: any): void {
+export function lt(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
-    if (a >= b) err(`Expected ${a} to be < ${b}`);
+    if (a >= b) err(msg ?? `Expected ${a} to be < ${b}`);
   }
 }
 
-export function gt(a: any, b: any): void {
+export function gt(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
-    if (a <= b) err(`Expected ${a} to be > ${b}`);
+    if (a <= b) err(msg ?? `Expected ${a} to be > ${b}`);
   }
 }
 
-export function gte(a: any, b: any): void {
+export function gte(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
-    if (a < b) err(`Expected ${a} to be >= ${b}`);
+    if (a < b) err(msg ?? `Expected ${a} to be >= ${b}`);
   }
 }
 
-export function inRange(val: any, min: any, max: any): void {
+export function inRange(val: any, min: any, max: any, msg?: string): void {
   if (__DEBUG) {
     if (val < min || val > max)
-      err(`Expected ${min} >= ${val} <= ${max}`)
+      err(msg ?? `Expected ${min} >= ${val} <= ${max}`)
   }
 }
 
-export function bounds(arr: ArrayLike<any>, idx: number) {
+export function bounds(arr: ArrayLike<any>, idx: number, msg?: string) {
   if (__DEBUG) {
-    if (idx < 0 || idx >= arr.length) err(`Expected ${idx} to be a valid element`);
+    if (idx < 0 || idx >= arr.length) err(msg ?? `Expected ${idx} to be a valid element`);
   }
 }
 
-export function finite(val: any): void {
+export function finite(val: any, msg?: string): void {
   if (__DEBUG) {
     if (typeof val !== 'number' && !isFinite(val)) {
-      err(`Expected ${val} to be a finite number`);
+      err(msg ?? `Expected ${val} to be a finite number`);
     }
   }
 }
