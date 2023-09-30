@@ -20,8 +20,7 @@
   },
   "dependencies": {
     "@repris/util": "workspace:*",
-    "@repris/base": "workspace:*",
-    "gaussian-mixture": "^0.9.1"
+    "@repris/base": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^28",
