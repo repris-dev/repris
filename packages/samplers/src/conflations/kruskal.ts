@@ -62,11 +62,11 @@ export class KWConflation<T> {
       assert.eq(subset.length, opts.maxSize);
     }
 
-    const samplingDistribution = [] as number[];
+    const samplingDistribution = subset.map(x => x.statistic);
     let relativeSpread = 0;
 
     {
-      const xsTmp = stat.map(w => w.statistic);
+      const xsTmp = subset.map(w => w.statistic);
       const os = stats.online.Gaussian.fromValues(xsTmp);
 
       relativeSpread = os.cov(1);
@@ -78,7 +78,7 @@ export class KWConflation<T> {
     if (subset.length >= opts.minSize) {
       // mark consistent samples
       if (relativeSpread <= opts.maxUncertainty) {
-        subset.forEach(x => (x.status = 'consistent', samplingDistribution.push(x.statistic)));
+        subset.forEach(x => (x.status = 'consistent'));
       }
     }
 
@@ -107,7 +107,7 @@ export function outlierSelection<T>(
     // weight by distance from the median, normalized by
     // estimate of standard deviation 
     for (let i = 0; i < N; i++) {
-      sigmas[i] = Math.abs(xs[i] - med) / std;
+      sigmas[i] = (Math.abs(xs[i] - med) / std) ** 2;
     }
   }
 
@@ -150,6 +150,7 @@ export function outlierSelection<T>(
 
     totSeen++;
     seen[idx]++;
+
     return keys[idx];
   };
 }
