@@ -1,4 +1,4 @@
-import { As, Status, typeid } from '@sampleci/base';
+import { As, Status, typeid } from '@repris/base';
 
 export type Units = string & As<'@units'>;
 export const Units = '@units' as typeid;

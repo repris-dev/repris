@@ -12,14 +12,14 @@ import {
   wiretypes as wt,
   snapshots,
   snapshotManager,
-} from '@sampleci/samplers';
-import { typeid, assert, iterator, Status, array } from '@sampleci/base';
+} from '@repris/samplers';
+import { typeid, assert, iterator, Status, array } from '@repris/base';
 
-import * as sciConfig from './config.js';
+import * as reprisConfig from './config.js';
 import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
 
 export interface AugmentedAssertionResult extends AssertionResult {
-  sci?: {
+  repris?: {
     /** Sample annotations for this fixture */
     sample?: wt.AnnotationBag;
     /** Conflation annotations for this fixture */
@@ -28,7 +28,7 @@ export interface AugmentedAssertionResult extends AssertionResult {
 }
 
 export interface AugmentedTestResult extends TestResult {
-  sci?: {
+  repris?: {
     cacheStat: {
       /** Count of fixtures run which produced at least one sample */
       runFixtures: number;
@@ -61,11 +61,11 @@ export interface AugmentedTestResult extends TestResult {
   };
 }
 
-const dbg = debug('sci:runner');
+const dbg = debug('repris:runner');
 
 function initializeEnvironment(
   environment: JestEnvironment,
-  cfg: sciConfig.SCIConfig,
+  cfg: reprisConfig.SCIConfig,
   getState: (title: string[], nth: number) => snapshots.FixtureState
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
@@ -134,7 +134,7 @@ export default async function testRunner(
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> {
-  const cfg = await sciConfig.load(globalConfig.rootDir);
+  const cfg = await reprisConfig.load(globalConfig.rootDir);
   const stagingAreaMgr = new snapshotManager.SnapshotFileManager(StagingAreaResolver(config));
 
   // cache
@@ -193,7 +193,7 @@ export default async function testRunner(
           const augmentedResult = ar as AugmentedAssertionResult;
           // assign serialized sample generated during the most recent test case
           // to this test case result
-          augmentedResult.sci = {
+          augmentedResult.repris = {
             sample: annotate(sample, sampleAnnotations),
           };
 
@@ -201,7 +201,7 @@ export default async function testRunner(
             // load the previous samples of this fixture from the cache
             const cachedFixture = saSnapshot.getOrCreateFixture(title, nth);
             // publish the conflation on the current test case result
-            augmentedResult.sci.conflation = conflate(
+            augmentedResult.repris.conflation = conflate(
               sample,
               cachedFixture,
               conflationAnnotations,
@@ -222,7 +222,7 @@ export default async function testRunner(
     }
   }
 
-  const stat: AugmentedTestResult['sci'] = {
+  const stat: AugmentedTestResult['repris'] = {
     cacheStat: {
       ...envState.stat(),
       stagedFixtures: 0,
@@ -273,7 +273,7 @@ export default async function testRunner(
 
   // only augment the test result if there's any benchmark fixtures
   if (stat.cacheStat.runFixtures > 0 || stat.cacheStat.skippedFixtures > 0) {
-    (testResult as AugmentedTestResult).sci = stat;
+    (testResult as AugmentedTestResult).repris = stat;
   }
 
   return testResult;
@@ -323,7 +323,7 @@ async function commitToSnapshot(
 }
 
 function normaliseAnnotationCfg(
-  annotations: (string | [id: string, config: sciConfig.AnnotationConfig])[]
+  annotations: (string | [id: string, config: reprisConfig.AnnotationConfig])[]
 ): Map<typeid, any> {
   return new Map(
     iterator.map(annotations, (c) =>

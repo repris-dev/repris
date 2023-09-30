@@ -1,11 +1,11 @@
 /** @type {import('jest').Config} */
 export default {
   reporters: [
-    '@sampleci/jest/reporter',
-    '@sampleci/jest/summaryReporter',
+    '@repris/jest/reporter',
+    '@repris/jest/summaryReporter',
   ],
-  setupFilesAfterEnv: ['@sampleci/jest/stopwatch-env'],
-  testRunner: '@sampleci/jest/runner',
+  setupFilesAfterEnv: ['@repris/jest/stopwatch-env'],
+  testRunner: '@repris/jest/runner',
   maxWorkers: 1,
   maxConcurrency: 1,
   testTimeout: 10_000,

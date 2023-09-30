@@ -1,4 +1,4 @@
-import { json, typeid, Status, assignDeep, iterator } from '@sampleci/base';
+import { json, typeid, Status, assignDeep, iterator } from '@repris/base';
 import * as wt from './wireTypes.js';
 import * as samples from './samples.js';
 

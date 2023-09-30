@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { assert, typeid } from '@sampleci/base';
-import { annotators as anno } from '@sampleci/samplers';
+import { assert, typeid } from '@repris/base';
+import { annotators as anno } from '@repris/samplers';
 import type * as config from './config.js';
 import * as cli from './cli.js';
 

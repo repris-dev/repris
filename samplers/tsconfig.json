@@ -7,6 +7,6 @@
     "declarationDir": ".tsc",
     "rootDir": "src",
     "outDir": ".tsc",
-    "types": ["@sampleci/util/globals", "node"]
+    "types": ["@repris/util/globals", "node"]
   }
 }

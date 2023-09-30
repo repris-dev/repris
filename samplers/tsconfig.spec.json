@@ -4,7 +4,7 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": ".tsc",
-    "types": ["jest", "@sampleci/util/matchers.cjs"]
+    "types": ["jest", "@repris/util/matchers.cjs"]
   },
   "references": [{ "path": "." }]
 }

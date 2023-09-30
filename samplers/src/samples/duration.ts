@@ -5,7 +5,7 @@ import {
   timer,
   stats,
   assert,
-} from '@sampleci/base';
+} from '@repris/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';

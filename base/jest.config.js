@@ -1,10 +1,10 @@
-import { defaults } from '@sampleci/util/globals.config';
+import { defaults } from '@repris/util/globals.config';
 import pkg from './package.json' assert { type: 'json' };
 
 export default {
   roots: ['<rootDir>/.tsc/'],
   testMatch: ['**/*.spec.[tj]s'],
-  snapshotResolver: '@sampleci/util/snapshotResolver.cjs',
-  setupFilesAfterEnv: ['@sampleci/util/matchers.cjs'],
+  snapshotResolver: '@repris/util/snapshotResolver.cjs',
+  setupFilesAfterEnv: ['@repris/util/matchers.cjs'],
   globals: defaults(pkg),
 };

@@ -1,4 +1,4 @@
-import { typeid } from '@sampleci/base';
+import { typeid } from '@repris/base';
 import { Sample } from '../samples.js';
 
 /** Represents the consolidation of several independent samples of the same quantity */

@@ -1,4 +1,4 @@
-import { stopwatch } from '@sampleci/samplers';
+import { stopwatch } from '@repris/samplers';
 
 declare global {
   function sample<Args extends any[]>(

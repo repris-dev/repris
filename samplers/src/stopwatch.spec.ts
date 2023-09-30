@@ -1,4 +1,4 @@
-import { timer, Status } from '@sampleci/base';
+import { timer, Status } from '@repris/base';
 import * as stopwatch from './stopwatch.js';
 
 describe('Builder', () => {

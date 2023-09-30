@@ -1,4 +1,4 @@
-import { typeid, json } from '@sampleci/base';
+import { typeid, json } from '@repris/base';
 import * as wt from '../wireTypes.js';
 
 /**

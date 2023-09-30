@@ -7,9 +7,7 @@
     { "path": "./samplers" },
     { "path": "./samplers/tsconfig.spec.json" },
     { "path": "./jest" },
-    { "path": "./jest-demo" },
-    { "path": "./app" },
-    { "path": "./app/tsconfig.spec.json" }
+    { "path": "./jest-demo" }
   ],
   "files": []
 }

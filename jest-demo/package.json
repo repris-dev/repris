@@ -1,5 +1,5 @@
 {
-  "name": "@sampleci/jest-demo",
+  "name": "@repris/jest-demo",
   "version": "0.1.0",
   "private": true,
   "sideEffects": false,
@@ -12,8 +12,9 @@
   "devDependencies": {
     "@types/jest": "^28",
     "@types/node": "^16",
-    "@sampleci/jest": "workspace:*",
-    "@sampleci/samplers": "workspace:*",
+    "@repris/jest": "workspace:*",
+    "@repris/samplers": "workspace:*",
+    "@repris/util": "workspace:*",
     "jest": "^28",
     "typescript": "~4.7",
     "vite": "~2.9"

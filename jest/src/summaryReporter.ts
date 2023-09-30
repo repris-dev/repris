@@ -3,7 +3,7 @@ import type { AggregatedResult, Test, TestContext } from '@jest/test-result';
 import type { Config } from '@jest/types';
 import { specialChars } from 'jest-util';
 import { SummaryReporter } from '@jest/reporters';
-import { snapshotManager } from '@sampleci/samplers';
+import { snapshotManager } from '@repris/samplers';
 import type { AugmentedTestResult } from './runner.js';
 import { StagingAreaResolver } from './snapshotUtils.js';
 
@@ -37,8 +37,8 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
     results?: AggregatedResult
   ): void {
     const stats = this.aggregatedBenchStats;
-    if (testResult?.sci) {
-      const stat = testResult.sci;
+    if (testResult?.repris) {
+      const stat = testResult.repris;
       // The epoch is complete when *all* snapshots updated
       stats.epochStat.complete = stats.epochStat.complete && stat.epochStat.complete;
 

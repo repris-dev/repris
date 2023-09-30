@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 
-import { samples, stopwatch } from '@sampleci/samplers';
-import { Status } from '@sampleci/base';
+import { samples, stopwatch } from '@repris/samplers';
+import { Status } from '@repris/base';
 
 /** defined by the stopwatch test-runner  */
 declare function onSample(

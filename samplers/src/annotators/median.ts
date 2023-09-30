@@ -1,4 +1,4 @@
-import { stats, Status, typeid } from '@sampleci/base';
+import { stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 

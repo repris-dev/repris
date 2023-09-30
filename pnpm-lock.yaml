@@ -12,7 +12,7 @@ importers:
 
   base:
     specifiers:
-      '@sampleci/util': workspace:*
+      '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^16
       jest: ^28
@@ -20,7 +20,7 @@ importers:
       typescript: ~4.7
       vite: ~2.9
     devDependencies:
-      '@sampleci/util': link:../util
+      '@repris/util': link:../util
       '@types/jest': 28.1.4
       '@types/node': 16.11.43
       jest: 28.1.2_@types+node@16.11.43
@@ -37,9 +37,9 @@ importers:
       '@jest/test-result': ^28
       '@jest/transform': ^28
       '@jest/types': ^28
-      '@sampleci/base': workspace:*
-      '@sampleci/samplers': workspace:*
-      '@sampleci/util': workspace:*
+      '@repris/base': workspace:*
+      '@repris/samplers': workspace:*
+      '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^18
       chalk: ^5.0.1
@@ -60,9 +60,9 @@ importers:
       '@jest/reporters': 28.1.3
       '@jest/test-result': 28.1.3
       '@jest/transform': 28.1.3
-      '@sampleci/base': link:../base
-      '@sampleci/samplers': link:../samplers
-      '@sampleci/util': link:../util
+      '@repris/base': link:../base
+      '@repris/samplers': link:../samplers
+      '@repris/util': link:../util
       chalk: 5.0.1
       commander: 10.0.0
       jest: 28.1.2_@types+node@18.15.3
@@ -83,16 +83,18 @@ importers:
 
   jest-demo:
     specifiers:
-      '@sampleci/jest': workspace:*
-      '@sampleci/samplers': workspace:*
+      '@repris/jest': workspace:*
+      '@repris/samplers': workspace:*
+      '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^16
       jest: ^28
       typescript: ~4.7
       vite: ~2.9
     devDependencies:
-      '@sampleci/jest': link:../jest
-      '@sampleci/samplers': link:../samplers
+      '@repris/jest': link:../jest
+      '@repris/samplers': link:../samplers
+      '@repris/util': link:../util
       '@types/jest': 28.1.4
       '@types/node': 16.11.43
       jest: 28.1.2_@types+node@16.11.43
@@ -102,8 +104,8 @@ importers:
   samplers:
     specifiers:
       '@jest/expect': ^28
-      '@sampleci/base': workspace:*
-      '@sampleci/util': workspace:*
+      '@repris/base': workspace:*
+      '@repris/util': workspace:*
       '@types/jest': ^28
       '@types/node': ^16
       gaussian-mixture: ^0.9.1
@@ -112,8 +114,8 @@ importers:
       typescript: ~4.7
       vite: ~2.9
     dependencies:
-      '@sampleci/base': link:../base
-      '@sampleci/util': link:../util
+      '@repris/base': link:../base
+      '@repris/util': link:../util
       gaussian-mixture: 0.9.1
     devDependencies:
       '@jest/expect': 28.1.2

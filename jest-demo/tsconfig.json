@@ -6,7 +6,7 @@
     "declarationDir": ".tsc",
     "rootDir": "src",
     "outDir": ".tsc",
-    "types": ["@sampleci/jest/stopwatch-env", "jest"],
+    "types": ["@repris/jest/stopwatch-env", "jest"],
     "strict": true,
     "skipLibCheck": false
   }

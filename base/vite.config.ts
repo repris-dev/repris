@@ -1,6 +1,6 @@
 import path from 'path';
 import { defineConfig } from 'vite';
-import * as globals from '@sampleci/util/globals.config';
+import * as globals from '@repris/util/globals.config';
 import pkg from './package.json' assert { type: 'json' };
 
 const define = globals.defaults(pkg);

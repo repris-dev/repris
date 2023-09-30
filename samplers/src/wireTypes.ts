@@ -1,4 +1,4 @@
-import { json, typeid } from '@sampleci/base';
+import { json, typeid } from '@repris/base';
 
 export type Parameter =
     number | string | boolean | { label: string, value: json.Value };

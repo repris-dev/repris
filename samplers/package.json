@@ -1,5 +1,5 @@
 {
-  "name": "@sampleci/samplers",
+  "name": "@repris/samplers",
   "version": "0.1.0",
   "private": true,
   "sideEffects": false,
@@ -19,8 +19,8 @@
     }
   },
   "dependencies": {
-    "@sampleci/util": "workspace:*",
-    "@sampleci/base": "workspace:*",
+    "@repris/util": "workspace:*",
+    "@repris/base": "workspace:*",
     "gaussian-mixture": "^0.9.1"
   },
   "devDependencies": {

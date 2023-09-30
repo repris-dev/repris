@@ -1,6 +1,6 @@
 import HasteMap from 'jest-haste-map';
 import { Config } from '@jest/types';
-import { snapshotManager } from '@sampleci/samplers';
+import { snapshotManager } from '@repris/samplers';
 import { buildSnapshotResolver } from './snapshotResolver.js';
 
 export function StagingAreaResolver(config: Config.ProjectConfig): snapshotManager.PathResolver {

@@ -1,4 +1,4 @@
-import { timer, random, iterator } from '@sampleci/base';
+import { timer, random, iterator } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import { Duration, MWUConflationAnalysis, SampleStatus,  } from './duration.js';
 

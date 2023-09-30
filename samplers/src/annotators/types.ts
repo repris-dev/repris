@@ -1,4 +1,4 @@
-import { Status, typeid, json } from '@sampleci/base';
+import { Status, typeid, json } from '@repris/base';
 import { Units } from '../quantity.js';
 import * as wt from '../wireTypes.js';
 

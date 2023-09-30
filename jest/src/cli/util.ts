@@ -2,7 +2,7 @@ import * as readline from 'node:readline/promises';
 import * as util from 'util';
 
 import chalk from 'chalk';
-import { Status } from '@sampleci/base';
+import { Status } from '@repris/base';
 
 export function println(...lines: string[]): void;
 

@@ -7,7 +7,7 @@ import {
   array,
   iterator,
   partitioning,
-} from '@sampleci/base';
+} from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 import { Conflation } from './types.js';

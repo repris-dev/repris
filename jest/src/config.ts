@@ -1,18 +1,18 @@
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
-import { assignDeep, RecursivePartial } from '@sampleci/base';
+import { assignDeep, RecursivePartial } from '@repris/base';
 
-const dbg = debug('sci:config');
+const dbg = debug('repris:config');
 
 export interface SCIConfig {
   sampler: {
     /** Configuration of the sampler */
-    options: RecursivePartial<import('@sampleci/samplers').stopwatch.Options>;
+    options: RecursivePartial<import('@repris/samplers').stopwatch.Options>;
   };
 
   sample: {
     /** Configuration of each sample */
-    options: RecursivePartial<import('@sampleci/samplers').samples.DurationOptions>;
+    options: RecursivePartial<import('@repris/samplers').samples.DurationOptions>;
 
     /** The annotations to compute for each sample */
     annotations: (string | [id: string, config: AnnotationConfig])[];
@@ -20,7 +20,7 @@ export interface SCIConfig {
 
   conflation: {
     /** Configuration of each conflation */
-    options: RecursivePartial<import('@sampleci/samplers').conflations.DurationOptions>;
+    options: RecursivePartial<import('@repris/samplers').conflations.DurationOptions>;
 
     /** The annotations to compute for each conflation */
     annotations: (string | [id: string, config: AnnotationConfig])[];
@@ -126,7 +126,7 @@ const loadEsm = async (filepath: string) => {
   return {};
 };
 
-const explorer = lilconfig('sci', {
+const explorer = lilconfig('repris', {
   loaders: {
     '.js': loadEsm,
     '.mjs': loadEsm,

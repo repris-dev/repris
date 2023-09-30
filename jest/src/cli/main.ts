@@ -7,8 +7,8 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { snapshotManager, annotators } from '@sampleci/samplers';
-import { typeid } from '@sampleci/base';
+import { snapshotManager, annotators } from '@repris/samplers';
+import { typeid } from '@repris/base';
 import { StagingAreaResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import { println, panic, yesNoQuestion } from './util.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@sampleci/vite-monorepo",
+  "name": "@repris/vite-monorepo",
   "author": "Adi Unnithan",
   "version": "0.1.0",
   "main": "index.js",

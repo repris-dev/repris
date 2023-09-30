@@ -10,8 +10,8 @@ import type { Config } from '@jest/types';
 import { specialChars, preRunMessage } from 'jest-util';
 import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 
-import { typeid } from '@sampleci/base';
-import { annotators } from '@sampleci/samplers';
+import { typeid } from '@repris/base';
+import { annotators } from '@repris/samplers';
 
 import { Column, TableTreeReporter } from './tableReport.js';
 import * as config from './config.js';
@@ -70,8 +70,8 @@ export default class SampleReporter extends DefaultReporter {
         annotate(test) {
           const aar = test as import('./runner.js').AugmentedAssertionResult;
 
-          if (aar.sci?.sample) {
-            const annotations = { ...aar.sci.sample, ...aar.sci?.conflation };
+          if (aar.repris?.sample) {
+            const annotations = { ...aar.repris.sample, ...aar.repris?.conflation };
             const bag = annotators.DefaultBag.fromJson(annotations);
             return bag;
           }

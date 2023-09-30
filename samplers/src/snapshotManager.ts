@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 
-import { snapshots, wiretypes as wt } from '@sampleci/samplers';
-import { assert, Status } from '@sampleci/base';
+import { snapshots, wiretypes as wt } from '@repris/samplers';
+import { assert, Status } from '@repris/base';
 
 type SnapshotFileWT = {
   /** The suite which produced each run in this cache */
