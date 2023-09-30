@@ -1,4 +1,4 @@
-import { stats, Indexable, array, iterator, assert, random, lazy } from '@repris/base';
+import { stats, Indexable, array, assert, random, lazy } from '@repris/base';
 
 import { AnalysisOptions, ConflatedSampleStatus } from './types.js';
 
@@ -52,10 +52,6 @@ export class KWConflation<T> {
 
     assert.isDefined(kw);
 
-    // sort all samples by pairwise-similarity or by average ranking
-//    const sortedIndices = opts.exclusionMethod === 'outliers' ? dunnAvgSort(kw) : kwRankSort(kw);
-// const sortedIndices = kwRankSort(kw);
-
     // Sampling distribution, sorted by hsm;
     const samplingDist = this.taggedSamples.map(([raw, tag]) => ({
       raw,
@@ -64,12 +60,8 @@ export class KWConflation<T> {
       status: 'outlier' as ConflatedSampleStatus
     }));
 
-
     // Sorting of the sampling distribution, distance from mean (desc)
     let subset = samplingDist.slice();
-
-    // Index of samples
-//    const statIndex = new Map(iterator.map(subset, x => [x.raw, x]));
 
     if (N > opts.maxSize) {
       // reject the outlier samples
@@ -88,15 +80,6 @@ export class KWConflation<T> {
 
 console.info('samplingDist', subset.map(x => x.mode));
 
-//    const xs = subset.map(x => x.mode);
-//    const os = stats.online.Gaussian.fromValues(xs);
-//    const z = stats.allPairs.crouxQn(xs).correctedSpread;
-//    const nOutliers = xs.reduce(
-//      (acc, ith) => acc + (Math.abs(ith - os.mean()) > 3 * z ? 1 : 0),
-//      0);
-//  
-//    console.info('outliers', nOutliers, 'cov', os.cov(1));
-
     // median of the sampling distribution
     const sDistMean = stats.centralTendency.mean(samplingDist.map(x => x.mode));
 
@@ -108,14 +91,21 @@ console.info('sDistMean', sDistMean);
 
 console.info('m99', m99);
 
+{
+  const xsTmp = samplingDist.map(w => w.mode);
+  const med = stats.median(xsTmp), std = stats.mad(xsTmp, med).normMad;
+
+  console.info('w99', std / med, stats.allPairs.crouxQn(xsTmp).correctedSpread / med)
+}
+
     if (subset.length >= opts.minSize) {
       // resort by mode (ascending)
-//console.info('>> kw1', kw.effectSize, kw.pValue());
+
 console.info('------------')   ;
 
       // mark consistent samples
 //      if (kw.effectSize <= opts.maxEffectSize) {
-      if (m99 < 0.025) {
+      if (m99 < opts.maxEffectSize) {
         subset.forEach(x => x.status = 'consistent');
       }
     }
@@ -126,46 +116,6 @@ console.info('------------')   ;
     };
   }
 }
-
-/**
- * @return A sorting of the samples based on sum of pair-wise similarities.
- * Such a sorting should correspond to homogeneity, with outliers being last
- * in the sorting.
- */
-// function dunnAvgSort(kw: stats.KruskalWallisResult<Indexable<number>>): number[] {
-//   const N = kw.size;
-//   const sums = new Float64Array(N);
-// 
-//   for (let i = 0; i < N; i++) {
-//     for (let j = i + 1; j < N; j++) {
-//       const a = kw.dunnsTest(i, j).effectSize;
-//       sums[i] += a;
-//       sums[j] += a;
-//     }
-//   }
-// 
-//   return array.fillAscending(new Array(N), 0).sort((a, b) => sums[a] - sums[b]);
-// }
-// 
-// /**
-//  * @returns A sorting of samples based on ranks.
-//  */
-// function kwRankSort(kw: stats.KruskalWallisResult<Indexable<number>>): number[] {
-//   // sort all samples by rank (ascending)
-//   return array
-//     .fillAscending(new Array<number>(kw.size), 0)
-//     .sort((a, b) => kw.ranks[a] - kw.ranks[b]);
-// }
-// 
-// function* window<T>(xs: Indexable<T>, k: number) {
-//   for (let i = 0; i + k <= xs.length; i++) {
-//     const m = [];
-// 
-//     for (let z = 0; z < k; z++) m.push(xs[i + z]);
-// 
-//     yield m;
-//   }
-// }
 
 export function outlierSelection<T>(
   keys: Indexable<T>,
@@ -180,10 +130,12 @@ export function outlierSelection<T>(
     med = stats.median(xsTmp),
     std = stats.mad(xsTmp, med).normMad;
 
-  // weight by distance from the median, normalized by
-  // estimate of standard deviation 
-  for (let i = 0; i < N; i++) {
-    sigmas[i] = Math.abs(xs[i] - med) / std;
+  if (std > 0) {
+    // weight by distance from the median, normalized by
+    // estimate of standard deviation 
+    for (let i = 0; i < N; i++) {
+      sigmas[i] = Math.abs(xs[i] - med) / std;
+    }
   }
 
   // A lazy list of index-pointers constructing a tour of all items,
