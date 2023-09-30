@@ -133,7 +133,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
 
         resultSamples.push({ sample, annotations });
       } else {
-        throw new Error(`Failed to load sample of type: ${ws.data['@type']}`);
+        throw new Error(`Failed to load sample of type: ${ws.data['@type']}\nReason: ${s[1].message}`);
       }
     }
 
