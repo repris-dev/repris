@@ -2,6 +2,7 @@
 export default {
   reporters: [
     '@sampleci/jest/reporter',
+    'summary',
   ],
   setupFilesAfterEnv: ['@sampleci/jest/stopwatch-env'],
   testRunner: '@sampleci/jest/runner',

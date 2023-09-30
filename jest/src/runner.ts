@@ -131,20 +131,35 @@ export default async function testRunner(
     }
 
     const snapshot = snapFile[0];
+    const stat = {
+      added: 0,
+      updated: 0,
+    };
 
     for (const f of cacheFile.allFixtures()) {
       const bag = f.conflation?.annotations ?? {};
 
       if (bag['conflation:ready']) {
-        // allow the runner to skip this fixture in future runs
-        cacheFile.tombstone(f.name.title, f.name.nth);
+        const { title, nth } = f.name;
+
+        if (snapshot.hasFixture(title, nth)) {
+          stat.updated++;
+        } else {
+          stat.added++;
+        }
+
         // copy the fixture to the snapshot
-        snapshot.updateFixture(f.name.title, f.name.nth, f);
+        snapshot.updateFixture(title, nth, f);
+        // allow the runner to skip this fixture in future runs
+        cacheFile.tombstone(title, nth);
       }
     }
 
     const e = await s.save(snapshot);
     Status.get(e);
+
+    testResult.snapshot.added += stat.added;
+    testResult.snapshot.updated += stat.updated;
   }
 
   if (cacheFile) {

@@ -39,6 +39,10 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return this.fixtures!.size;
   }
 
+  hasFixture(title: string[], nth: number) {
+    return this.fixtures!.get(cacheKey(title, nth))
+  }
+
   allFixtures(): Iterable<AggregatedFixture<samples.Duration>> {
     return iterator.map(this.fixtures!.values(), (f) => this.fromJsonFixture(f));
   }
