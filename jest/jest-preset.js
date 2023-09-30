@@ -11,9 +11,9 @@ export default {
           quality: {
             id: 'mode:kde:dispersion',
             thresholds: [
-              0,    // >= 0 is good
-              0.03, // >= 0.03 is ok
-              0.1,  // >= 0.1 is poor
+              0,    // >= good
+              0.02, // >= ok
+              0.1,  // >= poor
             ],
           }
         },
