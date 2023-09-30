@@ -190,7 +190,7 @@ export class TerminalReport<Id> {
 
 class ValueFormatter {
   fmtInt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
-  fmtNumber = new Intl.NumberFormat(void 0, { maximumSignificantDigits: 2 });
+  fmtNumber = new Intl.NumberFormat(void 0, { maximumFractionDigits: 3 });
 
   format(val: anno.Annotation): Cell {
     switch (typeof val) {
