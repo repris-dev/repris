@@ -65,6 +65,7 @@ importers:
 
   jest:
     specifiers:
+      '@jest/core': ^28
       '@jest/environment': ^28
       '@jest/expect': ^28
       '@jest/reporters': ^28.1.3
@@ -77,8 +78,10 @@ importers:
       '@types/jest': ^28
       '@types/node': ^16
       chalk: ^5.0.1
+      commander: ^10.0.0
       jest: ^28
       jest-circus: ^28
+      jest-config: ^28
       jest-haste-map: ^28
       jest-runtime: ^28
       jest-util: ^28.1.3
@@ -87,6 +90,7 @@ importers:
       typescript: ~4.7
       vite: ~2.9
     dependencies:
+      '@jest/core': 28.1.2
       '@jest/environment': 28.1.2
       '@jest/reporters': 28.1.3
       '@jest/test-result': 28.1.3
@@ -95,8 +99,10 @@ importers:
       '@sampleci/samplers': link:../samplers
       '@sampleci/util': link:../util
       chalk: 5.0.1
+      commander: 10.0.0
       jest: 28.1.2_@types+node@16.11.43
       jest-circus: 28.1.2
+      jest-config: 28.1.2_@types+node@16.11.43
       jest-haste-map: 28.1.3
       jest-runtime: 28.1.2
       jest-util: 28.1.3
@@ -1494,6 +1500,11 @@ packages:
     dependencies:
       delayed-stream: 1.0.0
     dev: true
+
+  /commander/10.0.0:
+    resolution: {integrity: sha512-zS5PnTI22FIRM6ylNW8G4Ap0IEOyk62fhLSD0+uHRT9McRCLGpkVNvao4bjimpK/GShynyQkFFxHhwMcETmduA==}
+    engines: {node: '>=14'}
+    dev: false
 
   /concat-map/0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
