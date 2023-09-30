@@ -2,30 +2,23 @@ import { typeid } from '@repris/base';
 import { Column } from './tableReport.js';
 import * as config from './config.js';
 
-export type Ctx = `@${string}`;
+type Ctx = config.Ctx;
 
-/** @returns an array of graded columns from the given annotation configurations */
+/** @returns an array of graded columns from the given annotations */
 export function gradedColumns(
-  annotations: config.NestedAnnotationRequest,
+  request: config.AnnotationRequestTree,
   ctx?: Ctx[],
   columns: Column[] = [],
 ): Column[] {
-  if (Array.isArray(annotations)) {
-    // one column for each visible annotation
-    for (const ann of annotations) {
+  // one column for each visible annotation
+  for (const ann of request) {
+    if (Array.isArray(ann) || typeof ann === 'string') {
       convertToColumn(ann, ctx, columns);
-    }
-  } else {
-    for (const [prefix, nestedRequest] of Object.entries(annotations)) {
-      if (prefix.startsWith('@')) {
-        const ns: Ctx[] = ctx ? [...ctx, prefix as Ctx] : [prefix as Ctx];
-
-        for (const req of nestedRequest) {
-          if (Array.isArray(req) || typeof req === 'string') {
-            convertToColumn(req as config.AnnotationRequest, ns, columns)
-          } else {
-            gradedColumns(req, ns, columns);
-          }
+    } else {
+      for (const [prefix, nested] of Object.entries(ann)) {
+        if (prefix.startsWith('@')) {
+          const ctxs: Ctx[] = ctx ? [...ctx, prefix as Ctx] : [prefix as Ctx];
+          gradedColumns(nested, ctxs, columns);  
         }
       }
     }
@@ -44,7 +37,7 @@ function convertToColumn(
   if (typeof a.display === 'undefined' || a.display) {
     const grading = a.grading !== undefined
       ? Array.isArray(a.grading)
-        ? { type: a.grading[0] as typeid, rules: a.grading[1].rules }
+        ? { type: a.grading[0] as typeid, rules: a.grading[1].rules, ctx: a.grading[1].ctx ? [a.grading[1].ctx] : ctx  }
         : { type: type as typeid, rules: a.grading?.rules }
       : undefined;
 

@@ -158,7 +158,7 @@ async function showComparison(
   index: snapshotManager.SnapshotFileManager,
   sn: snapshotManager.SnapshotFileManager
 ) {
-  const comparisonAnnotations = createAnnotationRequest(reprisCfg.comparison.annotations['@test']);
+  const annotationRequests = reprisConfig.annotationRequester(reprisCfg.comparison.annotations);
   const columns = gradedColumns(reprisCfg.comparison.annotations);
   const testRenderer = new TableTreeReporter<ComparedFixtures>(columns, {
     annotate: comparison => comparison.annotations,
@@ -196,7 +196,7 @@ async function showComparison(
           );
 
           const bag = annotators.DefaultBag.fromJson(index.conflation.annotations);
-          applyMissingAnnotations(bag, reprisCfg.comparison.annotations['@index'], x0);
+          applyMissingAnnotations(bag, annotationRequests('@index'), x0);
           annotations.union(bag, '@index');
         }
 
@@ -210,13 +210,13 @@ async function showComparison(
           );
 
           const bag = annotators.DefaultBag.fromJson(snap.conflation.annotations);
-          applyMissingAnnotations(bag, reprisCfg.comparison.annotations['@snapshot'], x1);
+          applyMissingAnnotations(bag, annotationRequests('@snapshot'), x1);
           annotations.union(bag, '@snapshot');
         }
 
         // run comparison
         if (x0 && x1) {
-          const comparison = hypothesis.compare(x0, x1, comparisonAnnotations);
+          const comparison = hypothesis.compare(x0, x1, annotationRequests('@test'));
 
           if (!Status.isErr(comparison)) {
             annotations.union(comparison[0].annotations, '@test');
@@ -238,17 +238,17 @@ async function showComparison(
 
 function applyMissingAnnotations(
   bag: annotators.AnnotationBag,
-  config: reprisConfig.AnnotationRequest[],
+  request: Map<typeid, any>,
   conflation: conflations.DurationResult
 ) {
-  const request = createAnnotationRequest(config);
-  for (const [typeid] of bag.annotations) {
-    request.delete(typeid);
-  }
+  // A new request which excludes pre-existing annotations
+  const filteredRequest = new Map(
+    iterator.filter(request.entries(), anno => bag.annotations.get(anno[1]) === undefined)
+  );
 
-  if (request.size > 0) {
+  if (filteredRequest.size > 0) {
     // the remaining request is the missing annotations
-    const newBag = annotators.annotate(conflation, request);
+    const newBag = annotators.annotate(conflation, filteredRequest);
     if (Status.isErr(newBag)) {
       dbg('Failed to annotate conflation', newBag[1]);
       return;

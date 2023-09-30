@@ -85,7 +85,7 @@ export class DurationResult implements ConflationResult<samples.Duration> {
   }
 
   readonly [typeid] = DurationResult[typeid];
-  _uuid!: uuid;
+  private _uuid!: uuid;
 
   get [uuid]() {
     if (!this._uuid) {
@@ -111,6 +111,12 @@ export class DurationResult implements ConflationResult<samples.Duration> {
 
   values(): Iterable<any> {
     throw 'not impl';
+  }
+
+  /** Convert a sample value as a quantity */
+  asQuantity(value: number): q.Quantity {
+    assert.gt(this._kwResult.stat.length, 0);
+    return this._kwResult.stat[0].sample.asQuantity(value);
   }
 
   toJson(): wt.ConflationResult {
@@ -167,12 +173,9 @@ ann.register('@conflation:duration-annotator' as typeid, {
       }
     });
 
-    let summary = `${consistent}/${outlier + consistent}`;
-
-    if (confl.ready()) {
-      // Avoid confusion by only reporting effect-size when ready to be snapshotted
-      summary += ` (${confl.effectSize().toFixed(2)})`;
-    }
+    // <effect size> (<total samples>)
+    const tot = consistent + outlier;
+    const summary = `${tot > 1 ? confl.effectSize().toFixed(2) : '-'} (${tot})`;
 
     const bag = ann.DefaultBag.from([
       [annotations.summaryText, summary],

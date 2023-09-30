@@ -2,8 +2,9 @@ import * as config from './config.js';
 import * as util from './reporterUtils.js';
 
 describe('gradedColumns', () => {
-  test('nested annotations', function(this: any) {
-    const request = {
+  test('nested annotations', () => {
+    // prettier-ignore
+    const request = [{
       '@ctx': [
         ['a', {}],
         ['b', {}],
@@ -13,7 +14,7 @@ describe('gradedColumns', () => {
           ]
         }
       ],
-    } satisfies config.NestedAnnotationRequest;
+    }] satisfies config.AnnotationRequestTree;
 
     const cols = util.gradedColumns(request);
 

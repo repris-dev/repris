@@ -1,7 +1,7 @@
+import chalk from 'chalk';
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
-import { assignDeep, RecursivePartial } from '@repris/base';
-import chalk from 'chalk';
+import { assert, assignDeep, iterator, RecursivePartial, typeid } from '@repris/base';
 
 const dbg = debug('repris:config');
 
@@ -31,11 +31,11 @@ export interface SCIConfig {
     options: unknown,
 
     /** The annotations to compute for each conflation */
-    annotations: {
+    annotations: [{
       '@index': AnnotationRequest[],
       '@snapshot': AnnotationRequest[],
       '@test': AnnotationRequest[],
-    }
+    }],
   }
 }
 
@@ -49,9 +49,14 @@ export interface GradingThreshold {
   apply: (str: string) => string;
 };
 
+export type Ctx = `@${string}`;
+
 export interface GradingConfig {
   /** Annotation configuration */
   options?: Record<string, any>;
+
+  /** Override the context to find the annotation value */
+  ctx?: Ctx;
 
   /**
    * For annotations, the thresholds field is used to convert the
@@ -80,11 +85,15 @@ export interface AnnotationConfig {
   grading?: [id: string, config: GradingConfig] | GradingConfig;
 }
 
-export type AnnotationRequest = string | [type: string, config: AnnotationConfig];
+/** A request for an annotation as either a typeid or a (typeid, config) tuple */
+export type AnnotationRequest =
+  string | [type: string, config: AnnotationConfig];
 
-export type NestedAnnotationRequest =
-  { [context: `@${string}`]: (NestedAnnotationRequest | AnnotationRequest)[] } | AnnotationRequest[];
+/** A tree of annotation requests where leaves are annotations and branches are context names */
+export type AnnotationRequestTree =
+  (AnnotationRequest | { [context: `@${string}`]: AnnotationRequestTree })[];
 
+// prettier-ignore
 const defaultConfig: SCIConfig = {
   sampler: {
     options: {},
@@ -101,14 +110,14 @@ const defaultConfig: SCIConfig = {
           displayName: 'CI (95%)',
           grading: {
             rules: [
-              { '>=': 0,    apply: chalk.green },
+              { '>=': 0, apply: chalk.green },
               { '>=': 0.05, apply: chalk.yellow },
-              { '>=': 0.2,  apply: chalk.red },
+              { '>=': 0.2, apply: chalk.red },
             ],
           },
         },
       ],
-    ] satisfies NestedAnnotationRequest,
+    ] satisfies AnnotationRequestTree,
   },
 
   conflation: {
@@ -116,37 +125,73 @@ const defaultConfig: SCIConfig = {
     annotations: [
       [
         'duration:conflation:summaryText',
-        { 
+        {
           displayName: 'Index',
           grading: [
             'conflation:ready',
             {
-              rules: [
-                { '==': true, apply: chalk.bold },
-                { '==': false, apply: chalk.dim },
-              ],
-            }
+              rules: [{ '==': false, apply: chalk.dim }],
+            },
           ],
-        }
+        },
       ],
-    ] satisfies NestedAnnotationRequest,
+    ] satisfies AnnotationRequestTree,
   },
 
   comparison: {
     options: {},
-    annotations: {
+    annotations: [{
       '@index': [
-        ['mode:hsm:conflation', { displayName: 'avg (index)' }]
+        ['mode:hsm:conflation',
+        { displayName: 'Index (avg.)',
+          grading: [
+            'mode:hsm:hypothesis:significantDifference',
+            {
+              ctx: '@test',
+              rules: [
+                { apply: chalk.dim },
+                { '<': 0, apply: chalk.reset }
+              ],
+            },
+          ],
+        }],
       ],
       '@test': [
-        ['mode:hsm:hypothesis:summaryText', { displayName: 'change (99% CI)' }],
-        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.99 } }]
+        ['mode:hsm:hypothesis:summaryText', {
+          displayName: 'Change (99% CI)',
+          grading: [
+            'mode:hsm:hypothesis:significantDifference',
+            {
+              rules: [
+                { '==': 0, apply: chalk.dim },
+                { '<': 0, apply: chalk.green },
+                { '>': 0, apply: chalk.red }
+              ],
+            },
+          ],
+        }],
+        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.95 } }],
       ],
       '@snapshot': [
-        ['mode:hsm:conflation', { displayName: 'avg (snapshot)' }]
+        [
+          'mode:hsm:conflation',
+          {
+            displayName: 'Snapshot (avg.)',
+            grading: [
+              'mode:hsm:hypothesis:significantDifference',
+              {
+                ctx: '@test',
+                rules: [
+                  { apply: chalk.dim },
+                  { '>': 0, apply: chalk.reset }
+                ],
+              },
+            ],
+          },
+        ],
       ],
-    } satisfies NestedAnnotationRequest
-  }
+    }],
+  },
 };
 
 export const normalize = {
@@ -199,4 +244,63 @@ export async function load(rootDir: string): Promise<SCIConfig> {
   }
 
   return sessionConfigs.get(rootDir)!;
+}
+
+/**
+ * @returns an iterator of all annotations which appear in the given
+ * tree of annotations
+ */
+export function* iterateAnnotationTree(
+  tree: AnnotationRequestTree,
+  ctx?: Ctx[]
+): IterableIterator<{ type: typeid, ctx?: Ctx[], options?: any }> {
+  for (const branch of tree) {
+    if (Array.isArray(branch) || typeof branch === 'string') {
+      // leaf (annotation)
+      const [type, cfg] = normalize.simpleOpt(branch, {});
+      yield { type: type as typeid, options: cfg.options, ctx };
+  
+      if (cfg.grading) {
+        const grading = cfg.grading;
+        const [gType, gCfg] = Array.isArray(grading) ? grading : [type, grading];
+
+        yield {
+          type: gType as typeid,
+          options: gCfg.options,
+          ctx: gCfg.ctx ? [gCfg.ctx] : void 0,
+        };    
+      }
+    } else {
+      // branch (array of annotations within a context)
+      for (const [prefix, child] of Object.entries(branch)) {
+        if (prefix.startsWith('@')) {
+          const ctxs: Ctx[] = ctx ? [...ctx, prefix as Ctx] : [prefix as Ctx];
+          yield* iterateAnnotationTree(child, ctxs);
+        }
+      }
+    }
+  }
+}
+
+export function annotationRequester(
+  annotations: AnnotationRequestTree,
+): (context?: Ctx) => Map<typeid, any> {
+  const requests = iterator.collect(iterateAnnotationTree(annotations));
+
+  return (context?: Ctx) => {
+    // TODO - Nested contexts
+    assert.eq(Array.isArray(context), false, 'Nested Contexts not supported');
+    const result = new Map<typeid, any>();
+    
+    requests.forEach(r => {
+      if ((r.ctx === void 0 && context === void 0) || context === r.ctx?.[0]) {
+        if (result.has(r.type) && result.get(r.type) !== r.options) {
+          assert.is(false, 'Different configurations for the same annotation are not supported');
+        }
+        result.set(r.type, r.options);
+      }
+    })
+
+    return result;
+  }
 }

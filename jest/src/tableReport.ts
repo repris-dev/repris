@@ -6,12 +6,13 @@ import * as cli from './cli.js';
 
 export interface ColumnGrading {
   type: typeid;
+  ctx?: config.Ctx[];
   rules?: config.GradingThreshold[];
 }
 
 export interface Column {
   type: typeid;
-  ctx?: `@${string}`[];
+  ctx?: config.Ctx[];
   displayName?: string;
   units?: string;
   grading?: ColumnGrading;
@@ -108,7 +109,7 @@ export class TerminalReport<Id> {
    * @param bag A bag of annotations containing the quality annotation
    */
   private _colorizeByQuality(cell: Cell, config: ColumnGrading, bag: anno.AnnotationBag): Cell {
-    const ann = bag.annotations.get(config.type);
+    const ann = bag.annotations.get(config.type, config.ctx);
 
     if (ann !== void 0 && Array.isArray(config.rules)) {
       let matchingRule: config.GradingThreshold | undefined;

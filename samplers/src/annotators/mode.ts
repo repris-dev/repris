@@ -68,6 +68,7 @@ const ConflationAnnotations = Object.freeze({
 
 const HypothesisAnnotations = Object.freeze({
   hsmDifference: 'mode:hsm:hypothesis:difference' as typeid,
+  hsmSignificantDifference: 'mode:hsm:hypothesis:significantDifference' as typeid,
 
   hsmDifferenceCI: {
     id: 'mode:hsm:hypothesis:difference-ci' as typeid,
@@ -173,7 +174,7 @@ const conflationAnnotator: ann.Annotator = {
         const pooledSample = concatSamples(samples);
         const hsmAnalysis = hsmConflation(pooledSample, opts?.level, opts?.resamples);
     
-        result.set(ConflationAnnotations.hsmMode, hsmAnalysis.mode);
+        result.set(ConflationAnnotations.hsmMode, conflation.asQuantity(hsmAnalysis.mode));
 
         if (request.has(ConflationAnnotations.hsmCIRME.id)) {
           result.set(ConflationAnnotations.hsmCIRME.id, hsmAnalysis.rme!);
@@ -255,6 +256,13 @@ const hypothesisAnnotator: ann.Annotator = {
       }
 
       result.set(HypothesisAnnotations.hsmDifferenceSummary, summary);
+    }
+
+    if (request.has(HypothesisAnnotations.hsmSignificantDifference)) {
+      if (ci) {
+        const significant = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
+        result.set(HypothesisAnnotations.hsmSignificantDifference, significant ? relChange : 0);
+      }
     }
 
     return Status.value(ann.DefaultBag.from(result));
