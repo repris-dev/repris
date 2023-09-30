@@ -165,14 +165,14 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.ConflationResult<Sample<unknown>>,
+    conflation: conflations.Conflation<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex(id => request.has(id)) < 0) {
       return Status.value(void 0);
     }
 
-    if (!conflations.duration.DurationResult.is(conflation) || !conflation.ready()) {
+    if (!conflations.duration.Result.is(conflation) || !conflation.ready()) {
       return Status.value(void 0);
     }
 
@@ -222,7 +222,7 @@ const hypothesisAnnotator: ann.Annotator = {
   },
 
   annotate(
-    hypot: hypothesis.DefaultHypothesis<conflations.ConflationResult<duration.Duration>>,
+    hypot: hypothesis.DefaultHypothesis<conflations.Conflation<duration.Duration>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (this.annotations().findIndex(id => request.has(id)) < 0) {
@@ -323,7 +323,7 @@ function bootstrapSmoothing(xs: Float64Array, level: number) {
   return (std / xs.length ** (-1 / 5)) * level;
 }
 
-function tof64Samples(conflation: conflations.ConflationResult<duration.Duration>) {
+function tof64Samples(conflation: conflations.Conflation<duration.Duration>) {
   return conflation
     .stat()
     .filter(s => s.status === 'consistent')

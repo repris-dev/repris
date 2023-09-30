@@ -1,8 +1,8 @@
 import { typeid, uuid, random, Status } from '@repris/base';
-import { ConflationResult } from './conflations.js';
+import { Conflation } from './conflations.js';
 import * as anno from './annotators.js';
 
-export interface PooledHypothesisTest<T extends ConflationResult<any>> {
+export interface PooledHypothesisTest<T extends Conflation<any>> {
   /** The kind of pooled comparison */
   readonly [typeid]: typeid;
 
@@ -13,12 +13,12 @@ export interface PooledHypothesisTest<T extends ConflationResult<any>> {
   operands(): [lhs: T, rhs: T];
 }
 
-export interface BenchmarkComparison<C extends ConflationResult<any>> {
+export interface BenchmarkComparison<C extends Conflation<any>> {
   test: PooledHypothesisTest<C>;
   annotations: anno.AnnotationBag;
 }
 
-export class DefaultHypothesis<T extends ConflationResult<any>> implements PooledHypothesisTest<T> {
+export class DefaultHypothesis<T extends Conflation<any>> implements PooledHypothesisTest<T> {
   static [typeid] = '@hypothesis:default' as typeid;
 
   static is(x?: any): x is DefaultHypothesis<any> {
@@ -35,7 +35,7 @@ export class DefaultHypothesis<T extends ConflationResult<any>> implements Poole
   }
 }
 
-export function compare<C extends ConflationResult<any>>(
+export function compare<C extends Conflation<any>>(
   a: C,
   b: C,
   annotations: Map<typeid, any>

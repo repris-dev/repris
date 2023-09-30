@@ -383,7 +383,7 @@ function reconflateBenchmark(
   const allSamples = iter.concat([bench.samples(), [newEntry.sample]]);
 
   // Conflate the new and previous samples together
-  const newConflation = new conflations.duration.Duration(allSamples).analyze(opts);
+  const newConflation = conflations.duration.conflate(allSamples, opts);
 
   // Update the aggregated benchmark, discarding sample(s)
   // rejected during the conflation analysis.

@@ -1,8 +1,8 @@
-import { random, Status, typeid, uuid, quantity as q, assert } from '@repris/base';
+import { random, Status, typeid, uuid, quantity as q, assert, iterator } from '@repris/base';
 import { duration } from '../samples.js';
 import * as wt from '../wireTypes.js';
-import { KWConflation, KWConflationResult, KWOptions } from './kruskal.js';
-import { ConflatedSampleStatus, ConflationResult, Conflator } from './types.js';
+import * as types from './types.js';
+import { KWConflation, KWConflationResult } from './kruskal.js';
 
 export type Options = {
   /** Minimum number of samples in a valid conflation */
@@ -21,43 +21,27 @@ export type Options = {
   exclusionMethod: 'slowest' | 'outliers',
 }
 
-export class Duration implements Conflator<duration.Duration, KWOptions> {
-  private allSamples: duration.Duration[] = [];
-  private analysisCache?: KWConflation<duration.Duration>;
+export function conflate(samples: Iterable<duration.Duration>, opts: Options): Result {
+  const kw = new KWConflation(iterator.collect(iterator.map(samples, x => [x.toF64Array(), x])));
 
-  constructor(initial?: Iterable<duration.Duration>) {
-    if (initial !== void 0) {
-      for (const x of initial) this.push(x);
-    }
-  }
+  const kwAnalysis = kw.conflate(opts);
+  const summary = summarize(kwAnalysis.stat);
+  const isReady = summary.consistent >= opts.minSize;
 
-  analyze(opts: Options): DurationResult {
-    this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
-
-    const kwAnalysis = this.analysisCache!.conflate(opts);
-    const summary = summarize(kwAnalysis.stat);
-    const isReady = summary.consistent >= opts.minSize;
-
-    return new DurationResult(isReady, kwAnalysis);
-  }
-
-  push(sample: duration.Duration) {
-    this.allSamples.push(sample);
-    this.analysisCache = undefined;
-  }
+  return new Result(isReady, kwAnalysis);
 }
 
-export class DurationResult implements ConflationResult<duration.Duration> {
+export class Result implements types.Conflation<duration.Duration> {
   static [typeid] = '@conflation:duration' as typeid;
 
-  static is(x?: any): x is DurationResult {
-    return x !== void 0 && x[typeid] === DurationResult[typeid];
+  static is(x?: any): x is Result {
+    return x !== void 0 && x[typeid] === Result[typeid];
   }
 
   static fromJson(
-    obj: wt.ConflationResult,
+    obj: wt.Conflation,
     refs: Map<uuid, duration.Duration>
-  ): Status<DurationResult> {
+  ): Status<Result> {
     let stat = [];
 
     for (const s of obj.samples) {
@@ -69,11 +53,11 @@ export class DurationResult implements ConflationResult<duration.Duration> {
 
       stat.push({
         sample: refs.get(ref)!,
-        status: (s.outlier ? 'outlier' : 'consistent') as ConflatedSampleStatus,
+        status: (s.outlier ? 'outlier' : 'consistent') as types.ConflatedSampleStatus,
       });
     }
 
-    const result = new DurationResult(obj.isReady, {
+    const result = new Result(obj.isReady, {
       effectSize: obj.effectSize,
       stat,
     });
@@ -83,7 +67,7 @@ export class DurationResult implements ConflationResult<duration.Duration> {
     return Status.value(result);
   }
 
-  readonly [typeid] = DurationResult[typeid];
+  readonly [typeid] = Result[typeid];
   private _uuid!: uuid;
 
   get [uuid]() {
@@ -118,7 +102,7 @@ export class DurationResult implements ConflationResult<duration.Duration> {
     return this._kwResult.stat[0].sample.asQuantity(value);
   }
 
-  toJson(): wt.ConflationResult {
+  toJson(): wt.Conflation {
     const samples = this._kwResult.stat
       // filter samples which were excluded from the analysis
       .filter(s => s.status !== 'rejected')
@@ -137,8 +121,8 @@ export class DurationResult implements ConflationResult<duration.Duration> {
   }
 }
 
-function summarize(stat: { sample: any; status: ConflatedSampleStatus }[]) {
-  const result: Record<ConflatedSampleStatus, number> = {
+function summarize(stat: { sample: any; status: types.ConflatedSampleStatus }[]) {
+  const result: Record<types.ConflatedSampleStatus, number> = {
     consistent: 0,
     outlier: 0,
     rejected: 0,

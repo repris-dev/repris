@@ -17,7 +17,7 @@ export type SampleData = json.Value & {
   '@uuid': uuid;
 };
 
-export type ConflationResult = {
+export type Conflation = {
   /** The type of Conflation used */
   '@type': string;
 
@@ -76,7 +76,7 @@ export type Benchmark = {
   samples: Sample[];
 
   /** Conflation of the samples */
-  conflation?: ConflationResult;
+  conflation?: Conflation;
 
   /** Index of annotations of samples/conflations in this benchmark */
   annotations?: Record<string, AnnotationBag>;

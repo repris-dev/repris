@@ -24,13 +24,13 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   samples(): Iterable<S>;
 
-  conflation(): conflations.ConflationResult<S> | undefined;
+  conflation(): conflations.Conflation<S> | undefined;
 
   annotations(): ReadonlyMap<uuid, wt.AnnotationBag>;
 
   totalRuns(): number;
 
-  addRun(conflation: conflations.ConflationResult<S>): DefaultBenchmark;
+  addRun(conflation: conflations.Conflation<S>): DefaultBenchmark;
 }
 
 export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> {
@@ -61,10 +61,10 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       }
     }
 
-    let c: conflations.duration.DurationResult | undefined;
+    let c: conflations.duration.Result | undefined;
 
     if (benchmark.conflation) {
-      const cTmp = conflations.duration.DurationResult.fromJson(benchmark.conflation, sampleMap);
+      const cTmp = conflations.duration.Result.fromJson(benchmark.conflation, sampleMap);
 
       if (Status.isErr(cTmp)) {
         return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
@@ -100,14 +100,14 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
   private _uuid!: uuid;
   private _samples: duration.Duration[];
-  private _conflation?: conflations.ConflationResult<duration.Duration>;
+  private _conflation?: conflations.Conflation<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
     samples: Iterable<duration.Duration>,
-    conflation?: conflations.ConflationResult<duration.Duration>,
+    conflation?: conflations.Conflation<duration.Duration>,
     totalRuns = 0
   ) {
     this._samples = iterator.collect(samples[Symbol.iterator]());
@@ -137,7 +137,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._samples;
   }
 
-  conflation(): conflations.ConflationResult<duration.Duration> | undefined {
+  conflation(): conflations.Conflation<duration.Duration> | undefined {
     return this._conflation;
   }
 
@@ -145,7 +145,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._annotations;
   }
 
-  addRun(conflation: conflations.ConflationResult<duration.Duration>): DefaultBenchmark {
+  addRun(conflation: conflations.Conflation<duration.Duration>): DefaultBenchmark {
     // Create a new benchmark
     const samples: duration.Duration[] = [];
     for (const { status, sample } of conflation.stat()) {

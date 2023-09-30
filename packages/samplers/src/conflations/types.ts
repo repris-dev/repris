@@ -33,15 +33,13 @@ export type ConflatedSampleStatus =
    */
   | 'consistent';
 
-export interface Conflator<T extends Sample<any>, Opts extends AnalysisOptions> {
-  /** Return the result of the conflation */
-  analyze(opts: Opts): ConflationResult<T>;
-}
+
+export type Conflator<T extends Sample<any>> = (samples: T[], opts: AnalysisOptions) => Conflation<T>;
 
 // todo: rename to Consolidation?
 /** Represents the consolidation of several independent samples of the same quantity */
-export interface ConflationResult<T extends Sample<V>, V = any>
-  extends json.Serializable<wt.ConflationResult> {
+export interface Conflation<T extends Sample<V>, V = any>
+  extends json.Serializable<wt.Conflation> {
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 

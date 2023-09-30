@@ -1,7 +1,7 @@
 import { timer, random, iterator, quantity as q } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import * as defaults from '../defaults.js';
-import { DurationResult, Duration } from './duration.js';
+import { Result, conflate } from './duration.js';
 import { ConflatedSampleStatus } from './types.js';
 
 const gen = random.PRNGi32(52);
@@ -17,7 +17,7 @@ function create(mean: number, std: number, size: number) {
   return s;
 }
 
-function postProcess(mwu: DurationResult) {
+function postProcess(mwu: Result) {
   const order = [] as duration.Duration[];
   const a: Record<ConflatedSampleStatus, duration.Duration[]> = {
     consistent: [],
@@ -43,16 +43,15 @@ describe('Duration', () => {
 
   describe('exclusionMethod: "slowest"', () => {
     test('analysis() - cluster of 3, 1 outlier', () => {
-      const conf = new Duration();
+      const samples = [
+        sB,
+        sA,
+        sD, // <-- outlier
+        sC,
+      ];
 
-      conf.push(sB);
-      conf.push(sA);
-      conf.push(sD); // <-- outlier
-      conf.push(sC);
-
-      const result = postProcess(
-        conf.analyze({ maxEffectSize: 0.1, minSize: 2, maxSize: 3, exclusionMethod: 'slowest' })
-      );
+      const conflation = conflate(samples, { maxEffectSize: 0.1, minSize: 2, maxSize: 3, exclusionMethod: 'slowest' });
+      const result = postProcess(conflation);
 
       // samples a, b, c
       expect(result.consistent.length).toBe(3);
@@ -64,13 +63,12 @@ describe('Duration', () => {
     });
 
     test('analysis() - 2 clusters of 2', () => {
-      const conf = new Duration(
+      const conflation = conflate(
         [sF, sB, sA, sE],
+        { maxEffectSize: 0.5, minSize: 2, maxSize: 5, exclusionMethod: 'slowest' }
       );
-  
-      const result = postProcess(
-        conf.analyze({ maxEffectSize: 0.5, minSize: 2, maxSize: 5, exclusionMethod: 'slowest' })
-      );
+
+      const result = postProcess(conflation);
   
       // fastest samples
       expect(result.order.indexOf(sB)).toBeLessThanOrEqual(1);
@@ -90,9 +88,8 @@ describe('Duration', () => {
   
     test('maxEffectSize', () => {
       { // High threshold
-        const conf = new Duration([sA, sF]);
         const a = postProcess(
-          conf.analyze({ maxEffectSize: 0.8, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
+          conflate([sA, sF], { maxEffectSize: 0.8, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
         );
   
         expect(a.consistent).toEqual([sA, sF]);
@@ -100,9 +97,8 @@ describe('Duration', () => {
         expect(a.rejected.length).toBe(0);
       }
       { // Low threshold
-        const conf = new Duration([sA, sF]);
         const a = postProcess(
-          conf.analyze({ maxEffectSize: 0.1, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
+          conflate([sA, sF], { maxEffectSize: 0.1, minSize: 2, maxSize: 10, exclusionMethod: 'slowest' })
         );
         
         expect(a.consistent).toEqual([]);
@@ -114,19 +110,21 @@ describe('Duration', () => {
 
   describe('exclusionMethod: "outliers"', () => {
     test('analysis() - cluster of 3, 1 reject', () => {
-      const conf = new Duration();
+      const samples = [
+        sD,
+        sE,
+        sA, // <-- outlier
+        sF,
+      ]
   
-      conf.push(sD);
-      conf.push(sE);
-      conf.push(sA); // <-- outlier
-      conf.push(sF);
-  
-      const result = postProcess(conf.analyze({
+      const conflation = conflate(samples, {
         exclusionMethod: 'outliers',
         minSize: 2,
         maxSize: 3,
         maxEffectSize: 0.5,
-      }));
+      });
+
+      const result = postProcess(conflation);
   
       // samples d, e, f
       expect(result.consistent.length).toBe(3);
@@ -140,9 +138,12 @@ describe('Duration', () => {
   });
 
   test('maxSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA]);
-    const a = postProcess(conf.analyze({ maxEffectSize: 1, maxSize: 4, minSize: 2, exclusionMethod: 'slowest' }));
+    const conflation = conflate(
+      [sF, sB, sC, sD, sE, sA],
+      { maxEffectSize: 1, maxSize: 4, minSize: 2, exclusionMethod: 'slowest' },
+    );
 
+    const a = postProcess(conflation);
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
     expect(a.rejected).toEqual([sE, sF]);
     expect(a.consistent).toHaveValues([sA, sB, sC, sD]);
@@ -150,9 +151,12 @@ describe('Duration', () => {
   });
 
   test('maxSize, maxEffectSize', () => {
-    const conf = new Duration([sF, sB, sC, sD, sE, sA]);
-    const a = postProcess(conf.analyze({ maxEffectSize: 0.33, maxSize: 4, minSize: 2, exclusionMethod: 'slowest' }));
+    const conflation = conflate(
+      [sF, sB, sC, sD, sE, sA],
+      { maxEffectSize: 0.33, maxSize: 4, minSize: 2, exclusionMethod: 'slowest' }
+    );
 
+    const a = postProcess(conflation);
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
     expect(a.rejected).toEqual([sE, sF]);
     expect(a.consistent).toEqual([]);
