@@ -174,7 +174,8 @@ export default async function testRunner(
     let i = 0;
     const allTestResults = testResult.testResults;
 
-    // pair up samples to their test result from Jest. They must be in the same order
+    // pair up samples to their test result from Jest. They must appear in the same order
+    // for 2 tests with the same name to be paired with the correct samples.
     for (const { sample, title, nth } of envState.getSamples()) {
       const key = JSON.stringify(title);
       let matched = false;
@@ -183,8 +184,13 @@ export default async function testRunner(
         const ar = allTestResults[i++];
 
         const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
-        if (ar.status === 'passed' && key === arKey) {
+        if (key === arKey) {
           matched = true;
+
+          if (ar.status !== 'passed') {
+            // reject any sample if the test failed
+            continue;
+          }
 
           if (!samples.Duration.is(sample)) {
             throw new Error('Unknown sample type ' + sample[typeid]);
@@ -217,7 +223,7 @@ export default async function testRunner(
       }
 
       if (!matched) {
-        throw new Error("Couldn't pair sample to the test which produced it");
+        throw new Error(`Couldn't pair sample "${key}" to the test which produced it`);
       }
     }
   }
@@ -264,7 +270,7 @@ export default async function testRunner(
   }
 
   if (saSnapshot) {
-    // total tombstones in the staging area is the total moved to snapshot in this epoch
+    // total tombstones in the index area is the total moved to snapshot in this epoch
     stat.snapshotStat.updatedTotal = iterator.count(saSnapshot.allTombstones());
     // commit the new test run to the cache
     const e = await stagingAreaMgr.save(saSnapshot);
