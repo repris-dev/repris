@@ -257,15 +257,18 @@ export class TableTreeReporter<Leaf> {
 
   render(items: Iterable<Leaf>, stream: NodeJS.WriteStream) {
     const strat = this.strategy;
+    const itemArr = [] as Leaf[];
 
     for (const item of items) {
+      itemArr.push(item);
       const bag = strat.annotate(item);
+
       if (bag) {
         this.table.load(item, bag);
       }
     }
 
-    const tree = this.#createTreeFrom(items);
+    const tree = this.#createTreeFrom(itemArr);
 
     this.#renderColumns(stream, stream.columns);
     this.#logSuite(tree, stream);
