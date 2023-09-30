@@ -35,7 +35,6 @@ export default class SampleReporter extends DefaultReporter {
   // resolves when the configuration has loaded
   loadingMutex: Promise<void>;
   testRenderer!: TableTreeReporter<AssertionResult>;
-  writeStream!: NodeJS.WriteStream;
 
   constructor(globalConfig: Config.GlobalConfig, private _config?: unknown) {
     super(globalConfig);
@@ -67,11 +66,6 @@ export default class SampleReporter extends DefaultReporter {
     });
   }
 
-  protected override __wrapStdio(stream: NodeJS.WriteStream): void {
-    super.__wrapStdio(stream);
-    this.writeStream = stream;
-  }
-
   static filterTestResults(testResults: Array<AssertionResult>): Array<AssertionResult> {
     return testResults.filter(({ status }) => status !== 'pending');
   }
@@ -86,7 +80,7 @@ export default class SampleReporter extends DefaultReporter {
 
     // Throws if there is a configuration error
     await this.loadingMutex;
-    const columns = this.testRenderer!.columns;
+    const columns = this.testRenderer.columns;
 
     // configuration warnings
     if (columns.length === 0) {
@@ -116,7 +110,7 @@ export default class SampleReporter extends DefaultReporter {
 
       if (filtered.length > 0) {
         this.printTestFileHeader(result.testFilePath, test.context.config, result);
-        this.testRenderer.render(filtered, this.writeStream!);
+        this.testRenderer.render(filtered, process.stdout);
       }
     }
 
