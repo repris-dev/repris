@@ -145,7 +145,7 @@ export const defaultConflationOptions = {
    * The minimum similarity (from 0 to 1) for two samples to be considered
    * in the same cluster during conflation
    */
-  minSimilarity: 0.75,
+  minSimilarity: 0.9,
 
   /**
    * The minimum proportion of all samples which must meet the inclusion
@@ -295,7 +295,7 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     }
 
     // check the conflation is large enough
-    if (consistentSubset.length < Math.min(N, opts.maxSize) * opts.minSubsetProportion) {
+    if (consistentSubset.length < 2) {
       consistentSubset.length = 0;
     }
 
@@ -415,11 +415,11 @@ ann.register('@conflation:duration-annotator' as typeid, {
     const summary = Array.from(
       iterator.take(
         analysis.ordered.length,
-        iterator.gen(() => '.')
+        iterator.gen(() => '·')
       )
     );
 
-    analysis.excluded.forEach((idx) => (summary[idx] = 'x'));
+    analysis.excluded.forEach((idx) => (summary[idx] = '×'));
     analysis.consistentSubset.forEach((idx) => (summary[idx] = '*'));
 
     const bag = ann.DefaultBag.from([[conflationAnnotations.summaryText, summary.join('')]]);
