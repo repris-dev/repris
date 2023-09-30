@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { assert, typeid } from '@sampleci/base';
-import { wiretypes as wt, annotators as anno } from '@sampleci/samplers';
+import { annotators as anno } from '@sampleci/samplers';
 import type * as config from './config.js';
+import * as cli from './cli.js';
 
 export interface ColumnQuality {
   id: typeid;
@@ -24,11 +25,9 @@ type Cell = string | readonly [text: string, len: number];
 
 const Cell = {
   pad(c: Cell, columnWidth: number) {
-    if (typeof c === 'string') {
-      return c.padStart(columnWidth, ' ');
-    }
+    const width = Cell.length(c);
+    const txt = Cell.text(c);
 
-    const [txt, width] = c;
     if (columnWidth > width) {
       return ' '.repeat(columnWidth - width) + txt;
     }
@@ -37,7 +36,7 @@ const Cell = {
   },
 
   length(c: Cell) {
-    return typeof c === 'string' ? c.length : c[1];
+    return typeof c === 'string' ? cli.util.visibleWidth(c) : c[1];
   },
 
   text(c: Cell) {
@@ -154,17 +153,17 @@ export class TerminalReport<Id> {
 
     const margin = ' '.repeat(this.colMargin);
     let row = [];
-    let cols = 0;
+    let sumWidth = 0;
 
     for (let i = 0; i < cells.length; i++) {
       const w = this.columnWidths[i];
       row.push(Cell.pad(cells[i], w));
-      cols += w;
+      sumWidth += w;
     }
 
     return {
       line: row.join(margin),
-      length: cols + (cells.length - 1) * this.colMargin,
+      length: sumWidth + (cells.length - 1) * this.colMargin,
     };
   }
 

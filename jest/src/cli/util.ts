@@ -1,4 +1,6 @@
+import * as readline from 'node:readline/promises';
 import * as util from 'util';
+
 import chalk from 'chalk';
 import { Status } from '@sampleci/base';
 
@@ -29,7 +31,54 @@ export function tryPanic<T>(s: Status<T>) {
   }
 }
 
-export function panic<T>(s: Error) {
+export function panic(s: Error): never {
   eprintf('%O\n', s);
   process.exit(1);
+}
+
+const ansiMatch = [
+  '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+  '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))'
+].join('|');
+
+export function ansiRegex(onlyFirst?: boolean) {
+	return new RegExp(ansiMatch, onlyFirst ? undefined : 'g');
+}
+
+export function stripAnsi(str: string) {
+	return str.replace(ansiRegex(), '');
+}
+
+export function visibleWidth(str: string) {
+  return stripAnsi(str).length;
+}
+
+export async function yesNoQuestion(q: string) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  let doDelete: boolean | undefined;
+
+  while (doDelete === undefined) {
+    const doStr = await rl.question(`${q} ${chalk.dim('(y/n)')} `);
+    switch (doStr.toLowerCase()) {
+      case 'y':
+      case 'yes':
+        doDelete = true;
+        break;
+
+      case 'n':
+      case 'no':
+        doDelete = false;
+        break;
+
+      default:
+        println(chalk.yellow(`Expected y/n, got "${doStr}"`));
+    }
+  }
+
+  rl.close();
+  return doDelete;
 }
