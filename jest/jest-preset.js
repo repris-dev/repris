@@ -1,7 +1,7 @@
 /** @type {import('jest').Config} */
 export default {
   reporters: [
-    ['@sampleci/jest/custom-reporter'],
+    '@sampleci/jest/custom-reporter',
   ],
   setupFilesAfterEnv: ['@sampleci/jest/stopwatch-env'],
   testRunner: '@sampleci/jest/custom-runner',

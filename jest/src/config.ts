@@ -101,6 +101,7 @@ const defaultConfig: SCIConfig = {
           },
         },
       ],
+      ['duration:conflation:summaryText', { displayName: 'stat' }],
     ],
   },
 };

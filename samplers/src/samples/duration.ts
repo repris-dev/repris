@@ -8,14 +8,12 @@ import {
   Indexable,
   array,
   iterator,
-  math,
   partitioning,
 } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
 import * as types from './types.js';
-import { Sample } from './types.js';
 
 export type SampleOptions = typeof defaultSampleOptions;
 
@@ -151,25 +149,34 @@ export const defaultConflationOptions = {
 
   /**
    * The minimum proportion of all samples which must meet the inclusion
-   * criteria for it to be considered a representative conflation
+   * criteria for the subset to be considered representative
    */
-  minConflationSize: 0.5,
+  minSubsetProportion: 0.5,
 
+  /**
+   * The maximum number of samples in the conflation
+   */
   maxSize: 5,
 };
 
 /** A Sample conflation result based on pair-wise Mann-Whitney U tests */
-type MWUConflationAnalysis = {
-  /** Sample indices of samples which are sufficiently similar */
-  consistentSubset: number[];
-
+interface MWUConflationAnalysis {
   /**
    * All sample indices ordered by the number of times it is more likely to
    * produce lower values in a sample-by-sample comparison, i.e. fastest to
    * slowest.
    */
   ordered: Int32Array;
-};
+
+  /**
+   * Samples excluded from the consistent subset. These will be the slowest
+   * samples in the conflation.
+   */
+  excluded: number[];
+
+  /** Sample indices of samples which are sufficiently similar */
+  consistentSubset: number[];
+}
 
 export class Conflation implements types.Conflation<timer.HrTime> {
   static [typeid] = '@conflation:duration' as typeid;
@@ -192,42 +199,18 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     const maxSize = this.opts.maxSize;
     const samples = this.allSamples;
 
-    if (!excludeOutliers && maxSize >= samples.length) {
-      // no analysis needed
-      return samples;
-    }
-
     const a = this.analysis();
-    const series = !excludeOutliers
-      ? // consider all samples
-        Array.from(iterator.range(0, samples.length))
-      : // consider only the consistent subset
-        a.consistentSubset;
-
-    if (series.length <= maxSize) {
-      return array.subsetOf(samples, series, [] as Duration[]);
+    if (!excludeOutliers) {
+      return samples.length > maxSize
+        ? array.subsetOf(samples, a.ordered.subarray(0, maxSize), [])
+        : samples;
     }
 
-    // find the fastest subset.
-    const subset = new Set(series);
-    const result = [] as Duration[];
-
-    for (let i = 0; i < a.ordered.length; i++) {
-      const ith = a.ordered[i];
-      if (subset.has(ith)) {
-        if (result.push(samples[ith]) >= maxSize) break;
-      }
-    }
-
-    return result;
+    return array.subsetOf(samples, a.consistentSubset, []);
   }
 
   analysis(): MWUConflationAnalysis {
-    return (this.analysisCache ??= Conflation.analyze(
-      this.rawSamples,
-      this.opts.minSimilarity,
-      this.opts.minConflationSize
-    ));
+    return (this.analysisCache ??= Conflation.analyze(this.rawSamples, this.opts));
   }
 
   push(sample: Duration) {
@@ -236,16 +219,13 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     this.analysisCache = undefined;
   }
 
-  static analyze(
-    samples: Indexable<number>[],
-    minSimilarity: number,
-    minSize: number
-  ): MWUConflationAnalysis {
+  static analyze(samples: Indexable<number>[], opts: ConflationOptions): MWUConflationAnalysis {
     const N = samples.length;
 
     if (N === 0) {
       return {
         ordered: new Int32Array(0),
+        excluded: [],
         consistentSubset: [],
       };
     }
@@ -256,7 +236,7 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     const wins = new Float32Array(N);
     const edges = [] as [number, number][];
 
-    // Normalized similarities between 0 and 1 where 1 is 'equal-chance'
+    // Normalized similarities of each edge, between 0 and 1 where 1 is 'equal-chance'
     const similarities = [] as number[];
 
     for (let i = 0; i < N; i++) {
@@ -264,7 +244,7 @@ export class Conflation implements types.Conflation<timer.HrTime> {
         const mwu = stats.mwu(samples[i], samples[j]).effectSize - 0.5;
         const similarity = 1 - Math.abs(mwu) * 2;
 
-        if (similarity >= minSimilarity) {
+        if (similarity >= opts.minSimilarity) {
           edges.push([i, j]);
           similarities.push(similarity);
         }
@@ -274,17 +254,28 @@ export class Conflation implements types.Conflation<timer.HrTime> {
       }
     }
 
+    // sort all samples
+    const orderByWins = new Int32Array(N);
+    array.fillAscending(orderByWins, 0);
+    orderByWins.sort((a, b) => wins[b] - wins[a]);
+
+    // set of excluded samples
+    const excluded = new Set<number>(orderByWins.subarray(opts.maxSize));
+
     let consistentSubset: number[] = [];
 
     if (edges.length > 0) {
-      // connected components of samples
-      const cc = partitioning.from(edges, N);
+      // connected components of samples, ignoring excluding samples
+      const cc = partitioning.from(
+        iterator.filter(edges, ([a, b]) => !excluded.has(a) && !excluded.has(b)),
+        N
+      );
 
       if (cc.countGroups() === 1) {
         // take all samples
         consistentSubset = iterator.collect(cc.iterateGroup(0));
       } else {
-        // Cohesion of each group
+        // Cohesion of each component
         const groupCohesion = new Float32Array(N);
         edges.forEach(([a, b], i) => {
           if (cc.get(a) === cc.get(b)) groupCohesion[cc.get(a)] += similarities[i];
@@ -304,17 +295,13 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     }
 
     // check the conflation is large enough
-    if (consistentSubset.length < N * minSize) {
+    if (consistentSubset.length < Math.min(N, opts.maxSize) * opts.minSubsetProportion) {
       consistentSubset.length = 0;
     }
 
-    // sort all samples
-    const orderByWins = new Int32Array(N);
-    array.fillAscending(orderByWins, 0);
-    orderByWins.sort((a, b) => wins[b] - wins[a]);
-
     return {
       ordered: orderByWins,
+      excluded: Array.from(excluded),
       consistentSubset,
     };
   }
@@ -364,7 +351,7 @@ ann.register('@sample:duration-annotator' as typeid, {
   },
 
   annotate(
-    sample: Sample<unknown>,
+    sample: types.Sample<unknown>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (sample[typeid] !== Duration[typeid]) {
@@ -393,15 +380,50 @@ ann.register('@sample:duration-annotator' as typeid, {
 });
 
 const conflationAnnotations = {
-  /**
-   * The heterogeneity of the selected samples in the conflation, between
-   * 0 (indistinguishable) to 1 (no similarity)
-   */
-  heterogeneity: 'duration:conflation:heterogeneity' as typeid,
-
   /** The number of samples selected for the conflation */
   includedCount: 'duration:conflation:includedCount' as typeid,
 
   /** The number of samples excluded from the conflation */
   excludedCount: 'duration:conflation:excludedCount' as typeid,
+
+  /**
+   * A symbolic summary of the conflation. Legend:
+   *
+   *   . - sample in the conflation, not included for analysis
+   *   * - Sample in the conflation, included for analysis
+   *   x - Sample removed because of size limits or poor quality
+   */
+  summaryText: 'duration:conflation:summaryText' as typeid,
 };
+
+ann.register('@conflation:duration-annotator' as typeid, {
+  annotations() {
+    return Object.values(conflationAnnotations);
+  },
+
+  annotate(
+    sample: types.Conflation<timer.HrTime>,
+    _request: Map<typeid, {}>
+  ): Status<ann.AnnotationBag | undefined> {
+    if (sample[typeid] !== Conflation[typeid]) {
+      return Status.value(void 0);
+    }
+
+    const c = sample as Conflation;
+    const analysis = c.analysis();
+
+    const summary = Array.from(
+      iterator.take(
+        analysis.ordered.length,
+        iterator.gen(() => '.')
+      )
+    );
+
+    analysis.excluded.forEach((idx) => (summary[idx] = 'x'));
+    analysis.consistentSubset.forEach((idx) => (summary[idx] = '*'));
+
+    const bag = ann.DefaultBag.from([[conflationAnnotations.summaryText, summary.join('')]]);
+
+    return Status.value(bag);
+  },
+});

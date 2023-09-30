@@ -69,18 +69,10 @@ export default async function testRunner(
           const nth = counter.increment(JSON.stringify(title));
           // load the previous samples of this fixture from the cache
           const cachedFixture = cacheFile.getFixture(title, nth);
-
-          if (cachedFixture.samples.length > 0) {
-            // publish the conflation on the current test case result
-            (assertionResult as any).conflation = conflate(
-              s, cachedFixture, conflationAnnotations, cfg.conflation.options,
-            )?.annotations;
-          } else {
-            cachedFixture.samples.push({
-              sample: s,
-              annotations: {}
-            });
-          }
+          // publish the conflation on the current test case result
+          (assertionResult as any).conflation = conflate(
+            s, cachedFixture, conflationAnnotations, cfg.conflation.options,
+          )?.annotations;
 
           cacheFile.updateFixture(title, nth, cachedFixture);
         }
@@ -140,7 +132,7 @@ function conflate(
   // The existing cached samples
   const index = new Map(cacheState.samples.map(s => [s.sample, s]));
 
-  // load the new sample and its annotations
+  // create the new sample and its annotations
   index.set(newSample, { sample: newSample, annotations: {} });
 
   // conflate the current and previous samples together
@@ -168,7 +160,7 @@ function conflate(
   const bestSamples: AggregatedFixture<samples.duration.Duration>['samples'] = [];
   
   // Update the aggregated fixture with the best K samples, discarding the worst sample.
-  for (const best of newConflation.samples(true)) {
+  for (const best of newConflation.samples(false)) {
     assert.is(index.has(best), 'Sample should be indexed');
     bestSamples.push(index.get(best)!);
   }

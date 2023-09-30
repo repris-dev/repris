@@ -62,7 +62,7 @@ describe('DurationConflation', () => {
     expect(result.ordered.indexOf(0)).toBe(3);
   });
 
-  test('exclusionThreshold', () => {
+  test('minSimilarity', () => {
     { // High threshold
       const conf = new duration.Conflation([sE, sF], { minSimilarity: 0.8 });
       expect(conf.analysis().consistentSubset.length).toBe(0);
@@ -73,6 +73,25 @@ describe('DurationConflation', () => {
       const a = conf.analysis();
       expect(a.consistentSubset.length).toBe(2);
       expect(Array.from(a.ordered)).toEqual([0, 1]);
+    }
+  });
+
+  test('maxSize', () => {
+    {
+      const conf = new duration.Conflation([sA, sB, sC, sD, sE, sF], { minSimilarity: 0, maxSize: 4 });
+      const a = conf.analysis();
+
+      expect(a.excluded).toEqual([4, 5]);
+      expect(Array.from(a.ordered.sort())).toEqual([0, 1, 2, 3, 4, 5]);
+      expect(Array.from(a.consistentSubset.sort())).toEqual([0, 1, 2, 3]);
+    }
+    {
+      const conf = new duration.Conflation([sA, sB], { minSimilarity: 0, maxSize: 4 });
+      const a = conf.analysis();
+
+      expect(a.excluded).toEqual([]);
+      expect(Array.from(a.ordered.sort())).toEqual([0, 1]);
+      expect(Array.from(a.consistentSubset.sort())).toEqual([0, 1]);
     }
   });
 });

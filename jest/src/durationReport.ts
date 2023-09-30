@@ -78,7 +78,7 @@ export class TerminalReport<Id> {
     const conflationAnnotations = anno.DefaultBag.fromJson(conflation ?? {});
 
     const cells = this.columns.map((c) => {
-      const selectedBag = bag!.annotations.has(c.id) ? bag! : conflationAnnotations;
+      const selectedBag = bag.annotations.has(c.id) ? bag : conflationAnnotations;
       const ann = selectedBag.annotations.get(c.id);
 
       if (ann !== undefined) {
