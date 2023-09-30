@@ -81,14 +81,14 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
       if (stats.epochStat.complete) {
         summary.push(
           chalk.greenBright(
-            ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
+            ` › All ${stats.snapshotStat.updatedTotal} baselines updated.` +
               ' Index cleared.'
           )
         );
       } else {
         const totalFixtures = stats.cacheStat.totalFixtures + stats.snapshotStat.updatedTotal;
         summary.push(
-          ` › ${stats.snapshotStat.updatedTotal} of ${totalFixtures} benchmark snapshots updated.` +
+          ` › ${stats.snapshotStat.updatedTotal} of ${totalFixtures} baselines updated.` +
             ' Re-run to collect additional samples.'
         );
       }
@@ -96,13 +96,13 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
       if (stats.cacheStat.totalFixtures === 0) {
         if (stats.snapshotStat.updatedTotal > 0) {
           summary.push(
-            ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
+            ` › All ${stats.snapshotStat.updatedTotal} baselines updated.` +
               ' Re-run with -u to reset the index.'
           );
         }
       } else {
         summary.push(
-          ` › ${stats.cacheStat.stagedFixtures} of ${stats.cacheStat.totalFixtures} benchmark snapshots can be updated.` +
+          ` › ${stats.cacheStat.stagedFixtures} of ${stats.cacheStat.totalFixtures} baselines can be updated.` +
             ' Re-run to collect additional samples.'
         );
       }
@@ -114,7 +114,7 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
     const rows = [
       [
-        chalk.bold(' Snapshots: '),
+        chalk.bold(' Baselines: '),
         `${stats.snapshotStat.updatedTotal} ${deltaStr(stats.snapshotStat.updated)}updated`,
       ],
       [

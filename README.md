@@ -1,8 +1,18 @@
-# vite-monorepo
+# Repris
 
-A monorepo using:
+## Quickstart
 
-- Vite / ESBuild
-- PNPM Workspaces
-- Typescript
-- Tests with jest and playwright
+```bash
+# install packages
+pnpm i
+# build
+pnpm build:tsc
+# test
+pnpm test
+```
+
+## Building a distribution
+
+```
+...
+```
