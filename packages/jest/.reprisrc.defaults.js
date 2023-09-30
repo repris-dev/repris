@@ -27,7 +27,7 @@ export default {
   sampler: {
     options: defaults.samplers.stopwatch
   },
-  conflation: {
+  digest: {
     options: defaults.conflations.duration
   },
   

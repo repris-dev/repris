@@ -17,32 +17,20 @@ import * as wt from '../wireTypes.js';
 import * as annotators from '../annotators.js';
 import * as types from './types.js';
 
-export type Options = {
-  /** Minimum number of samples in a valid conflation */
-  minSize: number;
-
-  /** The maximum number of samples in the cache */
-  maxSize: number;
-
-  /**
-   * Threshold of similarity for the conflation to be considered valid, between
-   * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
-   */
-  maxUncertainty: number;
-
-  /** The location estimation to use for each sample */
+export type Options = types.DigestOptions & {
+  /** The location estimation statistic to create a sampling distribution from */
   locationEstimationType: typeid;
 };
 
-type DistributionWT = wt.Conflation & {
+type DistributionDigestWT = wt.BenchmarkDigest & {
   statistic: number[];
 };
 
-export function conflate(
+export function process(
   samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
   opts: Options,
   entropy?: random.Generator
-): Status<Result> {
+): Status<Digest> {
   const points = [] as [number, duration.Duration][];
   for (const [sample, bag] of samples) {
     if (bag !== void 0 && bag[opts.locationEstimationType]) {
@@ -52,7 +40,7 @@ export function conflate(
     } else {
       // todo: annotate the sample
       return Status.err(
-        `Sample could not be conflated. Point estimate '${opts.locationEstimationType}' is missing`
+        `Sample could not be conflated. Annotation '${opts.locationEstimationType}' is missing`
       );
     }
   }
@@ -61,22 +49,22 @@ export function conflate(
   const summary = summarize(aggregation.stat);
   const isReady = summary.consistent >= opts.minSize;
 
-  return Status.value(new Result(isReady, aggregation));
+  return Status.value(new Digest(isReady, aggregation));
 }
 
-export class Result implements types.Conflation<duration.Duration> {
-  static [typeid] = '@conflation:duration' as typeid;
+export class Digest implements types.Digest<duration.Duration> {
+  static [typeid] = '@digest:duration' as typeid;
 
-  static is(x?: any): x is Result {
-    return x !== void 0 && x[typeid] === Result[typeid];
+  static is(x?: any): x is Digest {
+    return x !== void 0 && x[typeid] === Digest[typeid];
   }
 
-  static fromJson(obj: wt.Conflation, refs: Map<uuid, duration.Duration>): Status<Result> {
-    if (obj['@type'] !== Result[typeid]) {
-      return Status.err('Not a valid conflation type');
+  static fromJson(obj: wt.BenchmarkDigest, refs: Map<uuid, duration.Duration>): Status<Digest> {
+    if (obj['@type'] !== Digest[typeid]) {
+      return Status.err('Not a valid digest type');
     }
 
-    const wt = obj as DistributionWT;
+    const wt = obj as DistributionDigestWT;
 
     let stat = [];
     for (const s of wt.samples) {
@@ -88,11 +76,11 @@ export class Result implements types.Conflation<duration.Duration> {
 
       stat.push({
         sample: refs.get(ref)!,
-        status: (s.outlier ? 'outlier' : 'consistent') as types.ConflatedSampleStatus,
+        status: (s.outlier ? 'outlier' : 'consistent') as types.DigestedSampleStatus,
       });
     }
 
-    const result = new Result(wt.isReady, {
+    const result = new Digest(wt.isReady, {
       relativeSpread: wt.uncertainty,
       samplingDistribution: wt.statistic,
       stat,
@@ -103,7 +91,7 @@ export class Result implements types.Conflation<duration.Duration> {
     return Status.value(result);
   }
 
-  readonly [typeid] = Result[typeid];
+  readonly [typeid] = Digest[typeid];
   private _uuid!: uuid;
 
   get [uuid]() {
@@ -145,7 +133,7 @@ export class Result implements types.Conflation<duration.Duration> {
     return this._aggregation.samplingDistribution;
   }
 
-  toJson(): DistributionWT {
+  toJson(): DistributionDigestWT {
     const samples = this._aggregation.stat
       // filter samples which were excluded from the analysis
       .filter(s => s.status !== 'rejected')
@@ -165,8 +153,8 @@ export class Result implements types.Conflation<duration.Duration> {
   }
 }
 
-function summarize(stat: { status: types.ConflatedSampleStatus }[]) {
-  const result: Record<types.ConflatedSampleStatus, number> = {
+function summarize(stat: { status: types.DigestedSampleStatus }[]) {
+  const result: Record<types.DigestedSampleStatus, number> = {
     consistent: 0,
     outlier: 0,
     rejected: 0,
@@ -178,22 +166,22 @@ function summarize(stat: { status: types.ConflatedSampleStatus }[]) {
 
 export type SamplingAggregation<T> = {
   /** Status/classification of each sample */
-  stat: { sample: T; status: types.ConflatedSampleStatus }[];
+  stat: { sample: T; status: types.DigestedSampleStatus }[];
 
   /** Sampling distribution of the consistent subset, if any */
   samplingDistribution: number[];
 
-  /** Relative scale of the consistent subset */
+  /** The Coefficient of variation of the consistent subset */
   relativeSpread: number;
 };
 
 /**
- * Creates a conflation of samples based on analysis of their sampling
- * distribution
+ * Creates a digest of samples based on analysis of their sampling
+ * distribution, excluding outliers 
  */
 function aggregateAndFilter<T>(
   taggedPointEstimates: [pointEstimate: number, tag: T][],
-  opts: types.AnalysisOptions,
+  opts: types.DigestOptions,
   entropy?: random.Generator
 ): SamplingAggregation<T> {
   const N = taggedPointEstimates.length;
@@ -201,7 +189,7 @@ function aggregateAndFilter<T>(
   if (N < 2) {
     // prettier-ignore
     const stat = N === 1
-      ? [{ sample: taggedPointEstimates[0][1], status: 'consistent' as types.ConflatedSampleStatus }]
+      ? [{ sample: taggedPointEstimates[0][1], status: 'consistent' as types.DigestedSampleStatus }]
       : [];
 
     return {
@@ -215,7 +203,7 @@ function aggregateAndFilter<T>(
   let stat = taggedPointEstimates.map(([pointEst, tag]) => ({
     sample: tag,
     statistic: pointEst,
-    status: 'outlier' as types.ConflatedSampleStatus,
+    status: 'outlier' as types.DigestedSampleStatus,
   }));
 
   // Sorting of the sampling distribution, distance from mean (desc)

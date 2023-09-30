@@ -51,7 +51,7 @@ export default class SampleReporter extends DefaultReporter {
             // annotations produced by the runner
             return annotators.DefaultBag.fromJson({
               ...aar.repris.sample,
-              ...aar.repris?.conflation,
+              ...aar.repris?.digest,
               ...aar.repris?.benchmark
             });
           }

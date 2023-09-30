@@ -1,8 +1,8 @@
 import { timer, random, iterator, quantity as q, typeid, Status, asTuple } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import * as defaults from '../defaults.js';
-import { Result, conflate, createOutlierSelection } from './samplingDistribution.js';
-import { ConflatedSampleStatus } from './types.js';
+import { Digest, process, createOutlierSelection } from './samplingDistribution.js';
+import { DigestedSampleStatus } from './types.js';
 import { annotate } from '../annotators.js';
 
 const gen = random.PRNGi32(52);
@@ -18,9 +18,9 @@ function create(mean: number, std: number, size: number) {
   return s;
 }
 
-function postProcess(mwu: Result) {
+function postProcess(mwu: Digest) {
   const order = [] as duration.Duration[];
-  const a: Record<ConflatedSampleStatus, duration.Duration[]> = {
+  const a: Record<DigestedSampleStatus, duration.Duration[]> = {
     consistent: [],
     rejected: [],
     outlier: [],
@@ -54,7 +54,7 @@ describe('conflate', () => {
 
     const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
 
-    const conflation = conflate(annotated, {
+    const conflation = process(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
       maxUncertainty: 0.1,
       minSize: 2,
@@ -80,7 +80,7 @@ describe('conflate', () => {
       // High threshold
       const a = postProcess(
         Status.get(
-          conflate(annotated, {
+          process(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
             maxUncertainty: 0.8,
             minSize: 2,
@@ -97,7 +97,7 @@ describe('conflate', () => {
       // Low threshold
       const a = postProcess(
         Status.get(
-          conflate(annotated, {
+          process(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
             maxUncertainty: 0.1,
             minSize: 2,
@@ -120,7 +120,7 @@ describe('conflate', () => {
 
     const a = postProcess(
       Status.get(
-        conflate(
+        process(
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
@@ -147,7 +147,7 @@ describe('conflate', () => {
 
     const a = postProcess(
       Status.get(
-        conflate(
+        process(
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,

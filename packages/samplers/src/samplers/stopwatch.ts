@@ -108,10 +108,10 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     return this.runAsync(applyParams);
   }
   
-  toJson(): wt.Sample {
+  toJson(): wt.Sampler {
     return {
-      data: this.sample().toJson(),
-      samplerInfo: {
+      sample: this.sample().toJson(),
+      config: {
         '@type': Sampler[typeid],
         parameters: this.parameter
       }

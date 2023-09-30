@@ -42,7 +42,7 @@ ann.register('@annotator:conflation:mean', {
   },
 
   annotate(
-    conflation: conflations.Conflation<Sample<unknown>>,
+    conflation: conflations.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     const result = new Map<typeid, ann.Annotation>();
@@ -82,7 +82,7 @@ ann.register('@annotator:hypothesis:mean', {
   },
 
   annotate(
-    hypot: hypothesis.DefaultHypothesis<conflations.Conflation<Sample<unknown>>>,
+    hypot: hypothesis.DefaultHypothesis<conflations.Digest<Sample<unknown>>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (!hypothesis.DefaultHypothesis.is(hypot)) {

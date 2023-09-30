@@ -58,7 +58,7 @@ const conflationAnnotator: ann.Annotator = {
   },
 
   annotate(
-    conflation: conflations.Conflation<Sample<unknown>>,
+    conflation: conflations.Digest<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
     if (!conflation.ready()) {

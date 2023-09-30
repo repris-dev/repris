@@ -30,7 +30,7 @@ export type Options = {
 }
 
 /** Json representation of a duration sample */
-type WireType = wt.SampleData & {
+type WireType = wt.Sample & {
   summary: ReturnType<stats.online.Lognormal['toJson']>;
   units: q.UnitsOf<'time'>;
   opts: Options;

@@ -16,7 +16,7 @@ export interface ReprisConfig {
     options: import('@repris/samplers').samples.duration.Options;
   };
 
-  conflation: {
+  digest: {
     /** Configuration of each conflation */
     options: import('@repris/samplers').conflations.duration.Options;
   };
@@ -24,12 +24,12 @@ export interface ReprisConfig {
   commands: {
     compare?: {
       /**
-       * The annotations to compute for each conflation. In a conflation,
+       * The annotations to compute for each digest. In a digest,
        * 3 items are annotatable and the annotations for each can be configured
        * separately based on the corresponding context:
        * 
-       *  1. '@index' - The annotations for the conflation stored in the index
-       *  2. '@baseline' - The annotations for the baseline conflation
+       *  1. '@index' - The annotations for the digest stored in the index
+       *  2. '@baseline' - The annotations for the baseline digest
        *  3. '@test' - The annotations for the hypothesis test 
        */
       annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>

@@ -94,7 +94,7 @@ function annotateComparison(
   const annotations = annotators.DefaultBag.from([]);
 
   // Load index conflation and annotations
-  const x0 = index?.conflation();
+  const x0 = index?.digest();
 
   if (x0) {
     const bag = annotators.DefaultBag.fromJson(index?.annotations().get(x0[uuid]) ?? {});
@@ -103,7 +103,7 @@ function annotateComparison(
   }
 
   // Load snapshot conflation and annotations
-  const x1 = base?.conflation();
+  const x1 = base?.digest();
 
   if (x1) {
     const bag = annotators.DefaultBag.fromJson(base?.annotations().get(x1[uuid]) ?? {});

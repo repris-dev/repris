@@ -23,13 +23,13 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   samples(): IterableIterator<{ sample: S; run: number }>;
 
-  conflation(): conflations.Conflation<S> | undefined;
+  digest(): conflations.Digest<S> | undefined;
 
   annotations(): ReadonlyMap<uuid, wt.AnnotationBag>;
 
   totalRuns(): number;
 
-  addRun(conflation: conflations.Conflation<S>): DefaultBenchmark;
+  addRun(digest: conflations.Digest<S>): DefaultBenchmark;
 }
 
 export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> {
@@ -47,23 +47,23 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     const resultSamples = [] as { sample: duration.Duration; run: number }[];
     const sampleMap = new Map<uuid, duration.Duration>();
 
-    for (let ws of benchmark.samples) {
-      const s = duration.Duration.fromJson(ws.data);
+    for (let ws of benchmark.trove) {
+      const s = duration.Duration.fromJson(ws.sample);
       if (!Status.isErr(s)) {
         const sample = Status.get(s);
-        resultSamples.push({ sample, run: (ws as any).run ?? 0 });
+        resultSamples.push({ sample, run: ws.run ?? 0 });
         sampleMap.set(sample[uuid], sample);
       } else {
         return Status.err(
-          `Failed to load sample of type: ${ws.data['@type']}\nReason: ${s[1].message}`
+          `Failed to load sample of type: ${ws.sample['@type']}\nReason: ${s[1].message}`
         );
       }
     }
 
-    let c: conflations.duration.Result | undefined;
+    let c: conflations.duration.Digest | undefined;
 
-    if (benchmark.conflation) {
-      const cTmp = conflations.duration.Result.fromJson(benchmark.conflation, sampleMap);
+    if (benchmark.digest) {
+      const cTmp = conflations.duration.Digest.fromJson(benchmark.digest, sampleMap);
 
       if (Status.isErr(cTmp)) {
         return Status.err(`Failed to load conflation: ${cTmp[1].message}`);
@@ -100,14 +100,14 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
   private _uuid!: uuid;
   private _samples: Map<duration.Duration, { sample: duration.Duration; run: number }>;
-  private _conflation?: conflations.Conflation<duration.Duration>;
+  private _conflation?: conflations.Digest<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
     samples: Iterable<{ sample: duration.Duration; run: number }>,
-    conflation?: conflations.Conflation<duration.Duration>,
+    conflation?: conflations.Digest<duration.Duration>,
     totalRuns = 0
   ) {
     this._samples = new Map(iterator.map(samples, s => [s.sample, s]));
@@ -137,7 +137,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._samples.values();
   }
 
-  conflation(): conflations.Conflation<duration.Duration> | undefined {
+  digest(): conflations.Digest<duration.Duration> | undefined {
     return this._conflation;
   }
 
@@ -145,7 +145,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._annotations;
   }
 
-  addRun(conflation: conflations.Conflation<duration.Duration>): DefaultBenchmark {
+  addRun(conflation: conflations.Digest<duration.Duration>): DefaultBenchmark {
     const nextRun = this.totalRuns() + 1;
 
     // Create a new benchmark
@@ -186,13 +186,13 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       '@type': this[typeid],
       '@uuid': this[uuid],
       name: assignDeep({} as wt.BenchmarkName, this.name),
-      samples: iterator.collect(
+      trove: iterator.collect(
         iterator.map(this.samples(), ({ sample, run }) => ({
-          data: sample.toJson(),
+          sample: sample.toJson(),
           run,
         }))
       ),
-      conflation: this.conflation()?.toJson(),
+      digest: this.digest()?.toJson(),
       annotations: iterator.reduce(
         this.annotations().entries(),
         (acc, [uuid, bag]) => ((acc[uuid as string] = bag), acc),
@@ -232,7 +232,7 @@ ann.register('@benchmark:annotator' as typeid, {
 
     let summary: string;
 
-    const confl = fixt.conflation();
+    const confl = fixt.digest();
     if (confl) {
       let totalIndexed = 0;
 

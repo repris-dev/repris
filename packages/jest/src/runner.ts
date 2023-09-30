@@ -24,8 +24,8 @@ export interface AugmentedAssertionResult extends AssertionResult {
   repris?: {
     /** Sample annotations for this benchmark */
     sample?: wt.AnnotationBag;
-    /** Conflation annotations for this benchmark */
-    conflation?: wt.AnnotationBag;
+    /** Digest annotations for this benchmark */
+    digest?: wt.AnnotationBag;
     /** benchmark annotations */
     benchmark?: wt.AnnotationBag;
   };
@@ -225,7 +225,7 @@ export default async function testRunner(
             const newBenchmark = reconflateBenchmark(
               indexedBenchmark,
               { sample, annotations: sampleBagJson },
-              reprisCfg.conflation.options,
+              reprisCfg.digest.options,
               testAnnotations,
             );
 
@@ -233,8 +233,8 @@ export default async function testRunner(
             indexedSnapshot.updateBenchmark(newBenchmark);
 
             // publish the conflation annotations on the current test case result
-            augmentedResult.repris.conflation = newBenchmark
-              .annotations().get(newBenchmark.conflation()?.[uuid]!);
+            augmentedResult.repris.digest = newBenchmark
+              .annotations().get(newBenchmark.digest()?.[uuid]!);
 
             // publish the current annotations on the current test case result
             augmentedResult.repris.benchmark = newBenchmark
@@ -377,7 +377,7 @@ function reconflateBenchmark(
   allSamples.push([newEntry.sample, newEntry.annotations]);
 
   // Conflate the new and previous samples together
-  const newConflation = conflations.duration.conflate(allSamples, opts);
+  const newConflation = conflations.duration.process(allSamples, opts);
 
   if (Status.isErr(newConflation)) {
     dbg('Failed to create conflation %s', newConflation[1].message);

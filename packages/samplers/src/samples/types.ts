@@ -5,7 +5,7 @@ import type * as wt from '../wireTypes.js';
  * A representation of a single random variable
  * @template V The Value type of the sample
  */
-export interface Sample<V> extends json.Serializable<wt.SampleData>
+export interface Sample<V> extends json.Serializable<wt.Sample>
 {
   /** The kind of sample */
   readonly [typeid]: typeid;
