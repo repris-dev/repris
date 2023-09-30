@@ -1,6 +1,6 @@
+import chalk from 'chalk';
 import { assert, Status, typeid } from '@sampleci/base';
 import { samples, wiretypes as wt, annotators as anno } from '@sampleci/samplers';
-import chalk from 'chalk';
 
 export interface ColumnQuality {
   id: typeid;
@@ -71,7 +71,7 @@ export class TerminalReport<Id> {
   fmt = new ValueFormatter();
   colMargin = 2;
   emptyCell = [chalk.dim('?'), 1] as Cell;
-  rowIndex = new Map<Id, { cells: Cell[], duration: samples.Duration }[]>();
+  rowIndex = new Map<Id, { cells: Cell[], duration: samples.duration.Duration }[]>();
   columnWidths!: number[];
   titleCells!: string[];
 
@@ -83,7 +83,7 @@ export class TerminalReport<Id> {
    * are rendered in the order they were loaded in to the table.
    */
   load(rowid: Id, sample: wt.SampleData, conflation?: wt.SampleConflation): boolean {
-    const d = samples.Duration.fromJson(sample);
+    const d = samples.duration.Duration.fromJson(sample);
     if (Status.isErr(d)) { return false; }
 
     // conflated stats

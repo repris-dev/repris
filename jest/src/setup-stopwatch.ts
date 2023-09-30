@@ -9,6 +9,8 @@ declare function onSample(
   sample: samples.Sample<unknown>
 ): void;
 
+declare function getSamplerOptions(): Partial<stopwatch.Options>;
+
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
 const getGC = () => global.gc;
 
@@ -33,7 +35,7 @@ async function runStopwatch(
 
 (globalThis as any).sample = function(testName: string, fn: stopwatch.SamplerFn<[]>, timeout?: number) {
   const gc = getGC();
-  const sw = new stopwatch.Sampler(fn, [], void 0, void 0, gc);
+  const sw = new stopwatch.Sampler(fn, [], getSamplerOptions(), void 0, gc);
   const f = runStopwatch.bind(null, sw) as jest.ProvidesCallback;
 
   // create the jest test-case

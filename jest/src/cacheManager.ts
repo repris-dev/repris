@@ -23,7 +23,7 @@ type ReportCacheWT = {
  * and each fixture contains a sample and its annotations.
  *
  * When multiple reports are combined together it produces a set of aggregated
- * fixtures which is summarized by a conflation.
+ * fixtures which can be summarized by a conflation.
  */
 export type AggregatedFixture<T extends samples.Sample<any>> = {
   name: wt.FixtureName;
@@ -44,7 +44,7 @@ export class SampleCacheManager {
     this.cachePath = this.getCachePath();
   }
 
-  updateFixture(title: string[], index: number, fixture: AggregatedFixture<samples.Duration>) {
+  updateFixture(title: string[], index: number, fixture: AggregatedFixture<samples.duration.Duration>) {
     if (!this.fixtures) this.load();
 
     this.fixtures!.set(`${JSON.stringify(title)}: ${index}`, {
@@ -58,16 +58,16 @@ export class SampleCacheManager {
   }
 
   /** @returns  */
-  getFixture(title: string[], nth: number): AggregatedFixture<samples.Duration> {
+  getFixture(title: string[], nth: number): AggregatedFixture<samples.duration.Duration> {
     if (!this.fixtures) this.load();
 
     const fixture = this.fixtures!.get(`${JSON.stringify(title)}: ${nth}`);
 
     if (fixture) {
-      const resultSamples = [] as AggregatedFixture<samples.Duration>['samples'];
+      const resultSamples = [] as AggregatedFixture<samples.duration.Duration>['samples'];
 
       for (let ws of fixture.samples) {
-        const s = samples.Duration.fromJson(ws.data);
+        const s = samples.duration.Duration.fromJson(ws.data);
         if (!Status.isErr(s)) {
           resultSamples.push({ sample: Status.get(s), annotations: ws.annotations });
         } else {
