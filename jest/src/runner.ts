@@ -3,7 +3,7 @@ import { debug } from 'util';
 import HasteMap from 'jest-haste-map';
 import circus from 'jest-circus/runner';
 import type { JestEnvironment } from '@jest/environment';
-import type { Config } from '@jest/types';
+import type { Circus, Config } from '@jest/types';
 import type { AssertionResult, TestEvents, TestFileEvent, TestResult } from '@jest/test-result';
 
 import { annotators, samples, conflations, wiretypes as wt, snapshots } from '@sampleci/samplers';
@@ -26,11 +26,34 @@ const dbg = debug('sci:runner');
 
 function initializeEnvironment(
   environment: JestEnvironment,
-  cfg: sciConfig.SCIConfig,
-  onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
+  cfg: sciConfig.SCIConfig
+  //onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
 ) {
-  environment.global.onSample = onSample;
+  let fullTitle: string[] | undefined;
+  const samples: { fullTitle: string[]; sample: samples.Sample<unknown> }[] = [];
+
   environment.global.getSamplerOptions = () => cfg.sampler.options;
+  environment.global.onSample = (_matcherState: any, sample: samples.Sample<unknown>) => {
+    assert.isDefined(fullTitle, 'No test running');
+    samples.push({ fullTitle, sample });
+  };
+
+  const hte = environment.handleTestEvent;
+  const newe: Circus.EventHandler = (evt, state) => {
+    if (evt.name === 'test_start') {
+      fullTitle = getTestID(evt.test);
+    }
+
+    return hte?.(evt as Circus.SyncEvent, state);
+  };
+
+  environment.handleTestEvent = newe;
+
+  return {
+    getSamples() {
+      return samples;
+    },
+  };
 }
 
 export default async function testRunner(
@@ -61,56 +84,8 @@ export default async function testRunner(
   const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
   /** Fixture title state */
   const titleCount = new snapshots.RecordCounter<string>();
-
-  let pendingSample: samples.Sample<unknown> | undefined;
-
-  /** Exposed in the test environment */
-  function onSample(
-    _matcherState: jest.MatcherState & Record<string, any>,
-    sample: samples.Sample<unknown>
-  ) {
-    assert.eq(pendingSample, undefined, 'Expected only one sample per test');
-    pendingSample = sample;
-  }
-
-  function onTestEvent(evt: keyof TestEvents, args: any) {
-    if (evt === 'test-case-result') {
-      const [_testPath, assertionResult] = args as TestEvents[typeof evt];
-
-      if (assertionResult && samples.Duration.is(pendingSample)) {
-        const augmentedResult = assertionResult as AugmentedAssertionResult;
-
-        // assign serialized sample generated during the most recent test case
-        // to this test case result
-        augmentedResult.sci = { sample: annotate(pendingSample, sampleAnnotations) };
-
-        if (cacheFile) {
-          const title = assertionResult.ancestorTitles.concat(assertionResult.title);
-          // nth-time in this test run this fixture name has been seen
-          const nth = titleCount.increment(JSON.stringify(title));
-          // load the previous samples of this fixture from the cache
-          const cachedFixture = cacheFile.getOrCreateFixture(title, nth);
-          // publish the conflation on the current test case result
-          augmentedResult.sci.conflation = conflate(
-            pendingSample,
-            cachedFixture,
-            conflationAnnotations,
-            cfg.conflation.options
-          )?.annotations;
-
-          // Update the cache
-          cacheFile.updateFixture(title, nth, cachedFixture);
-        }
-      }
-
-      // reset for the next sample
-      pendingSample = undefined;
-    }
-
-    sendMessageToJest?.(evt, args);
-  }
-
-  initializeEnvironment(environment, cfg, onSample);
+  /** Wire up the environment */
+  const envState = initializeEnvironment(environment, cfg);
 
   const testResult: TestResult = await circus(
     globalConfig,
@@ -118,8 +93,60 @@ export default async function testRunner(
     environment,
     runtime,
     testPath,
-    onTestEvent
+    sendMessageToJest
   );
+
+  {
+    // pair up samples to their test result from Jest. They must be in the same order
+    let i = 0;
+    const allTestResults = testResult.testResults;
+
+    for (const { sample, fullTitle } of envState.getSamples()) {
+      const key = JSON.stringify(fullTitle);
+      let matched = false;
+
+      while (i < allTestResults.length) {
+        const ar = allTestResults[i++];
+        const arKey = JSON.stringify(ar.ancestorTitles.concat(ar.title));
+
+        if (key === arKey) {
+          matched = true;
+
+          if (!samples.Duration.is(sample)) {
+            throw new Error('Unknown sample type ' + sample[typeid]);
+          }
+
+          const augmentedResult = ar as AugmentedAssertionResult;
+          // assign serialized sample generated during the most recent test case
+          // to this test case result
+          augmentedResult.sci = { sample: annotate(sample, sampleAnnotations) };
+
+          if (cacheFile) {
+            // nth-time in this test run this fixture name has been seen
+            const nth = titleCount.increment(key);
+            // load the previous samples of this fixture from the cache
+            const cachedFixture = cacheFile.getOrCreateFixture(fullTitle, nth);
+            // publish the conflation on the current test case result
+            augmentedResult.sci.conflation = conflate(
+              sample,
+              cachedFixture,
+              conflationAnnotations,
+              cfg.conflation.options
+            )?.annotations;
+
+            // Update the cache
+            cacheFile.updateFixture(fullTitle, nth, cachedFixture);
+          }
+
+          break;
+        }
+      }
+
+      if (!matched) {
+        throw new Error("Couldn't pair sample to the test which produced it");
+      }
+    }
+  }
 
   // when --updateSnapshot is specified
   if (globalConfig.updateSnapshot === 'all') {
@@ -130,7 +157,6 @@ export default async function testRunner(
     }
 
     const stat = await commitToSnapshot(config, testPath, cacheFile);
-
     testResult.snapshot.added += stat.added;
     testResult.snapshot.updated += stat.updated;
   }
@@ -262,4 +288,18 @@ function HasteResolver(config: Config.ProjectConfig): sfm.PathResolver {
 async function SnapshotResolver(config: Config.ProjectConfig): Promise<sfm.PathResolver> {
   const resolver = await buildSnapshotResolver(config);
   return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
+}
+
+// Return a string that identifies the test (concat of parent describe block
+// names + test title)
+function getTestID(test: Circus.TestEntry): string[] {
+  const titles = [];
+  let parent: Circus.TestEntry | Circus.DescribeBlock | undefined = test;
+
+  do {
+    titles.unshift(parent.name);
+  } while ((parent = parent.parent));
+
+  titles.shift(); // remove TOP_DESCRIBE_BLOCK_NAME
+  return titles;
 }

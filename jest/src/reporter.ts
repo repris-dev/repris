@@ -162,12 +162,23 @@ export default class SampleReporter extends DefaultReporter {
       );
 
       if (!result.testExecError && !result.skipped) {
+        // extract samples
+        for (const ar of result.testResults) {
+          const aar = ar as import('./runner.js').AugmentedAssertionResult;
+
+          if (aar.sci?.sample) {
+            this.table!.load(`${ test.path }-${ aar.fullName }`, aar.sci.sample, aar.sci?.conflation);
+          }
+        }
+
+        // print columns
         if (this.table!.count() > 0) {
           const w = this.consoleWidth.columns;
           const line = this.table!.renderTitles();
           const moveTo = `\x1b[${ (w - line.length) + 1 }G`;
           this.log(moveTo + line.line);
         }
+
         this._logTestResults(test.path, result.testResults);
       }
 
@@ -179,17 +190,6 @@ export default class SampleReporter extends DefaultReporter {
     }
 
     super.forceFlushBufferedOutput();
-  }
-
-  override onTestCaseResult(
-    test: Test,
-    tcr: import('./runner.js').AugmentedAssertionResult,
-  ) {
-    super.onTestCaseResult(test, tcr);
-
-    if (tcr.sci?.sample) {
-      this.table!.load(`${ test.path }-${ tcr.fullName }`, tcr.sci.sample, tcr.sci?.conflation);
-    }
   }
 
   private _logTestResults(path: string, testResults: Array<AssertionResult>) {

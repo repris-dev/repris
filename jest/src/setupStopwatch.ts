@@ -3,13 +3,13 @@
 import { samples, stopwatch } from '@sampleci/samplers';
 import { Status } from '@sampleci/base';
 
-/** A function defined by the stopwatch test-runner  */
+/** defined by the stopwatch test-runner  */
 declare function onSample(
   matcherState: jest.MatcherState & Record<string, any>,
   sample: samples.Sample<unknown>
 ): void;
 
-/** Current stopwatch opts */
+/** Current stopwatch opts, defined by the test-runner */
 declare function getSamplerOptions(): Partial<stopwatch.Options>;
 
 const delay = (time: number) => new Promise<void>(res => setTimeout(res, time));
