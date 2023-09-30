@@ -164,6 +164,14 @@ export function* pairs<T>(xs: Iterable<T>): Iterable<[T, T]> {
   }
 }
 
+export function reduce<T, A>(xs: Iterable<T>, fn: (acc: A, x: T) => A, a: A) {
+  for (const x of xs) {
+    a = fn(a, x);
+  }
+
+  return a;
+}
+
 export function count<T>(xs: Iterable<T>): number {
   let n = 0;
 

@@ -106,3 +106,17 @@ describe('outerJoin', () => {
     expect(Array.from(iter)).toEqual([['b1', undefined]]);
   });
 });
+
+describe('reduce', () => {
+  test('two elements', () => {
+    const a = {} as Record<string, number>;
+    const result = iterator.reduce([1, 2], (acc, x) => {
+      expect(acc).toBe(a);
+      acc[x] = x;
+
+      return a;
+    }, a);
+
+    expect(result).toEqual({ '1': 1, '2': 2 });
+  });
+});
