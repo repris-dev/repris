@@ -100,7 +100,8 @@ export function hsm(sample: Indexable<number>): REM {
  */
 export function hsmConfidence(
   sample: Indexable<number>,
-  level = 0.9, K = 50
+  level = 0.95,
+  K = 100,
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
