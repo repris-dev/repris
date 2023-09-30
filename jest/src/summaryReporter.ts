@@ -114,14 +114,14 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
     const rows = [
       [
+        chalk.bold(' Snapshots: '),
+        `${stats.snapshotStat.updatedTotal} ${deltaStr(stats.snapshotStat.updated)}updated`,
+      ],
+      [
         chalk.bold(' Index:     '),
         `${stats.cacheStat.stagedFixtures.toString()} stable, ${
           stats.cacheStat.totalFixtures
         } ${deltaStr(stats.cacheStat.newFixtures - stats.snapshotStat.updated)}total`,
-      ],
-      [
-        chalk.bold(' Snapshots: '),
-        `${stats.snapshotStat.updatedTotal} ${deltaStr(stats.snapshotStat.updated)}updated`,
       ],
     ];
 
