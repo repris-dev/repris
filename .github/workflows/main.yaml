@@ -27,4 +27,5 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm build:tsc
+          export NODE_OPTIONS='--experimental-vm-modules -C development'
           pnpm test
