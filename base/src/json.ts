@@ -14,6 +14,11 @@ export interface Deserializer<T extends Serializable, J extends Value = Value> {
   fromJson(json: J): Status<T>;
 }
 
+/** Gets the serialized type of T */
+export type AsSerialized<T> =
+  T extends Serializable<infer J> ? J
+  : never;
+
 export namespace bigint {
   export function toJson(x: bigint): string {
     return x.toString() + 'n';
