@@ -28,6 +28,12 @@ export function run(argv: string[] = process.argv) {
   program.parse(argv);
 }
 
+type IndexStat = {
+  totalFixtures: number;
+  totalSamples: number;
+  files: IndexFileStat[];
+};
+
 type IndexFileStat = {
   testPath: string;
   fixtureCount: number;
@@ -53,16 +59,17 @@ async function reset(_argv: string[]) {
   const indexStat = await showIndex(projCfg, testFiles, sfm);
 
   // Nothing to do if the index is empty
-  if (indexStat.length === 0) {
+  if (indexStat.files.length === 0) {
     println('Index is empty.');
     return;
   }
 
   // ask permission
-  const doDelete: boolean | undefined = await yesNoQuestion('Reset the index for these tests?');
+  const extra = indexStat.totalSamples > 0 ? ` ${ chalk.bold(indexStat.totalSamples) } samples will be lost.` : '';
+  const doDelete: boolean | undefined = await yesNoQuestion('Reset the index for these tests?' + extra);
 
   if (doDelete === true) {
-    const p = indexStat.map((stat) => sfm.delete(stat.testPath));
+    const p = indexStat.files.map((stat) => sfm.delete(stat.testPath));
     await Promise.all(p);
 
     println('Index reset');
@@ -75,8 +82,13 @@ async function showIndex(
   projCfg: Config.ProjectConfig,
   testFiles: jReporters.Test[],
   sfm: snapshotManager.SnapshotFileManager
-): Promise<IndexFileStat[]> {
+): Promise<IndexStat> {
   const pending = [] as IndexFileStat[];
+
+  println('Repris Index Status\n');
+
+  let totalFixtures = 0,
+    totalSamples = 0;
 
   for (const t of testFiles) {
     if (await sfm.exists(t.path)) {
@@ -99,34 +111,43 @@ async function showIndex(
 
       if (fixtureCount > 0 || tombstoneCount > 0) {
         pending.push({ testPath: t.path, fixtureCount, sampleCount, tombstoneCount });
+        totalFixtures += fixtureCount;
+        totalSamples += sampleCount;
       }
     }
   }
 
-  if (pending.length === 0) {
-    return pending;
+  if (pending.length > 0) {
+    const columns = [
+      { id: 'fixtureStat' as typeid, displayName: 'Pending (samples)' },
+      { id: 'tombstoneCount' as typeid, displayName: 'Captured' },
+    ];
+
+    const report = new TableTreeReporter<IndexFileStat>(columns, {
+      annotate: (stat) => {
+        const captured = stat.tombstoneCount / (stat.tombstoneCount + stat.fixtureCount);
+        const ann = {
+          fixtureStat:
+            stat.fixtureCount === 0
+              ? chalk.dim(`0 (0)`)
+              : `${stat.fixtureCount} (${stat.sampleCount})`,
+          tombstoneCount:
+            stat.tombstoneCount === 0
+              ? chalk.dim('0')
+              : `${stat.tombstoneCount} (${(100 * captured).toFixed(0)}%)`,
+        };
+        return annotators.DefaultBag.fromJson(ann);
+      },
+      render: (stat) => jReporters.utils.formatTestPath(projCfg, stat.testPath),
+      pathOf: () => [],
+    });
+
+    report.render(pending, process.stderr);
   }
 
-  const columns = [
-    { id: 'fixtureStat' as typeid, displayName: 'Index (Benchmarks, samples)' },
-    { id: 'tombstoneCount' as typeid, displayName: 'Snapshotted' },
-  ];
-
-  const report = new TableTreeReporter<IndexFileStat>(columns, {
-    annotate: (stat) => {
-      const ann = {
-        fixtureStat:
-          stat.fixtureCount === 0
-            ? chalk.dim(`${stat.fixtureCount}, ${stat.sampleCount}`)
-            : `${stat.fixtureCount}, ${stat.sampleCount}`,
-        tombstoneCount: stat.tombstoneCount === 0 ? chalk.dim('0') : stat.tombstoneCount,
-      };
-      return annotators.DefaultBag.fromJson(ann);
-    },
-    render: (stat) => jReporters.utils.formatTestPath(projCfg, stat.testPath),
-    pathOf: () => [],
-  });
-
-  report.render(pending, process.stderr);
-  return pending;
+  return {
+    totalFixtures,
+    totalSamples,
+    files: pending,
+  };
 }
