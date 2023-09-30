@@ -62,7 +62,7 @@ const ConflationAnnotations = Object.freeze({
 
   hsmCIRME: {
     id: 'mode:hsm:conflation:ci-rme' as typeid,
-    opts: { level: 0.95, resamples: 100 },
+    opts: { level: 0.95, resamples: 500 },
   }
 });
 
@@ -71,7 +71,7 @@ const HypothesisAnnotations = Object.freeze({
 
   hsmDifferenceCI: {
     id: 'mode:hsm:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.95, resamples: 1000 },
+    opts: { level: 0.99, resamples: 1000 },
   },
 
   hsmDifferenceSummary: 'mode:hsm:hypothesis:summaryText' as typeid,
@@ -231,7 +231,12 @@ const hypothesisAnnotator: ann.Annotator = {
         ...request.get(HypothesisAnnotations.hsmDifferenceCI.id)
       };
 
-      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples);
+      // For smaller sample sizes, perform a Studentized difference test to 
+      // overcome bias in (typically) heavily-skewed distributions
+      ci = (x0.length + x1.length) / 2 <= 100
+        ? stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 50)
+        : stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples);
+
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
 
