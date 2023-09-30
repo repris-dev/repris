@@ -13,7 +13,7 @@ import {
   snapshots,
   snapshotManager,
 } from '@repris/samplers';
-import { typeid, assert, iterator, Status, array } from '@repris/base';
+import { typeid, assert, iterator as iter, Status, array } from '@repris/base';
 
 import * as reprisConfig from './config.js';
 import { SnapshotResolver, StagingAreaResolver } from './snapshotUtils.js';
@@ -263,7 +263,7 @@ export default async function testRunner(
     for (const f of saSnapshot.allFixtures()) {
       stat.cacheStat.totalFixtures++;
 
-      if (f.conflation?.annotations['conflation:ready']) {
+      if (f.conflation?.annotations[conflations.annotations.isReady]) {
         stat.cacheStat.stagedFixtures++;
       }
     }
@@ -271,7 +271,7 @@ export default async function testRunner(
 
   if (saSnapshot) {
     // total tombstones in the index area is the total moved to snapshot in this epoch
-    stat.snapshotStat.updatedTotal = iterator.count(saSnapshot.allTombstones());
+    stat.snapshotStat.updatedTotal = iter.count(saSnapshot.allTombstones());
     // commit the new test run to the cache
     const e = await stagingAreaMgr.save(saSnapshot);
     Status.get(e);
@@ -289,7 +289,7 @@ export default async function testRunner(
 async function commitToSnapshot(
   config: Config.ProjectConfig,
   testPath: string,
-  stagingArea: snapshots.Snapshot
+  index: snapshots.Snapshot
 ) {
   const s = new snapshotManager.SnapshotFileManager(await SnapshotResolver(config));
   const snapFile = await s.loadOrCreate(testPath);
@@ -301,10 +301,10 @@ async function commitToSnapshot(
   const snapshot = snapFile[0];
   const stat = { added: 0, updated: 0, pending: 0 };
 
-  for (const f of stagingArea.allFixtures()) {
+  for (const f of index.allFixtures()) {
     const bag = f.conflation?.annotations ?? {};
 
-    if (bag['conflation:ready']) {
+    if (bag[conflations.annotations.isReady]) {
       const { title, nth } = f.name;
 
       if (snapshot.fixtureState(title, nth) === snapshots.FixtureState.Stored) {
@@ -316,7 +316,7 @@ async function commitToSnapshot(
       // copy the fixture to the snapshot
       snapshot.updateFixture(title, nth, f);
       // allow the runner to skip this fixture in future runs
-      stagingArea.tombstone(title, nth);
+      index.tombstone(title, nth);
     } else {
       // fixture is not ready for snapshotting
       stat.pending++;
@@ -333,7 +333,7 @@ function createAnnotationRequest(
   annotations: (string | [id: string, config: reprisConfig.AnnotationConfig])[]
 ): Map<typeid, any> {
   return new Map(
-    iterator.map(annotations, (c) => {
+    iter.map(annotations, (c) => {
       const [id, conf] = reprisConfig.normalize.simpleOpt(c, {} as reprisConfig.AnnotationConfig);
       return [id as typeid, conf.options];
     })
@@ -354,18 +354,18 @@ function annotate(
 
 function conflate(
   newSample: samples.Duration,
-  cacheState: snapshots.AggregatedFixture<samples.Duration>,
+  indexedFixture: snapshots.AggregatedFixture<samples.Duration>,
   annotations: Map<typeid, any>,
   opts?: Partial<conflations.DurationOptions>
 ): wt.Conflation | undefined {
   // The existing cached samples
-  const index = new Map(cacheState.samples.map((s) => [s.sample, s]));
+  const fixtureIndex = new Map(indexedFixture.samples.map((s) => [s.sample, s]));
 
   // the new sample and its annotations
-  index.set(newSample, { sample: newSample, annotations: {} });
+  fixtureIndex.set(newSample, { sample: newSample, annotations: {} });
 
-  // conflate the current and previous samples together
-  const newConflation = new conflations.Duration(index.keys(), opts);
+  // conflate the new and previous samples together
+  const newConflation = new conflations.Duration(fixtureIndex.keys(), opts);
 
   let result: wt.Conflation | undefined;
 
@@ -382,19 +382,16 @@ function conflate(
       };
 
       // overwrite the previous conflation annotations
-      cacheState.conflation = result;
+      indexedFixture.conflation = result;
     }
   }
 
-  const bestSamples: snapshots.AggregatedFixture<samples.Duration>['samples'] = [];
+  // Update the aggregated fixture, discarding the worst sample(s).
+  indexedFixture.samples = iter.collect(iter.map(newConflation.samples(false), (best) => {
+    assert.is(fixtureIndex.has(best), 'Sample should be indexed');
+    return fixtureIndex.get(best)!;
+  }));
 
-  // Update the aggregated fixture with the best K samples, discarding the worst sample.
-  for (const best of newConflation.samples(false)) {
-    assert.is(index.has(best), 'Sample should be indexed');
-    bestSamples.push(index.get(best)!);
-  }
-
-  cacheState.samples = bestSamples;
   return result;
 }
 
