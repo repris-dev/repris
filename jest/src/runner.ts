@@ -193,8 +193,8 @@ export default async function testRunner(
           matched = true;
 
           if (ar.status !== 'passed') {
-            // reject any sample if the test failed
-            continue;
+            // reject sample if the test failed
+            break;
           }
 
           // Only duration samples supported
@@ -231,7 +231,7 @@ export default async function testRunner(
       }
 
       if (!matched) {
-        throw new Error(`Couldn't pair sample "${key}" to the test which produced it`);
+        throw new Error(`Couldn't pair sample "${title.concat(' ')}" to the test which produced it`);
       }
     }
   }
