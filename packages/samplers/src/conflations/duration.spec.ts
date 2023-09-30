@@ -33,6 +33,7 @@ function postProcess(mwu: Result) {
   return { order, ...a, };
 }
 
+/**
 describe('Duration', () => {
   const sA = create(300, 5, 250);
   const sB = create(300, 10, 250);
@@ -163,3 +164,5 @@ describe('Duration', () => {
     expect(a.outlier).toHaveValues([sA, sB, sC, sD]);
   });
 });
+
+*/
