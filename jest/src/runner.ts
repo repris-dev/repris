@@ -71,7 +71,7 @@ function initializeEnvironment(
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const newSamples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
-  const titleCount = new snapshots.RecordCounter<string>();
+  const titleCount = new RecordCounter<string>();
   const stat = {
     runFixtures: 0,
     skippedFixtures: 0,
@@ -413,3 +413,21 @@ function getTestID(test: Circus.TestEntry): string[] {
   titles.shift(); // remove TOP_DESCRIBE_BLOCK_NAME
   return titles;
 }
+
+/** A set which counts the number of times an item has been added */
+export class RecordCounter<T> {
+  index = new Map<T, number>();
+
+  increment(item: T): number {
+    const index = this.index;
+    const x = (index.get(item) ?? 0) + 1;
+
+    index.set(item, x);
+    return x;
+  }
+
+  get(item: T): number {
+    return this.index.get(item) ?? 0;
+  }
+}
+

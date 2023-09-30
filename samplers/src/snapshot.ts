@@ -32,6 +32,10 @@ export const enum FixtureState {
 
 type FixtureKey = `${string}: ${number}`;
 
+function cacheKey(title: string[], nth: number): FixtureKey {
+  return `${JSON.stringify(title)}: ${nth}`;
+}
+
 export class Snapshot implements json.Serializable<wt.Snapshot> {
   private fixtures: Map<FixtureKey, wt.Fixture> = new Map();
   private tombstones: Map<FixtureKey, wt.FixtureName> = new Map();
@@ -63,7 +67,6 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
 
   updateFixture(title: string[], nth: number, fixture: AggregatedFixture<samples.Duration>) {
     const key = cacheKey(title, nth);
-
     const annotationIndex = {} as Record<string, wt.AnnotationBag>;
 
     fixture.samples.forEach(f => {
@@ -178,23 +181,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 }
 
-function cacheKey(title: string[], nth: number): FixtureKey {
-  return `${JSON.stringify(title)}: ${nth}`;
+export function joinSnapshotFixtures(a: Snapshot, b: Snapshot) {
+  return iterator.outerJoin(a.allFixtures(), b.allFixtures(), f => cacheKey(f.name.title, f.name.nth))
 }
 
-/** A set which counts the number of times an item has been added */
-export class RecordCounter<T> {
-  index = new Map<T, number>();
-
-  increment(item: T): number {
-    const index = this.index;
-    const x = (index.get(item) ?? 0) + 1;
-
-    index.set(item, x);
-    return x;
-  }
-
-  get(item: T): number {
-    return this.index.get(item) ?? 0;
-  }
-}
