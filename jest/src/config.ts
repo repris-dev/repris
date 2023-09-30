@@ -1,9 +1,9 @@
-import chalk from 'chalk';
 import { debug } from 'util';
 import { lilconfig } from 'lilconfig';
 import { assert, assignDeep, iterator, RecursivePartial, typeid } from '@repris/base';
 
 const dbg = debug('repris:config');
+const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
 
 export interface SCIConfig {
   sampler: {
@@ -28,14 +28,16 @@ export interface SCIConfig {
   };
 
   comparison: {
-    options: unknown,
-
-    /** The annotations to compute for each conflation */
-    annotations: [{
-      '@index': AnnotationRequest[],
-      '@snapshot': AnnotationRequest[],
-      '@test': AnnotationRequest[],
-    }],
+    /**
+     * The annotations to compute for each conflation. In a conflation,
+     * 3 items are annotatable and the annotations for each can be configured
+     * separately based on the corresponding context:
+     * 
+     *  1. '@index' - The annotations for the conflation stored in the index
+     *  2. '@snapshot' - The annotations for the snapshot conflation
+     *  3. '@test' - The annotations for the hypothesis test 
+     */
+    annotations: AnnotationRequestTree<'@index' | '@snapshot' | '@test'>
   }
 }
 
@@ -90,109 +92,8 @@ export type AnnotationRequest =
   string | [type: string, config: AnnotationConfig];
 
 /** A tree of annotation requests where leaves are annotations and branches are context names */
-export type AnnotationRequestTree =
-  (AnnotationRequest | { [context: `@${string}`]: AnnotationRequestTree })[];
-
-// prettier-ignore
-const defaultConfig: SCIConfig = {
-  sampler: {
-    options: {},
-  },
-
-  sample: {
-    options: {},
-    annotations: [
-      ['duration:iter', { displayName: 'N' }],
-      ['mode:hsm', { displayName: 'Avg.' }],
-      [
-        'mode:hsm:ci-rme',
-        {
-          displayName: 'CI (95%)',
-          grading: {
-            rules: [
-              { '>=': 0, apply: chalk.green },
-              { '>=': 0.05, apply: chalk.yellow },
-              { '>=': 0.2, apply: chalk.red },
-            ],
-          },
-        },
-      ],
-    ] satisfies AnnotationRequestTree,
-  },
-
-  conflation: {
-    options: {},
-    annotations: [
-      [
-        'duration:conflation:summaryText',
-        {
-          displayName: 'Index',
-          grading: [
-            'conflation:ready',
-            {
-              rules: [{ '==': false, apply: chalk.dim }],
-            },
-          ],
-        },
-      ],
-    ] satisfies AnnotationRequestTree,
-  },
-
-  comparison: {
-    options: {},
-    annotations: [{
-      '@index': [
-        ['mode:hsm:conflation',
-        { displayName: 'Index (avg.)',
-          grading: [
-            'mode:hsm:hypothesis:significantDifference',
-            {
-              ctx: '@test',
-              rules: [
-                { apply: chalk.dim },
-                { '<': 0, apply: chalk.reset }
-              ],
-            },
-          ],
-        }],
-      ],
-      '@test': [
-        ['mode:hsm:hypothesis:summaryText', {
-          displayName: 'Change (99% CI)',
-          grading: [
-            'mode:hsm:hypothesis:significantDifference',
-            {
-              rules: [
-                { '==': 0, apply: chalk.dim },
-                { '<': 0, apply: chalk.green },
-                { '>': 0, apply: chalk.red }
-              ],
-            },
-          ],
-        }],
-        ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.95 } }],
-      ],
-      '@snapshot': [
-        [
-          'mode:hsm:conflation',
-          {
-            displayName: 'Snapshot (avg.)',
-            grading: [
-              'mode:hsm:hypothesis:significantDifference',
-              {
-                ctx: '@test',
-                rules: [
-                  { apply: chalk.dim },
-                  { '>': 0, apply: chalk.reset }
-                ],
-              },
-            ],
-          },
-        ],
-      ],
-    }],
-  },
-};
+export type AnnotationRequestTree<T extends `@${string}` = `@${string}`> =
+  (AnnotationRequest | Record<T, AnnotationRequestTree>)[];
 
 export const normalize = {
   simpleOpt<T>(opt: string | [id: string, opt: T], defaultOpt: T): [id: string, opt: T] {
@@ -200,8 +101,6 @@ export const normalize = {
   }
 }
 
-/** Map of rootDir to config */
-const sessionConfigs = new Map<string, SCIConfig>();
 
 const loadEsm = async (filepath: string) => {
   try {
@@ -227,20 +126,33 @@ const explorer = lilconfig('repris', {
   },
 });
 
+const defaultConfig: Promise<SCIConfig> = import(DEFAULT_CONFIG_PATH)
+  .then(mod => mod.default)
+  .catch((e) => {
+    dbg(`Failed to load default Config file: %s`, e);
+  });
+
+/** Map of rootDir to config */
+const sessionConfigs = new Map<string, SCIConfig>();
+
 export async function load(rootDir: string): Promise<SCIConfig> {
   if (!sessionConfigs.has(rootDir)) {
-    const searchResult = await explorer.search(rootDir);
+    const sr = await explorer.search(rootDir);
+    const defaultCfg = await defaultConfig;
 
-    if (searchResult?.filepath) {
+    if (sr?.filepath) {
       const config = assignDeep(
         {},
-        defaultConfig,
-        !searchResult?.isEmpty ? searchResult?.config : {}
+        defaultCfg,
+        !sr?.isEmpty ? sr?.config : {}
       );
 
       dbg(config);
       sessionConfigs.set(rootDir, config);
-    } else dbg(`Config file Not found`);
+    } else {
+      dbg(`Config file Not found`);
+      sessionConfigs.set(rootDir, defaultCfg);
+    }
   }
 
   return sessionConfigs.get(rootDir)!;

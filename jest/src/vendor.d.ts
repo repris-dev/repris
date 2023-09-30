@@ -9,4 +9,3 @@ declare module 'jest-circus/runner' {
   ): Promise<import('@jest/test-result').TestResult>;
   export = run;
 }
-
