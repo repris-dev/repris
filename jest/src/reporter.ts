@@ -163,8 +163,8 @@ export default class SampleReporter extends DefaultReporter {
 
       if (!result.testExecError && !result.skipped) {
         // extract samples
-        for (const ar of result.testResults) {
-          const aar = ar as import('./runner.js').AugmentedAssertionResult;
+        for (const assertionResult of result.testResults) {
+          const aar = assertionResult as import('./runner.js').AugmentedAssertionResult;
 
           if (aar.sci?.sample) {
             this.table!.load(`${ test.path }-${ aar.fullName }`, aar.sci.sample, aar.sci?.conflation);
