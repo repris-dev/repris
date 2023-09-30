@@ -19,7 +19,7 @@ export interface AugmentedAssertionResult extends AssertionResult {
     sample?: wt.AnnotationBag;
     /** Conflation annotations for this fixture */
     conflation?: wt.AnnotationBag;
-  }
+  };
 }
 
 const dbg = debug('sci:runner');
@@ -27,7 +27,7 @@ const dbg = debug('sci:runner');
 function initializeEnvironment(
   environment: JestEnvironment,
   cfg: sciConfig.SCIConfig,
-  onSample: (matcherState: any, sample: samples.Sample<unknown>) => void,
+  onSample: (matcherState: any, sample: samples.Sample<unknown>) => void
 ) {
   environment.global.onSample = onSample;
   environment.global.getSamplerOptions = () => cfg.sampler.options;
@@ -47,12 +47,12 @@ export default async function testRunner(
   let cacheFile: snapshots.Snapshot | undefined;
   if (config.cache) {
     const sCacheFile = await cacheMgr.loadOrCreate(testPath);
-  
+
     if (Status.isErr(sCacheFile)) {
-      throw new Error(`Failed to load cache for test file:\n${ sCacheFile[1] }`);
-    } else {
-      cacheFile = sCacheFile[0];
+      throw new Error(`Failed to load cache for test file:\n${sCacheFile[1]}`);
     }
+
+    cacheFile = sCacheFile[0];
   }
 
   /** Conflation annotation config */
@@ -79,7 +79,7 @@ export default async function testRunner(
 
       if (assertionResult && samples.Duration.is(pendingSample)) {
         const augmentedResult = assertionResult as AugmentedAssertionResult;
-        
+
         // assign serialized sample generated during the most recent test case
         // to this test case result
         augmentedResult.sci = { sample: annotate(pendingSample, sampleAnnotations) };
@@ -92,9 +92,13 @@ export default async function testRunner(
           const cachedFixture = cacheFile.getOrCreateFixture(title, nth);
           // publish the conflation on the current test case result
           augmentedResult.sci.conflation = conflate(
-            pendingSample, cachedFixture, conflationAnnotations, cfg.conflation.options,
+            pendingSample,
+            cachedFixture,
+            conflationAnnotations,
+            cfg.conflation.options
           )?.annotations;
 
+          // Update the cache
           cacheFile.updateFixture(title, nth, cachedFixture);
         }
       }
@@ -114,49 +118,18 @@ export default async function testRunner(
     environment,
     runtime,
     testPath,
-    onTestEvent,
+    onTestEvent
   );
 
   // when --updateSnapshot is specified
   if (globalConfig.updateSnapshot === 'all') {
+    dbg('Updating snapshots for ' + testPath);
+
     if (!cacheFile) {
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const s = new sfm.SnapshotFileManager(await SnapshotResolver(config));
-    const snapFile = await s.loadOrCreate(testPath);
-
-    if (Status.isErr(snapFile)) {
-      throw new Error(`Failed to load snapshot for test file:\n${ snapFile[1] }`);
-    }
-
-    const snapshot = snapFile[0];
-    const stat = {
-      added: 0,
-      updated: 0,
-    };
-
-    for (const f of cacheFile.allFixtures()) {
-      const bag = f.conflation?.annotations ?? {};
-
-      if (bag['conflation:ready']) {
-        const { title, nth } = f.name;
-
-        if (snapshot.hasFixture(title, nth)) {
-          stat.updated++;
-        } else {
-          stat.added++;
-        }
-
-        // copy the fixture to the snapshot
-        snapshot.updateFixture(title, nth, f);
-        // allow the runner to skip this fixture in future runs
-        cacheFile.tombstone(title, nth);
-      }
-    }
-
-    const e = await s.save(snapshot);
-    Status.get(e);
+    const stat = await commitToSnapshot(config, testPath, cacheFile);
 
     testResult.snapshot.added += stat.added;
     testResult.snapshot.updated += stat.updated;
@@ -171,17 +144,58 @@ export default async function testRunner(
   return testResult;
 }
 
+async function commitToSnapshot(
+  config: Config.ProjectConfig,
+  testPath: string,
+  cacheFile: snapshots.Snapshot
+) {
+  const s = new sfm.SnapshotFileManager(await SnapshotResolver(config));
+  const snapFile = await s.loadOrCreate(testPath);
+
+  if (Status.isErr(snapFile)) {
+    throw new Error(`Failed to load snapshot for test file:\n${snapFile[1]}`);
+  }
+
+  const snapshot = snapFile[0];
+  const stat = { added: 0, updated: 0 };
+
+  for (const f of cacheFile.allFixtures()) {
+    const bag = f.conflation?.annotations ?? {};
+
+    if (bag['conflation:ready']) {
+      const { title, nth } = f.name;
+
+      if (snapshot.hasFixture(title, nth)) {
+        stat.updated++;
+      } else {
+        stat.added++;
+      }
+
+      // copy the fixture to the snapshot
+      snapshot.updateFixture(title, nth, f);
+      // allow the runner to skip this fixture in future runs
+      cacheFile.tombstone(title, nth);
+    }
+  }
+
+  const e = await s.save(snapshot);
+  Status.get(e);
+  return stat;
+}
+
 function normaliseAnnotationCfg(
   annotations: (string | [id: string, config: sciConfig.AnnotationConfig])[]
 ): Map<typeid, any> {
-  return new Map(iterator.map(annotations,
-    c => typeof c === 'string' ? [c as typeid, {}] : [c[0] as typeid , c[1].options ?? {}])
+  return new Map(
+    iterator.map(annotations, (c) =>
+      typeof c === 'string' ? [c as typeid, {}] : [c[0] as typeid, c[1].options ?? {}]
+    )
   );
 }
 
 function annotate(
   newSample: samples.Duration,
-  annotations: Map<typeid, any>,
+  annotations: Map<typeid, any>
 ): wt.AnnotationBag | undefined {
   const [bag, err] = annotators.annotate(newSample, annotations);
   if (err) {
@@ -195,10 +209,10 @@ function conflate(
   newSample: samples.Duration,
   cacheState: snapshots.AggregatedFixture<samples.Duration>,
   annotations: Map<typeid, any>,
-  opts?: Partial<conflations.DurationOptions>,
+  opts?: Partial<conflations.DurationOptions>
 ): wt.Conflation | undefined {
   // The existing cached samples
-  const index = new Map(cacheState.samples.map(s => [s.sample, s]));
+  const index = new Map(cacheState.samples.map((s) => [s.sample, s]));
 
   // the new sample and its annotations
   index.set(newSample, { sample: newSample, annotations: {} });
@@ -217,7 +231,7 @@ function conflate(
     } else {
       result = {
         '@type': conflations.Duration[typeid],
-        annotations: bag!.toJson()
+        annotations: bag!.toJson(),
       };
 
       // overwrite the previous conflation annotations
@@ -226,7 +240,7 @@ function conflate(
   }
 
   const bestSamples: snapshots.AggregatedFixture<samples.Duration>['samples'] = [];
-  
+
   // Update the aggregated fixture with the best K samples, discarding the worst sample.
   for (const best of newConflation.samples(false)) {
     assert.is(index.has(best), 'Sample should be indexed');
@@ -239,11 +253,8 @@ function conflate(
 
 function HasteResolver(config: Config.ProjectConfig): sfm.PathResolver {
   const haste = HasteMap.default.getStatic(config);
-  const resolver = (testFilePath: string) => haste.getCacheFilePath(
-    config.cacheDirectory,
-    `sample-cache-${config.id}`,
-    testFilePath,
-  );
+  const resolver = (testFilePath: string) =>
+    haste.getCacheFilePath(config.cacheDirectory, `sample-cache-${config.id}`, testFilePath);
 
   return resolver;
 }

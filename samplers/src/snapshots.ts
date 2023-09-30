@@ -24,8 +24,8 @@ export type AggregatedFixture<T extends samples.Sample<any>> = {
 type FixtureKey = `${string}: ${number}`;
 
 export class Snapshot implements json.Serializable<wt.Snapshot> {
-  private fixtures?: Map<FixtureKey, wt.Fixture> = new Map();
-  private snapshotted?: Map<FixtureKey, wt.FixtureName> = new Map();
+  private fixtures: Map<FixtureKey, wt.Fixture> = new Map();
+  private tombstones: Map<FixtureKey, wt.FixtureName> = new Map();
 
   constructor() {}
 
@@ -35,22 +35,22 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     return s;
   }
 
-  count() {
-    return this.fixtures!.size;
+  isEmpty() {
+    return this.fixtures.size === 0 && this.tombstones.size === 0;
   }
 
   hasFixture(title: string[], nth: number) {
-    return this.fixtures!.get(cacheKey(title, nth))
+    return this.fixtures.get(cacheKey(title, nth))
   }
 
   allFixtures(): Iterable<AggregatedFixture<samples.Duration>> {
-    return iterator.map(this.fixtures!.values(), (f) => this.fromJsonFixture(f));
+    return iterator.map(this.fixtures.values(), (f) => this.fromJsonFixture(f));
   }
 
   updateFixture(title: string[], nth: number, fixture: AggregatedFixture<samples.Duration>) {
     const key = cacheKey(title, nth);
 
-    this.fixtures!.set(key, {
+    this.fixtures.set(key, {
       name: assignDeep({} as wt.FixtureName, fixture.name),
       samples: fixture.samples.map(({ sample, annotations }) => ({
         data: sample.toJson(),
@@ -63,16 +63,16 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 
   isTombstoned(title: string[], nth: number) {
-    return this.snapshotted!.has(cacheKey(title, nth));
+    return this.tombstones!.has(cacheKey(title, nth));
   }
 
   /** @returns true if the given title was found in the cache and tombstoned */
   tombstone(title: string[], nth: number): boolean {
     const key = cacheKey(title, nth);
-    const fixture = this.fixtures!.get(key);
+    const fixture = this.fixtures.get(key);
 
     if (fixture) {
-      this.snapshotted!.set(key, fixture.name);
+      this.tombstones!.set(key, fixture.name);
       return true;
     }
 
@@ -82,7 +82,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
 
   /** @returns  */
   getOrCreateFixture(title: string[], nth: number): AggregatedFixture<samples.Duration> {
-    const fixture = this.fixtures!.get(cacheKey(title, nth));
+    const fixture = this.fixtures.get(cacheKey(title, nth));
     if (!fixture) {
       return {
         name: { title, nth },
@@ -118,13 +118,13 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
       const fixture = fixtures[i];
       const nth = fixture.name.nth;
 
-      this.fixtures!.set(cacheKey(fixture.name.title, nth), fixture);
+      this.fixtures.set(cacheKey(fixture.name.title, nth), fixture);
     }
 
     // tombstones
     for (let i = 0; i < tombstones.length; i++) {
       const name = tombstones[i];
-      this.snapshotted!.set(cacheKey(name.title, name.nth), name);
+      this.tombstones!.set(cacheKey(name.title, name.nth), name);
     }
   }
 
@@ -132,14 +132,14 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
     const fixtures = [] as wt.Fixture[];
 
     // dont save samples which were tombstoned
-    for (const [key, fixture] of this.fixtures!.entries()) {
-      if (!this.snapshotted?.has(key)) {
+    for (const [key, fixture] of this.fixtures.entries()) {
+      if (!this.tombstones?.has(key)) {
         fixtures.push(fixture);
       }
     }
 
     return {
-      tombstones: Array.from(this.snapshotted!.values()),
+      tombstones: Array.from(this.tombstones!.values()),
       fixtures,
     };
   }

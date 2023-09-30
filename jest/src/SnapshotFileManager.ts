@@ -25,14 +25,7 @@ export class SnapshotFileManager {
     const cachePath = this.paths(testPath);
     let snapshot: snapshots.Snapshot | undefined;
 
-    try {
-      await fs.access(cachePath);
-    } catch {
-      // begin a new cache file
-      snapshot = new snapshots.Snapshot();
-    }
-
-    if (!snapshot) {
+    if (await pathExists(cachePath)) {
       // load an existing cache file
       const cacheFile = await this.loadCacheFile(cachePath, testPath);
 
@@ -41,6 +34,9 @@ export class SnapshotFileManager {
       }
 
       snapshot = snapshots.Snapshot.fromJson(Status.get(cacheFile).snapshot);
+    } else {
+      // begin a new cache file
+      snapshot = new snapshots.Snapshot();
     }
 
     assert.is(snapshot !== undefined);
@@ -48,18 +44,24 @@ export class SnapshotFileManager {
     return Status.value(snapshot);
   }
 
-  async save(snapshot: snapshots.Snapshot) {
+  async save(snapshot: snapshots.Snapshot): Promise<Status<unknown>> {
     const meta = this.activeSnapshots.get(snapshot);
     if (!meta) {
       return Status.err('Unknown Snapshot');
     }
 
-    const cache: SnapshotFileWT = {
-      suiteFilePath: meta.testPath,
-      snapshot: snapshot.toJson(),
-    };
+    if (!snapshot.isEmpty()) {
+      const cache: SnapshotFileWT = {
+        suiteFilePath: meta.testPath,
+        snapshot: snapshot.toJson(),
+      };
+  
+      await fs.writeFile(meta.cachePath, JSON.stringify(cache));      
+    } else if (await pathExists(meta.cachePath)) {
+      // delete any existing snapshot instead of writing an 'empty' snapshot
+      await fs.unlink(meta.cachePath);
+    }
 
-    await fs.writeFile(meta.cachePath, JSON.stringify(cache));
     return Status.ok;
   }
 
@@ -80,5 +82,14 @@ export class SnapshotFileManager {
     }
 
     return Status.value(cache);
+  }
+}
+
+async function pathExists(path: string) {
+  try {
+    await fs.access(path);
+    return true
+  } catch {
+    return false;
   }
 }
