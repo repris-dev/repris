@@ -159,7 +159,7 @@ async function showComparison(
   baseline: snapshotManager.SnapshotFileManager
 ) {
   const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.comparison.annotations);
-  const columns = gradedColumns(reprisCfg.comparison.annotations);
+  const columns = gradedColumns(reprisCfg.comparison.annotations, void 0, 'compare');
   const testRenderer = new TableTreeReporter<ComparedFixtures>(columns, {
     annotate: comparison => comparison.annotations,
     pathOf: comparison => comparison.name.title.slice(0, -1),
@@ -236,10 +236,10 @@ async function showComparison(
   }
 }
 
-function applyMissingAnnotations(
+function applyMissingAnnotations<A extends annotators.Annotatable>(
   bag: annotators.AnnotationBag,
   request: Map<typeid, any>,
-  conflation: conflations.DurationResult
+  annotatable: A
 ) {
   // A new request which excludes pre-existing annotations
   const filteredRequest = new Map(
@@ -248,7 +248,7 @@ function applyMissingAnnotations(
 
   if (filteredRequest.size > 0) {
     // the remaining request is the missing annotations
-    const newBag = annotators.annotate(conflation, filteredRequest);
+    const newBag = annotators.annotate(annotatable, filteredRequest);
     if (Status.isErr(newBag)) {
       dbg('Failed to annotate conflation', newBag[1]);
       return;
@@ -264,12 +264,22 @@ async function showSnapshotDetail(
   testFiles: jReporters.Test[],
   sfm: snapshotManager.SnapshotFileManager
 ) {
-  const columns = gradedColumns(reprisCfg.conflation.annotations);
-
+  const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
+  const columns = gradedColumns(reprisCfg.conflation.annotations, void 0, 'show');
   const testRenderer = new TableTreeReporter<snapshots.AggregatedFixture<any>>(columns, {
     annotate(fixture) {
       if (fixture.conflation?.annotations) {
-        return annotators.DefaultBag.fromJson(fixture.conflation.annotations);
+        const conflation = Status.get(
+          conflations.DurationResult.fromJson(
+            fixture.conflation.result,
+            new Map(iterator.map(fixture.samples, ({ sample }) => [sample[uuid], sample]))
+          )
+        );
+
+        const bag = annotators.DefaultBag.fromJson(fixture.conflation.annotations);
+        applyMissingAnnotations(bag, annotationRequests, conflation);
+
+        return bag;
       }
     },
     pathOf: fixture => fixture.name.title.slice(0, -1),

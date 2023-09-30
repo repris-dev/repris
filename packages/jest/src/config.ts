@@ -69,7 +69,7 @@ export interface GradingConfig {
 
 export interface AnnotationConfig {
   /** Optionally show the annotation from the UI (default: true) */
-  display?: boolean;
+  display?: boolean | { if: string[] };
 
   /** The title to display in reports */
   displayName?: string;
@@ -165,12 +165,16 @@ export async function load(rootDir: string): Promise<ReprisConfig> {
 export function* iterateAnnotationTree(
   tree: AnnotationRequestTree,
   ctx?: Ctx[]
-): IterableIterator<{ type: typeid, ctx?: Ctx[], options?: any }> {
+): IterableIterator<{ type: typeid, ctx?: Ctx[], if?: string[], options?: any }> {
   for (const branch of tree) {
     if (Array.isArray(branch) || typeof branch === 'string') {
       // leaf (annotation)
       const [type, cfg] = normalize.simpleOpt(branch, {});
-      yield { type: type as typeid, options: cfg.options, ctx };
+      yield {
+        type: type as typeid,
+        options: cfg.options,
+        ctx,
+      };
   
       if (cfg.grading) {
         const grading = cfg.grading;
@@ -212,9 +216,10 @@ export function parseAnnotations(
         if (result.has(r.type) && result.get(r.type) !== r.options) {
           assert.is(false, 'Different configurations for the same annotation are not supported');
         }
+
         result.set(r.type, r.options);
       }
-    })
+    });
 
     return result;
   }

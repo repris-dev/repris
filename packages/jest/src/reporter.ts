@@ -21,9 +21,10 @@ const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
 function loadColumns(cfg: config.ReprisConfig): Column[] {
-  // groups of annotations to report
+  // Groups of annotations to report
   const annotationGroups = [...cfg.sample.annotations, ...cfg.conflation.annotations];
-  return gradedColumns(annotationGroups);
+  // Create columns
+  return gradedColumns(annotationGroups, void 0, 'test');
 }
 
 export default class SampleReporter extends DefaultReporter {

@@ -32,6 +32,27 @@ export default {
     options: {},
     annotations: [
       [
+        'mode:hsm:conflation',
+        {
+          displayName: 'Mode',
+          display: { if: ['show'] },
+        },
+      ],
+      [
+        'mode:hsm:conflation:ci-rme',
+        {
+          displayName: 'CI (95%)',
+          display: { if: ['show'] },
+          grading: {
+            rules: [
+              { '>=': 0, apply: chalk.green },
+              { '>=': 0.05, apply: chalk.yellow },
+              { '>=': 0.2, apply: chalk.red },
+            ],
+          },
+        },
+      ],
+      [
         'duration:conflation:summaryText',
         {
           displayName: 'Index',

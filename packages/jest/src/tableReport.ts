@@ -11,10 +11,15 @@ export interface ColumnGrading {
 }
 
 export interface Column {
+  /** The annotation which this column displays */
   type: typeid;
+  /** The location of the annotation */
   ctx?: config.Ctx[];
+  /** Column header */
   displayName?: string;
+  /** The units of the annotation */
   units?: string;
+  /** Style config for individual cells */
   grading?: ColumnGrading;
 }
 

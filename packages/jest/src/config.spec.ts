@@ -42,11 +42,11 @@ describe('iterateAnnotationTree', () => {
 
     const configs = iterator.collect(config.iterateAnnotationTree(request));
     expect(configs).toEqual([
-      { ctx: undefined, type: 'a', options: { foo: 0 } },
-      { ctx: undefined, type: 'a', options: { foo: 1 } },
-      { ctx: undefined, type: 'b', options: undefined },
+      { type: 'a', options: { foo: 0 } },
+      { type: 'a', options: { foo: 1 } },
+      { type: 'b' },
       { ctx: ['@ctx3'], type: 'c', options: { foo: 2 } },
-      { ctx: undefined, type: 'd', options: undefined },
+      { type: 'd' },
     ]);
   });
 });
@@ -64,7 +64,7 @@ describe('annotationRequester', () => {
           '@ctx2': [
             ['d', { options: { foo: 2 } }],
             'e',
-          ]
+          ],
         }
       ],
     }] satisfies config.AnnotationRequestTree;

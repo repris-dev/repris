@@ -29,4 +29,32 @@ describe('gradedColumns', () => {
     expect(cols[2].ctx).toEqual(['@ctx', '@ctx2']);
     expect(cols[2].displayName).toBe('col c');
   });
+
+  test('conditional display', () => {
+    // prettier-ignore
+    const request = [
+      ['a', { display: { if: ['condition 1'] }}],
+      ['b', { display: false }],
+      {
+        '@ctx2': [
+          ['c', { displayName: 'col c' }],
+        ]
+      }
+    ] satisfies config.AnnotationRequestTree;
+
+    {
+      const cols = util.gradedColumns(request, void 0, 'condition 1');
+      expect(cols).toEqual([
+        { type: 'a', displayName: 'a' },
+        { ctx: ['@ctx2'], type: 'c', displayName: 'col c' },
+      ]);
+    }
+    
+    {
+      const cols = util.gradedColumns(request, void 0);
+      expect(cols).toEqual([
+        { ctx: ['@ctx2'], type: 'c', displayName: 'col c' },
+      ]);
+    }
+  });
 });
