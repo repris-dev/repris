@@ -9,7 +9,7 @@ export default {
   },
 
   sample: {
-    options: defaults.sample.duration,
+    options: defaults.samples.duration,
     annotations: [
       ['duration:iter', { displayName: 'N' }],
       ['mode:hsm', { displayName: 'Mode' }],

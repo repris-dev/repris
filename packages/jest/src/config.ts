@@ -133,7 +133,7 @@ const explorer = lilconfig('repris', {
 const defaultConfig: Promise<ReprisConfig> = import(DEFAULT_CONFIG_PATH)
   .then(mod => mod.default)
   .catch((e) => {
-    dbg(`Failed to load default Config file: %s`, e);
+    dbg(`Failed to load default Config file (%s): %s`, DEFAULT_CONFIG_PATH, e);
   });
 
 /** Map of rootDir to config */
