@@ -1,4 +1,7 @@
-import { Indexable } from "../util.js";
+import * as math from '../math.js';
+import { lowerBound, sort } from '../array.js';
+import { Indexable } from '../util.js';
+import { MADResult } from './util.js';
 
 // @ts-check
 const PI_SQRT = Math.sqrt(Math.PI);
@@ -26,8 +29,47 @@ export function silvermansRule(std: number, n: number, iqr?: [lo: number, hi: nu
   const k = n ** (-1 / 5);
 
   return iqr ?
-      (1.06 * Math.min(std, (iqr[1] - iqr[0]) / 1.34)) * k
-    : (1.06 * std) * k;
+      // The lower of std and iqr
+      1.06 * Math.min(std, (iqr[1] - iqr[0]) / 1.34) * k
+    : 1.06 * std * k;
+}
+
+/**
+ * Determine a kernel bandwidth based on:
+ *   Robust and efficient estimation of the mode of continuous
+ *   data: the mode as a viable measure of central tendency
+ *     - D. Bickel
+ * 
+ * Like Silverman's rule of thumb, but more robust to outliers
+ */
+export function silvermanBickelRule(std: number, n: number, mad: MADResult) {
+  const k = n ** (-1 / 5);
+  return 0.9 * Math.min(std, mad.normMad) * k
+}
+
+/**
+ * Finds an optimized kernel bandwidth for the given sample using cross-validation.
+ * Assumes a gaussian kernel.
+ */
+export function cvBandwidth(
+  sample: Indexable<number>,
+  std: number,
+) {
+  // initial bandwidth estimate
+  const h1 = silvermansRule(std, sample.length);
+
+  // Min/eps
+  // TODO - review
+  const min = 1e-7 + (h1 / 1000);
+
+  // Optimized bandwidth which minimizes the MISE
+  // Assumes the initial guess overestimates the optimum
+  // bandwidth, which is very typical. 
+  const hRange = math.gss(
+    h => mise(sample, h), min, h1 / 2, min, 100
+  );
+
+  return (hRange[0] + hRange[1]) / 2;
 }
 
 /**
@@ -105,12 +147,12 @@ export function mlcv(kernel: Kernel, sample: Indexable<number>, h: number) {
 
 /**
  * Empirical probability density function mode (EPDFM)
- * 
+ *
  * Finds the index of the sample with the highest density,
  * and count the number of ties of that density.
- * 
- * @param kernel 
- * @param sample 
+ *
+ * @param kernel
+ * @param sample
  * @param h Kernel smoothing parameter (bandwidth)
  */
 export function findMaxima(
@@ -127,10 +169,63 @@ export function findMaxima(
       maxi = i;
       maxD = d;
       ties = 0;
-    } else if (maxD - d < 1e-6) {
+    } else if (maxD - d <= Number.EPSILON) {
       ties++;
     }
   }
 
   return [maxi, maxD, ties];
+}
+
+/**
+ * Full width at half maximum (FWHM)
+ * See: https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+ *
+ * @param expectedValue The local/global maximum
+ * @param h Kernel smoothing parameter (bandwidth)
+ */
+export function fwhm(
+  kernel: Kernel,
+  sample: Indexable<number>,
+  expectedValue: number,
+  h: number,
+) {
+  // sort by value
+  sort(sample);
+
+  // locate the index of the expectedValue
+  let midIdx = lowerBound(sample, expectedValue, (a, val) => a < val);
+
+  if (midIdx >= sample.length) {
+    // set location to the last observation
+    midIdx = sample[sample.length - 1];
+  }
+
+  const density = (x: number) => estimate(kernel, sample, h, x);
+  const pHalf = .5 * density(sample[midIdx]);
+
+  let lo = midIdx,
+      hi = midIdx;
+
+  while (lo > 0) {
+    if (density(sample[--lo]) <= pHalf) { break; }
+  }
+
+  while (hi < sample.length - 1) {
+    if (density(sample[++hi]) <= pHalf) { break; }
+  }
+
+  return {
+    /** The half-maximum interval */
+    range: [sample[lo], sample[hi]] as [number, number],
+
+    /** Number of elements in the interval */
+    length: hi - lo + 1,
+
+    /**
+     * The standard deviation in the interval,
+     * assuming it is a normal distribution
+     */
+    std: (sample[hi] - sample[lo]) / 2.355
+  };
 }
