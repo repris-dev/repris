@@ -27,10 +27,33 @@ export function fillAscending(arr: Indexable<number>, initial: number): void {
   for (let i = 0; i < arr.length; i++) { arr[i] = initial++; }
 }
 
-/** Copy values from one array to another */
-export function copyTo(src: Indexable<number>, dest: Indexable<number>): void {
+/** Copy values from src to dest */
+export function copyTo<T>(src: Indexable<T>, dest: Indexable<T>): void {
   const n = Math.min(src.length, dest.length);
   for (let i = 0; i < n; i++) { dest[i] = src[i]; }
+}
+
+/** Collect a subset of values from src to dest */
+export function copySubsetTo<T>(
+  src: Indexable<T>,
+  indices: Indexable<number>,
+  dest: Indexable<T>,
+): void {
+  const n = Math.min(indices.length, dest.length);
+  for (let i = 0; i < n; i++) { dest[i] = src[indices[i]]; }
+}
+
+/** Push a subset of src to dest */
+export function subsetOf<T, P extends { push(val: T): any }>(
+  src: Indexable<T>,
+  indices: Indexable<number>,
+  dest: P,
+): P {
+  const n = indices.length;
+  for (let i = 0; i < n; i++) {
+    dest.push(src[indices[i]]);
+  }
+  return dest;
 }
 
 export function swap<T>(arr: Indexable<T>, adx: number, bdx: number) {

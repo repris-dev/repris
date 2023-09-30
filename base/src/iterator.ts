@@ -93,3 +93,12 @@ export function* gen<T>(fn: () => T): Iterable<T> {
     yield fn();
   }
 }
+
+/**
+ * Create a range of numbers [from to)
+ */
+export function* range(from: number, to: number): Iterable<number> {
+  while (from < to) {
+    yield from++;
+  }
+}
