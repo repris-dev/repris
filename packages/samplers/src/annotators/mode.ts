@@ -1,4 +1,5 @@
 import { Indexable, quantity, stats, Status, typeid } from '@repris/base';
+
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
 import * as conflations from '../conflations.js';
@@ -47,7 +48,7 @@ const SampleAnnotations = Object.freeze({
    */
   hsmCIRME: {
     id: 'mode:hsm:ci-rme' as typeid,
-    opts: { level: 0.95, resamples: 500, smoothing: 0.1 },
+    opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
 });
 
@@ -62,7 +63,7 @@ const ConflationAnnotations = Object.freeze({
 
   hsmCIRME: {
     id: 'mode:hsm:conflation:ci-rme' as typeid,
-    opts: { level: 0.95, resamples: 500, smoothing: 0.1 },
+    opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
 });
 
@@ -79,7 +80,7 @@ const HypothesisAnnotations = Object.freeze({
   /** Confidence interval of the difference between the two samples */
   hsmDifferenceCI: {
     id: 'mode:hsm:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, smoothing: 0.1 },
+    opts: { level: 0.99, resamples: 2500, smoothing: 0.2 },
   },
 
   /** A text summary of the difference */
@@ -317,6 +318,7 @@ interface KDEAnalysis {
  * it is estimated here.
  */
 function bootstrapSmoothing(xs: Float64Array, level: number) {
+  if (level <= 0) return 0;
   // Estimate standard deviation
   const std = stats.mode.estimateStdDev(xs, 0.33);
   // Use Scott's estimate

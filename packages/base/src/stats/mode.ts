@@ -143,6 +143,35 @@ export function hsmConfidence(
 }
 
 /**
+ * @param sample
+ * @param level The confidence level, between (0, 1)
+ * @param K The number of bootstrap samples
+ * @returns The bootstrapped confidence interval of the Half-sample mode (HSM)
+ */
+export function medianConfidence(
+  sample: Indexable<number>,
+  level: number,
+  K: number,
+  smoothing?: number
+): [lo: number, hi: number] {
+  assert.inRange(level, 0, 1);
+  assert.gt(K, 1);
+
+  // bootstrap distribution of HSMs
+  const hsms = new Float64Array(K);
+
+  sort(sample);
+  for (let i = 0, next = boot.resampler(sample, void 0, smoothing); i < K; i++) {
+    hsms[i] = quantile(next(), 0.5);
+  }
+
+  return [
+    quantile(hsms, 0.5 - level / 2),
+    quantile(hsms, 0.5 + level / 2),
+  ];
+}
+
+/**
  * A percentile bootstrapped paired HSM difference test of two samples.
  * x0 - x1
  */

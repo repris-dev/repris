@@ -58,17 +58,25 @@ export class KWConflation<T> {
 
     // Sampling distribution, sorted by hsm;
     const samplingDist = this.taggedSamples
-      .map(([raw, tag]) => ({ raw, sample: tag, mode: stats.median(raw), status: 'outlier' as ConflatedSampleStatus }))
+      .map(([raw, tag]) => ({ raw, sample: tag, mode: stats.mode.hsm(raw).mode, status: 'outlier' as ConflatedSampleStatus }))
       .sort((a, b) => a.mode - b.mode);
 
     // HSM of the sampling distribution
     const sDistHsm = stats.mode.hsm(samplingDist.map(x => x.mode)).mode;
+    const sDistMedian = stats.median(samplingDist.map(x => x.mode));
+
+console.info('sDistHSM', sDistHsm);
+console.info('sDistMedian', sDistMedian);
+
+    // Confidence of the sampling dist
+    const c99 = stats.mode.medianConfidence(samplingDist.map(x => x.mode), 0.99, 1000);
+    const m99 = (c99[1] - c99[0]) / sDistMedian;
+
+console.info('c99', m99);
 
     // Sorting of the sampling distribution, distance from HSM (ascending)
     let subset = samplingDist.slice()
-      .sort((a, b) => Math.abs(sDistHsm - a.mode) - Math.abs(sDistHsm - b.mode));
-
-console.info('sDistHSM', sDistHsm, subset.map(s => s.mode));
+      .sort((a, b) => Math.abs(sDistMedian - a.mode) - Math.abs(sDistMedian - b.mode));
 
     // Index of samples
     const statIndex = new Map(iterator.map(subset, x => [x.raw, x]));
@@ -85,6 +93,7 @@ console.info('sDistHSM', sDistHsm, subset.map(s => s.mode));
     }
 
     if (subset.length >= opts.minSize) {
+      // resort by mode (ascending)
       subset.sort((a, b) => a.mode - b.mode);
   
 console.info('samplingDist', subset.map(x => x.mode));
@@ -102,7 +111,8 @@ console.info('bound', bound);
 console.info('>> kw1', kw.effectSize);      
 
       // mark consistent samples
-      if (kw.effectSize <= opts.maxEffectSize) {
+//      if (kw.effectSize <= opts.maxEffectSize) {
+      if (m99 < 0.01) {
         subset.forEach(x => (statIndex.get(x.raw)!.status = 'consistent'));
       }
     }

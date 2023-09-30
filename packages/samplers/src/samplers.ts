@@ -14,12 +14,12 @@ export const defaults = {
     },
 
     duration: {
-      min: 250,
+      min: 1_000,
       max: 10_000,
     },
 
     sampleSize: {
-      min: 10,
+      min: 30,
       max: 10_000,
     },
   } as const satisfies import('./samplers.js').stopwatch.Options,

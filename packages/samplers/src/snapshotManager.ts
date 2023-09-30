@@ -43,7 +43,8 @@ export class SnapshotFileManager {
       }
 
       try {
-        snapshot = snapshots.Snapshot.fromJson(Status.get(cacheFile).snapshot);
+        const snapFile: SnapshotFileWT = Status.get(cacheFile);
+        snapshot = snapshots.Snapshot.fromJson(snapFile.snapshot);
       } catch (e) {
         return Status.err(e as string);
       }
