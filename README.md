@@ -1,5 +1,7 @@
 # Repris
 
+Consistent and robust benchmarking for Jest.
+
 ## Quickstart
 
 ```bash
@@ -13,6 +15,5 @@ pnpm test
 
 ## Docs
 
-See [Repris concepts](./docs/concepts.md) for an overview.
+See [Repris concepts](./docs/concepts.md) for an overview of Repris.
 
-![Concepts](./docs/concepts.drawio.svg)
