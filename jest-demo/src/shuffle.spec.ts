@@ -59,4 +59,10 @@ describe('shuffle()', () => {
 
     expect(arr[0]).toBeGreaterThan(-1);
   });
+
+  describe('sub suite', () => {
+    it('mini test', () => {
+      expect('a').toBe('a');
+    })
+  });
 });
