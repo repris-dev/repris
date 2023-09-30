@@ -191,6 +191,11 @@ export function findMaxima(
 /**
  * Performs a simple conflation of several samples with their associated
  * kernel bandwidth.
+ * 
+ * See: An Optimal Method to Combine Results from Different Experiments
+ *  - Theodore P. Hill and Jack Miller
+ * 
+ * https://arxiv.org/ftp/arxiv/papers/0901/0901.4957.pdf
  *
  * @returns The location of observation with the maximum probability density 
  */
