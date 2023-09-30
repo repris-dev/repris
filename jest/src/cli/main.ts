@@ -158,12 +158,12 @@ async function showComparison(
   index: snapshotManager.SnapshotFileManager,
   sn: snapshotManager.SnapshotFileManager
 ) {
-  const sampleAnnotations = createAnnotationRequest(reprisCfg.comparison.annotations['@test']);
+  const comparisonAnnotations = createAnnotationRequest(reprisCfg.comparison.annotations['@test']);
   const columns = gradedColumns(reprisCfg.comparison.annotations);
   const testRenderer = new TableTreeReporter<ComparedFixtures>(columns, {
-    annotate: (comparison) => comparison.annotations,
-    pathOf: (comparison) => comparison.name.title.slice(0, -1),
-    render: (comparison) => chalk.dim(comparison.name.title.at(-1))
+    annotate: comparison => comparison.annotations,
+    pathOf: comparison => comparison.name.title.slice(0, -1),
+    render: comparison => chalk.dim(comparison.name.title.at(-1)),
   });
 
   for (const t of testFiles) {
@@ -183,28 +183,43 @@ async function showComparison(
       ([index, snap]) => {
         const annotations = annotators.DefaultBag.from([]);
 
+        let x0: conflations.DurationResult | undefined;
+        let x1: conflations.DurationResult | undefined;
+
+        // Load index samples and annotations
         if (index?.conflation?.annotations) {
-          const child = annotators.DefaultBag.fromJson(index.conflation.annotations);
-          annotations.union('@index', child);
+          x0 = Status.get(
+            conflations.DurationResult.fromJson(
+              index.conflation.result,
+              new Map(iterator.map(index.samples, ({ sample }) => [sample[uuid], sample]))
+            )
+          );
+
+          const bag = annotators.DefaultBag.fromJson(index.conflation.annotations);
+          applyMissingAnnotations(bag, reprisCfg.comparison.annotations['@index'], x0);
+          annotations.union(bag, '@index');
         }
 
+        // Load snapshot samples and annotations
         if (snap?.conflation?.annotations) {
-          const child = annotators.DefaultBag.fromJson(snap.conflation.annotations);
-          annotations.union('@snapshot', child);
+          x1 = Status.get(
+            conflations.DurationResult.fromJson(
+              snap.conflation.result,
+              new Map(iterator.map(snap.samples, ({ sample }) => [sample[uuid], sample]))
+            )
+          );
+
+          const bag = annotators.DefaultBag.fromJson(snap.conflation.annotations);
+          applyMissingAnnotations(bag, reprisCfg.comparison.annotations['@snapshot'], x1);
+          annotations.union(bag, '@snapshot');
         }
 
-        // prettier-ignore
-        if (index?.conflation && snap?.conflation) {
-          const refs0 = new Map(iterator.map(index.samples, ({ sample }) => [sample[uuid], sample]));
-          const refs1 = new Map(iterator.map(snap.samples, ({ sample }) => [sample[uuid], sample]));
-
-          const x0 = Status.get(conflations.DurationResult.fromJson(index.conflation.result, refs0));
-          const x1 = Status.get(conflations.DurationResult.fromJson(snap.conflation.result, refs1));
-
-          const comparison = hypothesis.compare(x0, x1, sampleAnnotations);
+        // run comparison
+        if (x0 && x1) {
+          const comparison = hypothesis.compare(x0, x1, comparisonAnnotations);
 
           if (!Status.isErr(comparison)) {
-            annotations.union('@test', comparison[0].annotations);
+            annotations.union(comparison[0].annotations, '@test');
           } else {
             dbg('Failed to compare conflations', comparison[1]);
           }
@@ -218,6 +233,28 @@ async function showComparison(
     );
 
     testRenderer.render(comparisons, process.stderr);
+  }
+}
+
+function applyMissingAnnotations(
+  bag: annotators.AnnotationBag,
+  config: reprisConfig.AnnotationRequest[],
+  conflation: conflations.DurationResult
+) {
+  const request = createAnnotationRequest(config);
+  for (const [typeid] of bag.annotations) {
+    request.delete(typeid);
+  }
+
+  if (request.size > 0) {
+    // the remaining request is the missing annotations
+    const newBag = annotators.annotate(conflation, request);
+    if (Status.isErr(newBag)) {
+      dbg('Failed to annotate conflation', newBag[1]);
+      return;
+    }
+
+    bag.union(newBag[0]);
   }
 }
 
@@ -235,8 +272,8 @@ async function showSnapshotDetail(
         return annotators.DefaultBag.fromJson(fixture.conflation.annotations);
       }
     },
-    pathOf: (fixture) => fixture.name.title.slice(0, -1),
-    render: (fixture) => chalk.dim(fixture.name.title.at(-1)),
+    pathOf: fixture => fixture.name.title.slice(0, -1),
+    render: fixture => chalk.dim(fixture.name.title.at(-1)),
   });
 
   for (const t of testFiles) {

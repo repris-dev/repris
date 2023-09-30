@@ -88,9 +88,17 @@ export class DefaultBag implements AnnotationBag {
     };
   }
 
-  union(context: `@${string}`, child: AnnotationBag): void {
-    assert.eq(this.contexts.has(context), false);
-    this.contexts.set(context, child);
+  union(child: AnnotationBag, context?: `@${string}`): void {
+    if (context !== void 0) {
+      assert.eq(this.contexts.has(context), false);
+      this.contexts.set(context, child);
+    } else {
+      for (const [id, ann] of child.annotations) {
+        if (!this.index.has(id)) {
+          this.index.set(id, ann);
+        }
+      }
+    }
   }
 
   toJson(): wt.AnnotationBag {

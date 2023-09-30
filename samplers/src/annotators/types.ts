@@ -21,7 +21,7 @@ export interface AnnotationBag extends json.Serializable<wt.AnnotationBag>
     get(type: typeid, ns?: string[]): Annotation | undefined;
   };
 
-  union(context: string, child: AnnotationBag): void;
+  union(other: AnnotationBag, contextName?: string): void;
 }
 
 export interface Annotator
