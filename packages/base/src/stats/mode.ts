@@ -202,6 +202,12 @@ export function hsmDifferenceTest(
     hsms[i] -= hsmImpl(next1()).mode;
   }
 
+  //console.info(hsms.reduce((acc, x) => acc + x + ', ', ''));
+  {
+    const os = online.Gaussian.fromValues(hsms);
+    console.info('jarqueBera', os.skewness(1), os.kurtosis(1), stats.jarqueBera(os.N(), os.skewness(1), os.kurtosis(1), 1))
+  }
+
   return [
     quantile(hsms, 0.5 - level / 2),
     quantile(hsms, 0.5 + level / 2),

@@ -80,7 +80,7 @@ const HypothesisAnnotations = Object.freeze({
   /** Confidence interval of the difference between the two samples */
   hsmDifferenceCI: {
     id: 'mode:hsm:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, smoothing: 0.2 },
+    opts: { level: 0.99, resamples: 2500, smoothing: 0.33 },
   },
 
   /** A text summary of the difference */
@@ -319,8 +319,8 @@ interface KDEAnalysis {
  */
 function bootstrapSmoothing(xs: Float64Array, level: number) {
   if (level <= 0) return 0;
-  // Estimate standard deviation
-  const std = stats.mode.estimateStdDev(xs, 0.33);
+  // Estimate standard deviation from a proportion of the sample
+  const std = stats.mode.estimateStdDev(xs, .66);
   // Use Scott's estimate
   return (std / xs.length ** (-1 / 5)) * level;
 }
