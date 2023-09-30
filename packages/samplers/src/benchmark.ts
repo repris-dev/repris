@@ -13,8 +13,7 @@ import { duration, Sample } from './samples.js';
  * benchmarks which can be summarized by a conflation.
  */
 export interface AggregatedBenchmark<S extends Sample<any>>
-  extends json.Serializable<wt.Benchmark>
-{
+  extends json.Serializable<wt.Benchmark> {
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 
@@ -22,7 +21,7 @@ export interface AggregatedBenchmark<S extends Sample<any>>
 
   readonly name: wt.BenchmarkName;
 
-  samples(): IterableIterator<{ sample: S, run: number }>;
+  samples(): IterableIterator<{ sample: S; run: number }>;
 
   conflation(): conflations.Conflation<S> | undefined;
 
@@ -45,7 +44,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       return Status.err(`Unexpected type`);
     }
 
-    const resultSamples = [] as { sample: duration.Duration, run: number }[];
+    const resultSamples = [] as { sample: duration.Duration; run: number }[];
     const sampleMap = new Map<uuid, duration.Duration>();
 
     for (let ws of benchmark.samples) {
@@ -100,14 +99,14 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   }
 
   private _uuid!: uuid;
-  private _samples: Map<duration.Duration, { sample: duration.Duration, run: number }>;
+  private _samples: Map<duration.Duration, { sample: duration.Duration; run: number }>;
   private _conflation?: conflations.Conflation<duration.Duration>;
   private _annotations = new Map<uuid, wt.AnnotationBag>();
   private _totalruns: number;
 
   private constructor(
     public readonly name: wt.BenchmarkName,
-    samples: Iterable<{ sample: duration.Duration, run: number }>,
+    samples: Iterable<{ sample: duration.Duration; run: number }>,
     conflation?: conflations.Conflation<duration.Duration>,
     totalRuns = 0
   ) {
@@ -134,7 +133,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     return this._totalruns;
   }
 
-  samples(): IterableIterator<{ sample: duration.Duration, run: number }> {
+  samples(): IterableIterator<{ sample: duration.Duration; run: number }> {
     return this._samples.values();
   }
 
@@ -150,10 +149,10 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     const nextRun = this.totalRuns() + 1;
 
     // Create a new benchmark
-    const samples: { sample: duration.Duration, run: number }[] = [];
+    const samples: { sample: duration.Duration; run: number }[] = [];
     for (const { status, sample } of conflation.stat()) {
       if (status !== 'rejected') {
-        const run = this._samples.get(sample)?.run ?? nextRun; 
+        const run = this._samples.get(sample)?.run ?? nextRun;
         samples.push({ sample, run });
       }
     }
@@ -190,7 +189,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       samples: iterator.collect(
         iterator.map(this.samples(), ({ sample, run }) => ({
           data: sample.toJson(),
-          run
+          run,
         }))
       ),
       conflation: this.conflation()?.toJson(),
@@ -213,6 +212,10 @@ export const annotations = {
    */
   summaryText: 'benchmark:summaryText' as typeid,
 
+  nRuns: 'benchmark:runs' as typeid,
+
+  uncertainty: 'benchmark:uncertainty' as typeid,
+
   stable: 'benchmark:stable' as typeid,
 } as const;
 
@@ -221,40 +224,45 @@ ann.register('@benchmark:annotator' as typeid, {
     return Object.values(annotations);
   },
 
-  annotate(fixt: DefaultBenchmark, _request: Map<typeid, {}>): Status<ann.AnnotationBag | undefined> {
+  annotate(
+    fixt: DefaultBenchmark,
+    _request: Map<typeid, {}>
+  ): Status<ann.AnnotationBag | undefined> {
     if (!DefaultBenchmark.is(fixt)) return Status.value(void 0);
 
     let summary;
 
     const confl = fixt.conflation();
     if (confl) {
-      let outlier = 0,
-        consistent = 0;
+      let totalIndexed = 0;
 
       confl.stat().forEach(x => {
         switch (x.status) {
           case 'consistent':
-            consistent++;
-            break;
           case 'outlier':
-            outlier++;
-            break;
+            totalIndexed++;
         }
       });
 
       // <uncertainty> (<total stored>/<total runs>)
-      const tot = consistent + outlier;
-      summary = `${tot > 1 ? confl.uncertainty().toFixed(2) : '-'} (${tot}/${fixt.totalRuns()})`;
+      summary = `${
+        totalIndexed > 1 ? confl.uncertainty().toFixed(2) : '-'
+      } (${totalIndexed}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)
       summary = `- (-/${fixt.totalRuns()})`;
     }
 
-    const bag = ann.DefaultBag.from([
+    const result = new Map<typeid, ann.Annotation>([
+      [annotations.nRuns, fixt.totalRuns()],
       [annotations.summaryText, summary],
       [annotations.stable, confl?.ready() ?? false],
     ]);
 
-    return Status.value(bag);
+    if (confl) {
+      result.set(annotations.uncertainty, confl.uncertainty());
+    }
+
+    return Status.value(ann.DefaultBag.from(result));
   },
 });

@@ -118,6 +118,10 @@ export class Result implements types.Conflation<duration.Duration> {
     private _aggregation: SamplingAggregation<duration.Duration>
   ) {}
 
+  N() {
+    return this._aggregation.stat.length; 
+  }
+
   stat() {
     return this._aggregation.stat;
   }
@@ -239,10 +243,11 @@ function aggregateAndFilter<T>(
     const xsTmp = subset.map(w => w.statistic);
     const os = stats.online.Gaussian.fromValues(xsTmp);
 
-    // spread as the coefficient of variation
-    relativeSpread = os.cov(1);
-
-    console.info('>', relativeSpread.toFixed(4), ((os.std() / Math.sqrt(os.N())) / os.mean()).toFixed(4));
+    // Spread as the coefficient of variation
+    // Use 1.5 ddof Rule of Thumb
+    // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
+    // The American Statistician (23) 4 p. 32 (1969)
+    relativeSpread = os.cov(1.5);
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(

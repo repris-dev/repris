@@ -9,9 +9,6 @@ const ConflationAnnotations = Object.freeze({
   /** The mean of the sampling distribution */
   mean: 'mean:conflation' as typeid,
 
-  /** A measure of variation of the sampling distribution */
-  variation: 'mean:conflation:variation' as typeid,
-
   /** confidence interval of the mean */
   meanCI: {
     id: 'mean:conflation:ci' as typeid,
@@ -55,7 +52,6 @@ ann.register('@annotator:conflation:mean', {
       const os = stats.online.Gaussian.fromValues(xs);
 
       result.set(ConflationAnnotations.mean, conflation.asQuantity(os.mean()));
-      result.set(ConflationAnnotations.variation, os.cov());
 
       if (request.has(ConflationAnnotations.meanCI.id)) {
         const opts = {

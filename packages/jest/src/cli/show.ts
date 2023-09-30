@@ -1,3 +1,4 @@
+import { debug } from 'util';
 import chalk from 'chalk';
 
 import * as jestConfig from 'jest-config';
@@ -6,14 +7,16 @@ import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
 import Runtime from 'jest-runtime';
 
-import { snapshotManager, annotators, benchmark as b } from '@repris/samplers';
-import { iterator, uuid } from '@repris/base';
+import { snapshotManager, annotators, benchmark as b, wiretypes } from '@repris/samplers';
+import { Status, iterator, typeid, uuid } from '@repris/base';
 
 import { BaselineResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import * as reprisConfig from '../config.js';
 import { gradedColumns } from '../reporterUtils.js';
 import { println, panic } from './util.js';
+
+const dbg = debug('repris:show');
 
 export async function show(_argv: string[]): Promise<void> {
   const cfg = await jestConfig.readConfigs({ $0: '', _: [] }, [process.cwd()]);
@@ -37,19 +40,34 @@ async function showSnapshotDetail(
   testFiles: jReporters.Test[],
   sfm: snapshotManager.SnapshotFileManager
 ) {
-  const annotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
-  const columns = gradedColumns(reprisCfg.conflation.annotations, void 0, 'show');
-  const testRenderer = new TableTreeReporter<b.AggregatedBenchmark<any>>(columns, {
-    annotate(benchmark) {
-      const conflation = benchmark.conflation();
-      if (conflation && benchmark.annotations().has(conflation[uuid])) {
-        const bag = annotators.DefaultBag.fromJson(
-          benchmark.annotations().get(conflation[uuid])!
-        );
+  const conflationAnnotationRequests = reprisConfig.parseAnnotations(reprisCfg.conflation.annotations)();
+  const benchmarkAnnotationRequests = reprisConfig.parseAnnotations(reprisCfg.benchmark.annotations)();
 
-        annotators.annotateMissing(bag, annotationRequests, conflation);
-        return bag;
+  const cols = reprisCfg.conflation.annotations.concat(reprisCfg.benchmark.annotations);
+
+  const testRenderer = new TableTreeReporter<b.AggregatedBenchmark<any>>(
+    gradedColumns(cols, void 0, 'show'), {
+    annotate(benchmark) {
+      const bag = annotators.DefaultBag.from([]);
+      const conflation = benchmark.conflation();
+
+      loadOrReannotate(
+        benchmark,
+        benchmarkAnnotationRequests,
+        benchmark.annotations().get(benchmark[uuid]),
+        bag,
+      );
+
+      if (conflation) {
+        loadOrReannotate(
+          conflation,
+          conflationAnnotationRequests,
+          benchmark.annotations().get(conflation[uuid]),
+          bag,
+        );
       }
+
+      return bag;
     },
     pathOf: benchmark => benchmark.name.title.slice(0, -1),
     render: benchmark => chalk.dim(benchmark.name.title.at(-1)),
@@ -67,5 +85,23 @@ async function showSnapshotDetail(
       const benchmarks = iterator.collect(snapshot!.allBenchmarks(), []);
       testRenderer.render(benchmarks, process.stderr);
     }
+  }
+}
+
+function loadOrReannotate<T extends annotators.Annotatable>(
+  annotatable: T,
+  annotationRequest: Map<typeid, any>,
+  annotations: wiretypes.AnnotationBag = {},
+  target: annotators.DefaultBag,
+) {
+  // Use existing annotations from the index
+  const deserializedBag = annotators.DefaultBag.fromJson(annotations);
+  target.union(deserializedBag);
+  
+  // Compute missing annotations
+  const result = annotators.annotateMissing(target, annotationRequest, annotatable);
+  
+  if (Status.isErr(result)) {
+    dbg('%s', result[1]);
   }
 }
