@@ -16,9 +16,9 @@ export type UnitType = keyof typeof Unit;
 export type HrTime = As<bigint>
 
 /**
- * Raw source of time data
+ * Raw source of timing data
  */
-export interface Timer
+export interface TimeSource
 {
   /** Begin or restart the timer. Returns the current time */
   start(): HrTime;
@@ -27,7 +27,7 @@ export interface Timer
   current(): HrTime;
 
   /** Clones the timer state */
-  clone(): Timer;
+  clone(): TimeSource;
 }
 
 /**
@@ -37,7 +37,7 @@ export interface Timer
  * @param emit A function which when called with a duration returns
  * whether the consumer should stop polling
  */
-export interface Hand
+export interface Clock
 {
   /** Begin the timer, returning a timer id */
   tick(): number;
@@ -102,7 +102,7 @@ export function toString(t: HrTime) {
 };
 
 /** Returns a high-resolution timer for the current runtime */
-export function create(): Timer {
+export function create(): TimeSource {
   // @ts-ignore: Test for nodejs
   if (typeof process !== 'object' || typeof process.hrtime !== 'function') {
     throw new Error('Runtime not supported');
@@ -110,10 +110,10 @@ export function create(): Timer {
   return nodeJSTimer();
 }
 
-export function createHand(
-  timer: Timer,
+export function createClock(
+  timer: TimeSource,
   emit: (valid: boolean, duration: HrTime) => boolean
-): Hand {
+): Clock {
   let tickId = -1;
 
   return {
@@ -133,7 +133,7 @@ export function createHand(
 
 declare const process: { hrtime: { bigint(): bigint }};
 
-function nodeJSTimer(now = 0n as HrTime): Timer {
+function nodeJSTimer(now = 0n as HrTime): TimeSource {
   function start() {
     now = process.hrtime.bigint() as HrTime;
     return now as HrTime;

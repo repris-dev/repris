@@ -1,10 +1,10 @@
 import * as random from './random.js';
-import OS from './stats/OnlineStats.js';
+import * as OS from './stats/OnlineStats.js';
 
 describe('random', () => {
   test('normal distribution (1)', () => {
     const rng = random.gaussian(10, 1, random.PRNGi32(31));
-    const stats = new OS();
+    const stats = new OS.Gaussian();
 
     for (let i = 0; i < 5000; i++) {
       stats.push(rng());
@@ -18,7 +18,7 @@ describe('random', () => {
 
   test('normal distribution (2)', () => {
     const rng = random.gaussian(5, 5, random.PRNGi32(52));
-    const stats = new OS();
+    const stats = new OS.Gaussian();
 
     for (let i = 0; i < 5000; i++) {
       stats.push(rng());
