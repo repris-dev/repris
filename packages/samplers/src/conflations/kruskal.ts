@@ -62,10 +62,12 @@ export class KWConflation<T> {
       .sort((a, b) => a.mode - b.mode);
 
     // HSM of the sampling distribution
-    const sDistHsm = stats.mode.hsm(samplingDist.map(x => x.mode)).mode;
+//    const sDistHsm = stats.mode.hsm(samplingDist.map(x => x.mode)).mode;
     const sDistMedian = stats.median(samplingDist.map(x => x.mode));
 
-console.info('sDistHSM', sDistHsm);
+console.info('>> kw0', kw.effectSize, kw.pValue());
+
+//console.info('sDistHSM', sDistHsm);
 console.info('sDistMedian', sDistMedian);
 
     // Confidence of the sampling dist
@@ -108,11 +110,12 @@ console.info('bound', bound);
 
       kw = stats.kruskalWallis(subset.map(s => s.raw));
 
-console.info('>> kw1', kw.effectSize);      
+console.info('>> kw1', kw.effectSize, kw.pValue());
+console.info('------------')   ;
 
       // mark consistent samples
-//      if (kw.effectSize <= opts.maxEffectSize) {
-      if (m99 < 0.01) {
+      if (kw.effectSize <= opts.maxEffectSize) {
+//      if (m99 < 0.01) {
         subset.forEach(x => (statIndex.get(x.raw)!.status = 'consistent'));
       }
     }
