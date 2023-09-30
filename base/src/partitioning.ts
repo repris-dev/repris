@@ -22,7 +22,7 @@ export class DisjointSet<T extends number> {
     return this.tourStart[id];
   }
 
-  *iterateGroups(): Iterator<T> {
+  *iterateGroups(): IterableIterator<T> {
     const tourStart = this.tourStart;
 
     let i = 0 as T;
@@ -40,7 +40,7 @@ export class DisjointSet<T extends number> {
     assert.is(i <= tourStart.length);
   }
 
-  *iterateGroup(id: T): Iterator<T> {
+  *iterateGroup(id: T): IterableIterator<T> {
     const tours = this.tours;
 
     id = this.tourStart[id];
