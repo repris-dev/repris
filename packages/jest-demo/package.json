@@ -9,6 +9,9 @@
     ".tsc"
   ],
   "type": "module",
+  "dependencies": {
+    "@repris/base": "workspace:*"
+  },
   "devDependencies": {
     "@types/jest": "^29",
     "@types/node": "^16",

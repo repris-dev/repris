@@ -1,8 +1,11 @@
-function shuffle(array: Int32Array) {
+import { random, array } from "@repris/base";
+
+function shuffle(array: Int32Array, rng: random.Generator) {
+  const dist = random.uniform(0, 1, rng)
   let currentIdx = array.length;
 
   while (currentIdx !== 0) {
-    const randomIdx = Math.floor(Math.random() * currentIdx);
+    const randomIdx = Math.floor(dist() * currentIdx);
     currentIdx--;
 
     // And swap it with the current element.
@@ -14,55 +17,60 @@ function shuffle(array: Int32Array) {
   return array;
 }
 
+describe('shuffle() (PRNG)', () => {
+  sample('numbers', (s) => {
+    const rng = random.PRNGi32(67);
+    const arr = array.fillAscending(new Int32Array(5e5), 0);
+
+    for (let _ of s) shuffle(arr, rng);
+
+    expect(arr[0]).toBeGreaterThan(-1);
+  });
+
+  sample('numbers', (s) => {
+    const rng = random.PRNGi32(67);
+    const arr = array.fillAscending(new Int32Array(1e5), 0);
+
+    for (let _ of s) shuffle(arr, rng);
+
+    expect(arr[0]).toBeGreaterThan(-1);
+  });
+
+  sample('numbers', (s) => {
+    const rng = random.PRNGi32(67);
+    const arr = array.fillAscending(new Int32Array(10), 0);
+
+    for (let _ of s)shuffle(arr, rng);
+
+    expect(arr[0]).toBeGreaterThan(-1);
+  });
+})
+
 describe('shuffle()', () => {
   sample('numbers', (s) => {
-    const n = 5e5;
-    const arr = new Int32Array(n);
+    const rng = random.mathRand;
+    const arr = array.fillAscending(new Int32Array(5e5), 0);
 
-    for (let i = 0; i < n; i++) {
-      arr[i] = i;
-    }
-
-    for (let _ of s) {
-      shuffle(arr);
-    }
+    for (let _ of s) shuffle(arr, rng);
 
     expect(arr[0]).toBeGreaterThan(-1);
   });
 
   sample('numbers', (s) => {
-    const n = 1e5;
-    const arr = new Int32Array(n);
+    const rng = random.mathRand;
+    const arr = array.fillAscending(new Int32Array(1e5), 0);
 
-    for (let i = 0; i < n; i++) {
-      arr[i] = i;
-    }
-
-    for (let _ of s) {
-      shuffle(arr);
-    }
+    for (let _ of s) shuffle(arr, rng);
 
     expect(arr[0]).toBeGreaterThan(-1);
   });
 
   sample('numbers', (s) => {
-    const n = 10;
-    const arr = new Int32Array(n);
+    const rng = random.mathRand;
+    const arr = array.fillAscending(new Int32Array(10), 0);
 
-    for (let i = 0; i < n; i++) {
-      arr[i] = i;
-    }
-
-    for (let _ of s) {
-      shuffle(arr);
-    }
+    for (let _ of s) shuffle(arr, rng);
 
     expect(arr[0]).toBeGreaterThan(-1);
-  });
-
-  describe('sub suite', () => {
-    it('mini test', () => {
-      expect('a').toBe('a');
-    })
   });
 });

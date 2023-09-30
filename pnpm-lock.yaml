@@ -116,6 +116,10 @@ importers:
         version: 2.9.14
 
   packages/jest-demo:
+    dependencies:
+      '@repris/base':
+        specifier: workspace:*
+        version: link:../base
     devDependencies:
       '@repris/jest':
         specifier: workspace:*
