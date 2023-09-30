@@ -7,4 +7,9 @@ export default {
   snapshotResolver: '@repris/util/snapshotResolver.cjs',
   testEnvironmentOptions: { customExportConditions: ['development'] },
   globals: defaults(pkg),
+  // Workaround for https://github.com/jestjs/jest/issues/12270 (Fixed in Jest 29)
+  moduleNameMapper: {
+    '#ansi-styles': 'ansi-styles/index.js',
+    '#supports-color': 'supports-color/index.js',
+  }
 };
