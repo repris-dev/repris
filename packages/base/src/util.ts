@@ -76,6 +76,14 @@ export function isObject(item: any): item is object {
 
 export const asTuple = <T extends [any, ...any]>(array: T) => array;
 
+export function lazy<T>(init: () => T): () => T {
+  let val: T | undefined;
+  return () => {
+    if (val === void 0) val = init();
+    return val;
+  }
+}
+
 //
 // UUIDs
 //
