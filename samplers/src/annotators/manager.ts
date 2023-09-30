@@ -1,6 +1,7 @@
 import { json, Status, typeid } from '@sampleci/base';
+import { Units } from '../quantity.js';
 import * as wt from '../wireTypes.js';
-import type { Annotator, AnnotationBag, Annotation, Annotatable } from './types.js';
+import type { Annotator, AnnotationBag, Annotation, Annotatable, Value } from './types.js';
 
 const annotators = new Map<string, Annotator>();
 const annotatorMap = new Map<typeid, string>();
@@ -17,13 +18,36 @@ export function register(name: string, annotator: Annotator): Status {
   return Status.ok;
 }
 
-/** Serialize an annotation */
-export function serialize(ann: Annotation): json.Value {
-  return typeof ann === 'bigint'
+function isQuantity(ann: any): ann is { units: any, quantity: any } {
+  return typeof ann === 'object'
+    && !Array.isArray(ann)
+    && ann.units !== void 0
+    && ann.quantity !== void 0;
+}
+
+/** Serialize an annotation to json. This simply takes account of bigints */
+export function toJson(ann: Annotation): json.Value {
+  return isQuantity(ann)
+    ? { units: ann.units, quantity: toJson(ann.quantity) }
+    : typeof ann === 'bigint'
     ? json.bigint.toJson(ann)
     : Array.isArray(ann)
-    ? ann.map((x) => serialize(x))
+    ? ann.map(x => toJson(x)) 
     : (ann as json.Value);
+}
+
+export function fromJson(val: json.Value): Annotation {
+  function valFromJson(v: json.Value): Value {
+    return json.bigint.isJsonBigint(v)
+      ? json.bigint.fromJson(v)
+      : Array.isArray(v)
+      ? v.map(x => valFromJson(x))
+      : (v as Value);
+  }
+
+  return isQuantity(val)
+    ? { units: val.units as Units, quantity: valFromJson(val.quantity) }
+    : valFromJson(val); 
 }
 
 /** Default bag implementation */
@@ -32,12 +56,20 @@ export class DefaultBag implements AnnotationBag {
     return new DefaultBag(new Map(pairs));
   }
 
+  static fromJson(bag: wt.AnnotationBag): DefaultBag {
+    const m = new Map<typeid, Annotation>();
+    for (const [name, value] of Object.entries(bag)) {
+      m.set(name as typeid, fromJson(value))
+    }
+    return new DefaultBag(m);
+  }
+
   constructor(public annotations: Map<typeid, Annotation>) {}
 
   toJson(): wt.AnnotationBag {
     const r = {} as Record<string, json.Value>;
-    for (const [k, v] of this.annotations.entries()) {
-      r[k] = serialize(v);
+    for (const [k, a] of this.annotations.entries()) {
+      r[k] = toJson(a);
     }
     return r;
   }
