@@ -15,6 +15,9 @@ export type UnitType = keyof typeof Unit;
 /** A measure of time in nanoseconds */
 export type HrTime = As<bigint>
 
+/**
+ * Raw source of time data
+ */
 export interface Timer
 {
   /** Begin or restart the timer. Returns the current time */
@@ -28,7 +31,7 @@ export interface Timer
 }
 
 /**
- * A timer which emits durations between a 'tick' and its
+ * A Clock which emits durations between a 'tick' and its
  * corresponding 'tock'.
  * 
  * @param emit A function which when called with a duration returns
@@ -46,14 +49,34 @@ export interface Hand
   cancel(duration?: HrTime): void;
 }
 
-/** Convert a htTime to a numeric value */
-export function cvtTo(time: HrTime, units: UnitType): HrTime {
+/** Convert a HrTime to a numeric value in the given units */
+export function cvtTo(time: HrTime, units: UnitType): bigint {
   switch (units) {
     case 'nanosecond':  return time;
-    case 'microsecond': return divRounded(time, 1000n) as HrTime;
-    case 'millisecond': return divRounded(time, 1000_000n) as HrTime;
-    case 'second':      return divRounded(time, 1000_000_000n) as HrTime;
-    case 'hz':          return divRounded(time, 1000_000_000_000n) as HrTime;
+    case 'microsecond': return divRounded(time, 1000n);
+    case 'millisecond': return divRounded(time, 1000_000n);
+    case 'second':      return divRounded(time, 1000_000_000n);
+    case 'hz':          return divRounded(time, 1000_000_000_000n);
+  }
+  throw new Error(`Unknown Unit '${ units }'`);
+}
+
+/** Convert a value in the given units to a HrTime */
+export function cvtFrom(time: number | string | bigint, units: UnitType): HrTime {
+  // TODO - big-decimal required to accurately convert floating point values
+  //   to the nearest bigint
+  const t = typeof time === 'number'
+    ? BigInt(Math.round(time))
+    : typeof time === 'string'
+    ? BigInt(time.replace(/\..*/, '')) // remove decimals
+    : time;
+
+  switch (units) {
+    case 'nanosecond':  return t as HrTime;
+    case 'microsecond': return t * 1000n as HrTime;
+    case 'millisecond': return t * 1000_000n as HrTime;
+    case 'second':      return t * 1000_000_000n as HrTime;
+    case 'hz':          return t * 1000_000_000_000n as HrTime;
   }
   throw new Error(`Unknown Unit '${ units }'`);
 }
@@ -115,9 +138,11 @@ function nodeJSTimer(now = 0n as HrTime): Timer {
     now = process.hrtime.bigint() as HrTime;
     return now as HrTime;
   }
+
   function current() {
     return process.hrtime.bigint() - now as HrTime;
   }
+
   function clone() {
     return nodeJSTimer(now);
   }
