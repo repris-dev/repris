@@ -33,11 +33,11 @@ describe('DurationConflation', () => {
     const result = conf.analysis();
 
     // samples a, b, c
-    expect(result.inAgreement.length).toBe(3);
-    expect(result.inAgreement.includes(2)).toBeFalsy();
+    expect(result.consistent.length).toBe(3);
+    expect(result.consistent.includes(2)).toBeFalsy();
 
     // The outlier is also the slowest
-    expect(result.order[result.order.length - 1]).toBe(2);
+    expect(result.ordered[result.ordered.length - 1]).toBe(2);
   });
 
   test('samples() - 2 clusters of 2', () => {
@@ -50,16 +50,18 @@ describe('DurationConflation', () => {
 
     const result = conf.analysis();
 
-    // No one cluster is large enough
-    expect(result.inAgreement.length).toBe(0);
+    // The faster cluster is selected
+    expect(result.consistent.length).toBe(2);
+    expect(result.consistent).toContain(1);
+    expect(result.consistent).toContain(2);
 
     // fastest samples
-    expect(result.order.indexOf(1)).toBeLessThanOrEqual(1);
-    expect(result.order.indexOf(2)).toBeLessThanOrEqual(1);
+    expect(result.ordered.indexOf(1)).toBeLessThanOrEqual(1);
+    expect(result.ordered.indexOf(2)).toBeLessThanOrEqual(1);
 
     // slowest samples
-    expect(result.order.indexOf(0)).toBeGreaterThanOrEqual(2);
-    expect(result.order.indexOf(3)).toBeGreaterThanOrEqual(2);
+    expect(result.ordered.indexOf(0)).toBeGreaterThanOrEqual(2);
+    expect(result.ordered.indexOf(3)).toBeGreaterThanOrEqual(2);
   });
 
   test('exclusionThreshold', () => {
@@ -70,7 +72,7 @@ describe('DurationConflation', () => {
       conf.push(sE);
       conf.push(sF);
       
-      expect(conf.analysis().inAgreement.length).toBe(0);
+      expect(conf.analysis().consistent.length).toBe(0);
     }
     { // high threshold
       const thresh = 0.8;
@@ -80,8 +82,8 @@ describe('DurationConflation', () => {
       conf.push(sF);
 
       const a = conf.analysis();
-      expect(a.inAgreement.length).toBe(2);
-      expect(Array.from(a.order)).toEqual([0, 1]);
+      expect(a.consistent.length).toBe(2);
+      expect(Array.from(a.ordered)).toEqual([0, 1]);
     }
   });
 });

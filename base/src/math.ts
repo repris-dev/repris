@@ -86,3 +86,26 @@ export function lerp(x1: number, x2: number, alpha: number) {
 
   return (x1 * (1 - alpha)) + (x2 * alpha);
 }
+
+/**
+ * Index a upper triangular matrix
+ * e.g. Given a 3x3 triangular matrix:
+ *   - a b
+ *   - - c
+ *   - - -
+ *
+ *   arr[triIdx(3, 0, 1)] === a
+ *   arr[triIdx(3, 1, 2)] === b
+ *
+ */
+export function triMatIdx(n: number, i: number, j: number) {
+  assert.is(i !== j);
+
+  if (i > j) {
+    const tmp = i;
+    i = j;
+    j = tmp;
+  }
+
+  return (n * (n-1) / 2) - (n - i) * ((n - i) - 1) / 2 + j - i - 1;
+}

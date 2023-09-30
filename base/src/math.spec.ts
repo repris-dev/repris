@@ -34,3 +34,20 @@ describe('lerp', () => {
     expect(math.lerp(4, 3, 1)).toBe(3);
   });
 });
+
+describe('triMatIdx', () => {
+  test('3x3', () => {
+    /*  - a b
+     *  - - c
+     *  - - -
+     */
+    expect(math.triMatIdx(3, 0, 1)).toBe(0);
+    expect(math.triMatIdx(3, 0, 2)).toBe(1);
+    expect(math.triMatIdx(3, 1, 2)).toBe(2);
+
+    // Also works on the inverse
+    expect(math.triMatIdx(3, 1, 0)).toBe(0);
+    expect(math.triMatIdx(3, 2, 0)).toBe(1);
+    expect(math.triMatIdx(3, 2, 1)).toBe(2);
+  });
+});

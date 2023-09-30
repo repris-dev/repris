@@ -1,4 +1,4 @@
-import { Status, typeid, json, timer, stats, assert, Indexable, array, iterator } from '@sampleci/base';
+import { Status, typeid, json, timer, stats, assert, Indexable, array, iterator, math } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
 import * as wt from '../wireTypes.js';
@@ -55,7 +55,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   observationCount(): number {
     return this.onlineStats.N();
   }
-  
+
   values() {
     return this.times.values.values();
   }
@@ -126,18 +126,25 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   }
 }
 
-type ConflationAgreement = {
-  /** Sample indices which are in agreement */
-  inAgreement: Int32Array,
-
-  /** Degree to which the samples in agreement disagree (0..1) */
-  heterogeneity: number,
+/** A Sample conflation result based on pair-wise Mann-Whitney U tests */
+type MWUConflationAnalysis = {
+  /**
+   * Sample indices of samples which sufficiently overlap with the
+   * fastest sample.
+   * 
+   * This method is based on the observation that systematic errors of
+   * benchmarks almost always increase the benchmark duration (as measured by time,
+   * due to many factors outside the control of the software under test), and
+   * so the easiest way to counteract this is to choose those samples clustered
+   * around the minimum duration.
+   */
+  consistent: number[],
 
   /**
    * All sample indices ordered by the number of times it is more likely to
-   * produce lower values in a sample-by-sample comparison
+   * produce lower values in a sample-by-sample comparison.
    */
-  order: Int32Array,
+  ordered: Int32Array,
 };
 
 export class DurationConflation implements types.Conflation<timer.HrTime> {
@@ -147,9 +154,9 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
 
   private allSamples: Duration[] = [];
   private rawSamples: Float64Array[] = [];
-  private analysisCache?: ConflationAgreement;
+  private analysisCache?: MWUConflationAnalysis;
 
-  constructor (private exclusionThreshold = 0.2) { }
+  constructor (private exclusionThreshold = 0.25) { }
 
   samples(maxSize = 5, all = false): Iterable<Duration> {
     const allSamples = this.allSamples;
@@ -165,7 +172,7 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
       // consider all samples
       ? Array.from(iterator.range(0, allSamples.length))
       // consider only those samples in agreement
-      : a.inAgreement;
+      : a.consistent;
 
     if (maxSize < series.length) {
       // find the fastest subset
@@ -173,7 +180,7 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
       const result = [] as Duration[];
 
       for (let i = 0; i < series.length; i++) {
-        const idx = a.order[i];
+        const idx = a.ordered[i];
         if (subset.has(idx)) {
           if (result.push(allSamples[idx]) >= maxSize) break;
         }
@@ -185,7 +192,7 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
     return array.subsetOf(allSamples, series, []);
   }
 
-  analysis(): ConflationAgreement {
+  analysis(): MWUConflationAnalysis {
     return this.analysisCache ??= DurationConflation.analyze(
       this.rawSamples, this.exclusionThreshold
     );
@@ -197,41 +204,24 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
     this.analysisCache = undefined;
   }
 
-  /**
-   * @returns The subset of samples in agreement with more than
-   * half the other samples. Two samples agree when their distributions
-   * overlap below the exclusion threshold.
-   * 
-   * The returned subset is ordered 
-   */
   static analyze(
-    samples: Indexable<number>[], exclusionThreshold: number
-  ): ConflationAgreement {
+    samples: Indexable<number>[], maxDissimilarity: number
+  ): MWUConflationAnalysis {
     const N = samples.length;
-    // degree of each sample (represented as a graph, where
-    // each edge represents a pair of agreeing samples)
-    const degrees = new Int32Array(N);
 
     // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
     // is not possible. Instead we order by the number of 'wins'.
     const wins = new Int32Array(N);
 
-    // 
-    let heterogeneity = 0, e = 0;
+    // upper triangular matrix of effect sizes
+    const ess = [] as number[];
 
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
         const mwu = stats.mwu(samples[i], samples[j]).effectSize;
         // Normalized effect-size between 0 and 1 where 0 is 'equal-chance' or homogeneous.
-        const a = Math.abs(mwu - 0.5) * 2;
-
-        if (a < exclusionThreshold) {
-          heterogeneity += a;
-          e++;
-
-          degrees[i]++;
-          degrees[j]++;
-        }
+        const es = Math.abs(mwu - 0.5) * 2;
+        ess.push(es);
 
         if (mwu > 0.5) {
           wins[i]++
@@ -241,19 +231,32 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
       }
     }
 
-    const order = new Int32Array(N);
+    const ordered = new Int32Array(N);
+    array.fillAscending(ordered, 0);
+    ordered.sort((a, b) => wins[b] - wins[a]);
 
-    array.fillAscending(order, 0);
-    order.sort((a, b) => wins[b] - wins[a]);
+    const fastest = ordered[0];
+    const consistent = [fastest];
 
-    // min degree threshold
-    const thresh = (N - 1) / 2;
-    const inAgreement = order.filter(idx => degrees[idx] > thresh);
+    for (let k = 1; k < N; k++) {
+      const kth = ordered[k];
+      const es = ess[math.triMatIdx(N, fastest, kth)];
+
+      if (es < maxDissimilarity) {
+        consistent.push(kth);
+      } else {
+        break;
+      }
+    }
+
+    // The fastest sample disagrees with all the other samples
+    if (consistent.length < 2) {
+      consistent.length = 0;
+    }
 
     return {
-      order,
-      inAgreement,
-      heterogeneity: e > 0 ? heterogeneity / e : 1,
+      ordered,
+      consistent,
     };
   }
 }
@@ -326,7 +329,7 @@ ann.register('@sample:duration-annotator' as typeid, {
       [sampleAnnotations.rme95, s.rme()],
     ]);
 
-    return Status.value(bag);    
+    return Status.value(bag);
   }
 });
 
