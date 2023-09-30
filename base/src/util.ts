@@ -48,11 +48,10 @@ export namespace Status {
 export type As<T> = T & { readonly '': unique symbol };
 
 /** symbol which identifies the type of an object at runtime */
-export const typeid = Symbol('@typeid');
+export const typeid = Symbol.for('@typeid');
 
 /** typeid value type */
 export type typeid = string & As<'@typeid'>;
-
 
 //
 // Helpers
