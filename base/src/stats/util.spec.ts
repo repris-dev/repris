@@ -29,3 +29,33 @@ describe('iqr', () => {
     expect(range).toEqual([0, 0]);
   });
 });
+
+describe('median', () => {
+  test('even sample size', () => {
+    const arr = [0, 1, 2, 3];
+    const m = util.median(arr);
+
+    expect(m).toEqual(1.5);
+  });
+
+  test('even sample size (2)', () => {
+    const arr = [100, 200];
+    const m = util.median(arr);
+
+    expect(m).toEqual(150);
+  });
+
+  test('odd sample size', () => {
+    const arr = [0, 1, 2];
+    const m = util.median(arr);
+
+    expect(m).toEqual(1);
+  });
+
+  test('odd sample size (2)', () => {
+    const arr = [100];
+    const m = util.median(arr);
+
+    expect(m).toEqual(100);
+  });
+});

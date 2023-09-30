@@ -10,3 +10,19 @@ export function iqr(sample: Indexable<number>): [number, number] {
 
   return [lo, hi];
 }
+
+export function median(sample: Indexable<number>): number {
+  gt(sample.length, 0);
+
+  const n = sample.length;
+  const midpoint = n / 2;
+
+  if (n % 2 === 0) {
+    const lo = sample[quickselect(sample, midpoint - 1)];
+    const hi = sample[quickselect(sample, midpoint)];
+
+    return (lo + hi) / 2;
+  } else {
+    return sample[quickselect(sample, Math.floor(midpoint))];
+  }
+}
