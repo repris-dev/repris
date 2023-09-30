@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["./src/**/*.ts", "./src/**/*.json"],
+  "include": ["./src/**/*.ts", "./src/**/*.js", "./src/**/*.json"],
   "compilerOptions": {
     "declaration": true,
     "declarationDir": ".tsc",
@@ -8,6 +8,7 @@
     "outDir": ".tsc",
     "types": ["@repris/jest/stopwatch-env", "jest"],
     "strict": true,
-    "skipLibCheck": false
+    "skipLibCheck": false,
+    "allowJs": true,
   }
 }
