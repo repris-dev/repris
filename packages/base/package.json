@@ -2,13 +2,16 @@
   "name": "@repris/base",
   "version": "0.8.0",
   "author": {
-    "name": "Ray Glover"
+    "name": "Ray Glover",
+    "email": "ray@repris.dev"
   },
-  "sideEffects": false,
+  "repository": {
+    "url": "https://github.com/repris-dev/repris",
+    "type": "git"
+  },
   "files": [
     "package.json",
-    "lib",
-    ".tsc"
+    "lib"
   ],
   "type": "module",
   "exports": {

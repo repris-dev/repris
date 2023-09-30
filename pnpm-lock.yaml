@@ -62,9 +62,6 @@ importers:
       '@repris/samplers':
         specifier: workspace:*
         version: link:../samplers
-      '@repris/util':
-        specifier: workspace:*
-        version: link:../util
       chalk:
         specifier: ^5.0.1
         version: 5.0.1
@@ -99,6 +96,9 @@ importers:
       '@jest/types':
         specifier: ^29.6.3
         version: 29.6.3
+      '@repris/util':
+        specifier: workspace:*
+        version: link:../util
       '@types/jest':
         specifier: ^29.5.5
         version: 29.5.5

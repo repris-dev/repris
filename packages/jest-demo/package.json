@@ -3,11 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "sideEffects": false,
-  "files": [
-    "package.json",
-    "lib",
-    ".tsc"
-  ],
   "type": "module",
   "dependencies": {
     "@repris/base": "workspace:*"
