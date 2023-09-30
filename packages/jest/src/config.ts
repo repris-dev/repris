@@ -1,4 +1,4 @@
-import { debug } from 'util';
+import { debug } from 'node:util';
 import { lilconfig } from 'lilconfig';
 import { assert, assignDeep, iterator, typeid } from '@repris/base';
 

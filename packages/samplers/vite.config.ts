@@ -1,4 +1,3 @@
-import path from 'path';
 import { defineConfig } from 'vite';
 import * as globals from '@repris/util/globals.config';
 import pkg from './package.json' assert { type: 'json' };
@@ -9,10 +8,15 @@ console.table(define);
 export default defineConfig({
   define,
   build: {
+    target: 'es2022',
     lib: {
-      entry: path.resolve(__dirname, '.tsc/index.js'),
+      entry: '.tsc/index.js',
       fileName: 'index',
       formats: ['es'],
+    },
+    rollupOptions: {
+      external: (id) => id.startsWith('node:')
+        || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep))
     },
     outDir: './lib',
   },

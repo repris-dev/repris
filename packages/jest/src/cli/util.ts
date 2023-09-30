@@ -1,5 +1,5 @@
 import * as readline from 'node:readline/promises';
-import * as util from 'util';
+import * as util from 'node:util';
 
 import chalk from 'chalk';
 import { Status } from '@repris/base';

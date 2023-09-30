@@ -13,15 +13,28 @@
     "repris": "./script/cli.mjs"
   },
   "exports": {
-    "./reporter": "./.tsc/reporter.js",
-    "./summaryReporter": "./.tsc/summaryReporter.js",
-    "./runner": "./.tsc/runner.js",
+    "./reporter": {
+      "development": "./.tsc/reporter.js",
+      "default": "./lib/reporter.js"
+    },
+    "./summaryReporter": {
+      "development": "./.tsc/summaryReporter.js",
+      "default":  "./lib/summaryReporter.js"
+    },
+    "./runner": {
+      "development": "./.tsc/runner.js",
+      "default": "./lib/runner.js"
+    },
     "./stopwatch-env": {
       "types": "./env/stopwatch-env.d.ts",
-      "default": "./.tsc/setupStopwatch.js"
+      "development": "./.tsc/setupStopwatch.js",
+      "default": "./lib/setupStopwatch.js"
     },
-    "./jest-preset": "./jest-preset.js",
-    "./cli": "./.tsc/cli.js"
+    "./cli": {
+      "development": "./.tsc/cli.js",
+      "default": "./lib/cli.js"
+    },
+    "./jest-preset": "./jest-preset.js"
   },
   "dependencies": {
     "@repris/base": "workspace:*",
@@ -49,7 +62,7 @@
     "@jest/types": "^29",
     "npm-run-all": "4.1.5",
     "typescript": "^5.1",
-    "vite": "~2.9"
+    "vite": "^4.4"
   },
   "scripts": {
     "build:tsc": "tsc --build tsconfig.json tsconfig.spec.json",

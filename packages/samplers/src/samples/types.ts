@@ -1,5 +1,5 @@
-import { typeid, json, uuid, quantity as q } from '@repris/base';
-import * as wt from '../wireTypes.js';
+import type { typeid, json, uuid, quantity as q } from '@repris/base';
+import type * as wt from '../wireTypes.js';
 
 /**
  * A representation of a single random variable

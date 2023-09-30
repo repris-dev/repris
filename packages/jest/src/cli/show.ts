@@ -1,4 +1,4 @@
-import { debug } from 'util';
+import { debug } from 'node:util';
 import chalk from 'chalk';
 
 import * as jestConfig from 'jest-config';

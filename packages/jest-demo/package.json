@@ -24,7 +24,7 @@
   "scripts": {
     "build:tsc": "tsc --build tsconfig.json",
     "build": "build:tsc",
-    "test": "NODE_OPTIONS='--experimental-vm-modules -C development' node --expose-gc ./node_modules/jest/bin/jest.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' node --expose-gc ./node_modules/jest/bin/jest.js",
     "test:debug": "NODE_OPTIONS='--experimental-vm-modules -C development' node --expose-gc --inspect-brk ./node_modules/jest/bin/jest.js --runInBand"
   },
   "license": "MIT"

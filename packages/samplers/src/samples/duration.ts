@@ -11,7 +11,7 @@ import {
 } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as wt from '../wireTypes.js';
-import { Sample, MutableSample } from './types.js';
+import type { Sample, MutableSample } from './types.js';
 
 export type Options = {
   /**

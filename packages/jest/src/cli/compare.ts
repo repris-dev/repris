@@ -1,12 +1,12 @@
-import { debug } from 'util';
+import { debug } from 'node:util';
 
 import chalk from 'chalk';
 
+import Runtime from 'jest-runtime';
 import * as jestConfig from 'jest-config';
-import { Config } from '@jest/types';
+import type { Config } from '@jest/types';
 import * as core from '@jest/core';
 import * as jReporters from '@jest/reporters';
-import Runtime from 'jest-runtime';
 
 import {
   snapshotManager,
