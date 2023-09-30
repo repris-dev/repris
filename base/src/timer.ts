@@ -105,18 +105,16 @@ export function createClock(
 declare const process: { hrtime: { bigint(): bigint } };
 
 function nodeJSTimer(now = 0n as HrTime): TimeSource {
-  function start() {
-    now = process.hrtime.bigint() as HrTime;
-    return now as HrTime;
-  }
-
-  function current() {
-    return (process.hrtime.bigint() - now) as HrTime;
-  }
-
-  function clone() {
-    return nodeJSTimer(now);
-  }
-
-  return { start, current, clone };
+  return {
+    start() {
+      now = process.hrtime.bigint() as HrTime;
+      return now as HrTime;
+    },
+    current() {
+      return (process.hrtime.bigint() - now) as HrTime;
+    },
+    clone() {
+      return nodeJSTimer(now);
+    }
+  };
 }

@@ -177,7 +177,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
    */
   private onObservation(valid: boolean, duration: timer.HrTime): boolean {
     assert.is(this.phase !== Phase.Ready);
-    const { result, timeSource, opts, durationBounds } = this;
+    const { result, opts, durationBounds } = this;
 
     const e1 = this.totalElapsed, e2 = this.totalElapsed += duration;
 
@@ -199,9 +199,8 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
         this.gc();
         this.phase = Phase.Sampling;
         this.totalElapsed = 0n;
-
+        this.timeSource.start();
         result.reset();
-        timeSource.start();
       }
 
       return true;
@@ -224,13 +223,13 @@ class DefaultState implements StopwatchState {
   iter: Iterator<number> | null = null;
 
   constructor(
-      private time: ReturnType<typeof timer.createClock>,
+      private clock: timer.Clock,
       private parameter: number[]) {
   }
 
   [Symbol.iterator]() {
     if (this.iter === null) {
-      this.iter = DefaultState.createIterator(this.time);
+      this.iter = DefaultState.createIterator(this.clock);
     }
     return this.iter;
   }
@@ -249,11 +248,11 @@ class DefaultState implements StopwatchState {
   }
 
   set(duration: timer.HrTime) {
-    this.time.cancel(duration);
+    this.clock.cancel(duration);
   }
 
   skip() {
-    this.time.cancel();
+    this.clock.cancel();
   }
 
   static createIterator(time: timer.Clock): Iterator<number> {
