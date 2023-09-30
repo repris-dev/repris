@@ -134,7 +134,7 @@ const sampleAnnotator: ann.Annotator = {
 
         result.set(
           SampleAnnotations.hsmCIRel.id,
-          quantity.create('percent', rme(hsmCI, hsm.mode))
+          quantity.create('percent', stats.rme(hsmCI, hsm.mode))
         );
       }
     }
@@ -186,7 +186,7 @@ const conflationAnnotator: ann.Annotator = {
             smoothing
           );
 
-          result.set(ConflationAnnotations.hsmCIRel.id, rme(hsmCI, hsm.mode));
+          result.set(ConflationAnnotations.hsmCIRel.id, stats.rme(hsmCI, hsm.mode));
         }
       }
 
@@ -288,9 +288,4 @@ function kdeModeConflation(samples: (readonly [Float64Array, Sample<unknown>])[]
   const [mode] = stats.kde.findConflationMaxima(stats.kde.gaussian, hs);
 
   return mode;
-}
-
-/** Relative error */
-function rme(ci: [number, number], estimate: number) {
-  return (ci[1] - ci[0]) / 2 / estimate;
 }

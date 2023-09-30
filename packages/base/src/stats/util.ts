@@ -105,3 +105,12 @@ export function sidak(p: number, comparisons: number) {
 export function jarqueBera(n: number, S: number, K: number, ddof = 0) {
   return ((n - ddof) / 6) * (S * S + (1 / 4) * (K * K));
 }
+
+/**
+ * Relative margin of error
+ * The relative margin of error is the percentage of deviation possible (i.e a radius)
+ * around the point estimate at a specific confidence interval. 
+ */
+export function rme(interval: [number, number], estimate: number) {
+  return (interval[1] - interval[0]) / 2 / estimate;
+}

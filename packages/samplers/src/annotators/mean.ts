@@ -2,7 +2,7 @@ import { stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import * as conflations from '../conflations.js';
-import { duration, Sample } from '../samples.js';
+import { Sample } from '../samples.js';
 import { hypothesis } from '../index.js';
 
 const ConflationAnnotations = Object.freeze({
@@ -72,7 +72,7 @@ ann.register('@annotator:conflation:mean', {
           smoothing,
         );
   
-        result.set(HypothesisAnnotations.differenceCI.id, ci);
+        result.set(ConflationAnnotations.meanCI.id, stats.rme(ci, os.mean()));
       }
     }
 

@@ -46,30 +46,23 @@ export default {
     ]
   },
 
+  // prettier-ignore
   conflation: {
     options: defaults.conflations.duration,
     annotations: [
-      [
-        'mode:hsm:conflation',
-        {
-          displayName: 'Mode',
-          display: { if: ['show'] },
+      ['mean:conflation', { displayName: 'Avg.', display: { if: ['show'] } }],
+      ['mean:conflation:variation', { displayName: 'Variation', display: { if: ['show'] }}],
+      ['mode:hsm:conflation:ci-rme', {
+        displayName: '95% CI',
+        display: { if: ['show'] },
+        grading: {
+          rules: [
+            { '>=': 0, apply: chalk.green },
+            { '>=': 0.05, apply: chalk.yellow },
+            { '>=': 0.2, apply: chalk.red },
+          ],
         },
-      ],
-      [
-        'mode:hsm:conflation:ci-rme',
-        {
-          displayName: '95% CI',
-          display: { if: ['show'] },
-          grading: {
-            rules: [
-              { '>=': 0, apply: chalk.green },
-              { '>=': 0.05, apply: chalk.yellow },
-              { '>=': 0.2, apply: chalk.red },
-            ],
-          },
-        },
-      ]
+      }]
     ],
   },
 
