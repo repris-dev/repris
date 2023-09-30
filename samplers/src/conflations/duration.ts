@@ -48,6 +48,9 @@ interface MWUConflationAnalysis {
 
 export class Duration implements Conflation<timer.HrTime> {
   static [typeid] = '@conflation:duration' as typeid;
+  static is(x?: any): x is Duration {
+    return x !== void 0 && x[typeid] === Duration[typeid];
+  }
 
   readonly [typeid] = Duration[typeid];
 
@@ -176,6 +179,7 @@ function analyzeByOutliers(
   }
 
   assert.eq(N, consistentSubset.length + outliers.length);
+  // TODO: The Kruskal-Wallis test is probably more appropriate
   const mean = similarityMean(N, edges, consistentSubset);
 
   return {
@@ -209,6 +213,7 @@ function analyzeByFastest(
   orderByWins.sort((a, b) => wins[b] - wins[a]);
 
   const consistentSubset = orderByWins.subarray(0, opts.maxSize);
+  // TODO: The Kruskal-Wallis test is probably more appropriate
   const mean = similarityMean(N, edges, consistentSubset);
 
   return {
@@ -221,9 +226,6 @@ function analyzeByFastest(
 const annotations = {
   /** The number of samples selected for the conflation */
   includedCount: 'duration:conflation:includedCount' as typeid,
-
-  /** The number of samples excluded from the conflation */
-  excludedCount: 'duration:conflation:excludedCount' as typeid,
 
   /**
    * A symbolic summary of the conflation. Legend:
@@ -244,13 +246,9 @@ ann.register('@conflation:duration-annotator' as typeid, {
     sample: Conflation<timer.HrTime>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (sample[typeid] !== Duration[typeid]) {
-      return Status.value(void 0);
-    }
+    if (!Duration.is(sample)) return Status.value(void 0);
 
-    const c = sample as Duration;
-    const analysis = c.analysis();
-
+    const analysis = sample.analysis();
     const summary = Array.from(
       iterator.take(
         analysis.ordered.length,
@@ -261,7 +259,11 @@ ann.register('@conflation:duration-annotator' as typeid, {
     analysis.excluded.forEach((idx) => (summary[idx] = '×'));
     analysis.consistentSubset.forEach((idx) => (summary[idx] = '✓'));
 
-    const bag = ann.DefaultBag.from([[annotations.summaryText, summary.join('')]]);
+    const bag = ann.DefaultBag.from([
+      [annotations.summaryText, summary.join('')],
+      [annotations.includedCount, analysis.consistentSubset.length],
+    ]);
+
     return Status.value(bag);
   },
 });

@@ -48,7 +48,7 @@ export type Fixture = {
   samples: Sample[];
 
   /** Conflation of the samples */
-  conflation?: SampleConflation
+  conflation?: Conflation
 };
 
 export type Epoch = {
@@ -56,10 +56,13 @@ export type Epoch = {
   endTime: string;
 };
 
-export type SampleConflation = {
+export type Conflation = {
+  /** The type of Conflation used */
   '@type': string;
+
+  /** Annotations of the conflation */
   annotations: AnnotationBag;
-}
+};
 
 export type Report = {
   epoch: Epoch;
@@ -67,14 +70,23 @@ export type Report = {
 };
 
 /**
- * A file storing the results of one or more runs of a test suite
+ * 
  */
-export type ReportCacheFile = {
-  /** The suite which produced each run in this cache */
-  suiteFilePath: string;
 
-  /**  */
+
+/** A collection of results of one or more runs of a test suite in a particular epoch */
+export type Snapshot = {
+  /** All fixtures collected over multiple runs. */
   fixtures: Fixture[];
+
+  /**
+   * Fixture titles in this cache which have been deleted because they have
+   * been moved/saved elsewhere.
+   */
+  tombstones?: FixtureName[];
+
+  /** */
+  epoch?: Epoch;
 };
 
 export function isSample(x: Sample): x is Sample {
