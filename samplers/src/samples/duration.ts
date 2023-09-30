@@ -66,8 +66,7 @@ export class Duration implements MutableSample<timer.HrTime> {
   readonly [typeid] = Duration[typeid];
 
   get [uuid]() {
-    this.uuid ??= random.newUuid();
-    return this.uuid;
+    return this.uuid ??= random.newUuid();
   }
   
   private opts: DurationOptions;

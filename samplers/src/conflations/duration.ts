@@ -42,12 +42,12 @@ export class Duration implements Conflator<samples.Duration, KWOptions> {
     }
   }
 
-  analyze(opts?: Partial<DurationOptions>): Conflation {
+  analyze(opts?: Partial<DurationOptions>): DurationResult {
     const defaultedOpts = Object.assign({}, defaultDurationOptions, opts);
     this.analysisCache ??= new KWConflation(this.allSamples.map(x => [x.toF64Array(), x]));
     
     const kwAnalysis = this.analysisCache!.conflate(defaultedOpts);
-    return new Conflation(defaultedOpts, kwAnalysis);
+    return new DurationResult(defaultedOpts, kwAnalysis);
   }
 
   push(sample: samples.Duration) {
@@ -56,14 +56,14 @@ export class Duration implements Conflator<samples.Duration, KWOptions> {
   }
 }
 
-export class Conflation implements ConflationResult<samples.Duration> {
+export class DurationResult implements ConflationResult<samples.Duration> {
   static [typeid] = '@conflation:duration' as typeid;
 
-  static is(x?: any): x is Conflation {
-    return x !== void 0 && x[typeid] === Conflation[typeid];
+  static is(x?: any): x is DurationResult {
+    return x !== void 0 && x[typeid] === DurationResult[typeid];
   }
 
-  readonly [typeid] = Conflation[typeid];
+  readonly [typeid] = DurationResult[typeid];
   readonly [uuid] = random.newUuid();
 
   constructor(
@@ -117,7 +117,7 @@ ann.register('@conflation:duration-annotator' as typeid, {
     confl: ConflationResult<samples.Duration>,
     _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (!Conflation.is(confl)) return Status.value(void 0);
+    if (!DurationResult.is(confl)) return Status.value(void 0);
 
     let outlier = 0,
       consistent = 0;

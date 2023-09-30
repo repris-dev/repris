@@ -140,7 +140,7 @@ const conflationAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    if (!conflations.Conflation.is(conflation)) {
+    if (!conflations.DurationResult.is(conflation)) {
       return Status.value(void 0);
     }
 

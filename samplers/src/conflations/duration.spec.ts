@@ -1,6 +1,6 @@
 import { timer, random, iterator } from '@repris/base';
 import * as duration from '../samples/duration.js';
-import { Conflation, Duration } from './duration.js';
+import { DurationResult, Duration } from './duration.js';
 import { ConflatedSampleStatus } from './types.js';
 
 const gen = random.PRNGi32(52);
@@ -16,7 +16,7 @@ function create(mean: number, std: number, size: number) {
   return s;
 }
 
-function postProcess(mwu: Conflation) {
+function postProcess(mwu: DurationResult) {
   const order = [] as duration.Duration[];
   const a: Record<ConflatedSampleStatus, duration.Duration[]> = {
     consistent: [],
