@@ -37,6 +37,5 @@ export default {
   maxWorkers: 1,
   maxConcurrency: 1,
   testTimeout: 10_000,
-  globalSetup: '@sampleci/jest/global-setup'
 };
 

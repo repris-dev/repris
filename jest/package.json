@@ -20,8 +20,7 @@
       "types": "./env/stopwatch-env.d.ts",
       "default": "./.tsc/setup-stopwatch.js"
     },
-    "./jest-preset": "./jest-preset.js",
-    "./global-setup": "./.tsc/global-setup.js"
+    "./jest-preset": "./jest-preset.js"
   },
   "dependencies": {
     "@sampleci/base": "workspace:*",
