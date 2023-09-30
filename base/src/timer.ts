@@ -62,7 +62,6 @@ export function cvtTo(time: HrTime, units: UnitType): HrTime {
  * as a 64-bit floating point number
  */
 export function toString(t: HrTime) {
-  // TODO: encoding durations larger than 2^53-1
   return t.toString() + 'n';
 };
 
@@ -74,7 +73,7 @@ export function toString(t: HrTime) {
   assert.gt(t.length, 0);
   assert.eq(t[t.length - 1], 'n');
   
-  return BigInt(t.substring(0, t.length - 2)) as HrTime;
+  return BigInt(t.substring(0, t.length - 1)) as HrTime;
 };
 
 /** Returns a high-resolution timer for the current runtime */
