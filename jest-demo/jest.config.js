@@ -8,5 +8,7 @@ export default {
   preset: '@sampleci/jest',
   roots: ['<rootDir>/.tsc/'],
   testMatch: ['**/*.spec.[tj]s'],
+  snapshotResolver: '@sampleci/util/snapshotResolver.cjs',
+  testEnvironmentOptions: { customExportConditions: ['development'] },
   globals: defaults(pkg),
 };

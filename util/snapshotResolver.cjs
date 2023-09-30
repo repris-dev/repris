@@ -3,6 +3,7 @@
  */
 module.exports = {
   // Resolves from test to snapshot path
+  // e.g. .tsc/xxx.spec.ts => src/xxx.snap.ts
   resolveSnapshotPath(testPath, snapshotExtension) {
     return testPath
       .replace(/\.spec\.([tj]sx?)/, `${snapshotExtension}.$1`)
