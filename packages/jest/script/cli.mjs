@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import * as path from 'path';
 
-const __dirname = new URL('.', import.meta.url).pathname;
-const cli = await import(path.join(__dirname, '../.tsc/cli.js'));
-
+const cli = await import('@repris/jest/cli');
 cli.run();
