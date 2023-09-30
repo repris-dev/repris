@@ -236,45 +236,51 @@ const hypothesisAnnotator: ann.Annotator = {
 
     const [c0, c1] = hypot.operands();
 
-    const xs0 = tof64Samples(c0);
-    const x0 = concatSamples(xs0);
+//    const xs0 = tof64Samples(c0);
+//    const x0 = concatSamples(xs0);
+    const x0 = toHSMSampleDist(c0);
 
-    const xs1 = tof64Samples(c1);
-    const x1 = concatSamples(xs1);
+//    const xs1 = tof64Samples(c1);
+//    const x1 = concatSamples(xs1);
+    const x1 = toHSMSampleDist(c1);
 
-    const hsm0 = hsmConflation(x0);
-    const hsm1 = hsmConflation(x1);
-    const relChange = (hsm0.mode - hsm1.mode) / hsm1.mode;
+    const hsm0 = stats.centralTendency.mean(x0);
+    const hsm1 = stats.centralTendency.mean(x1);
+    const relChange = (hsm0 - hsm1) / hsm1;
 
     const result = new Map<typeid, ann.Annotation>();
     result.set(HypothesisAnnotations.hsmDifference, relChange);
 
     let ci: [lo: number, hi: number] | undefined;
 
+    // hsm difference
     if (request.has(HypothesisAnnotations.hsmDifferenceCI.id)) {
       const opts = {
         ...HypothesisAnnotations.hsmDifferenceCI.opts,
         ...request.get(HypothesisAnnotations.hsmDifferenceCI.id),
       };
 
-      const smoothing0 = bootstrapSmoothing(x0, opts.smoothing);
-      const smoothing1 = bootstrapSmoothing(x1, opts.smoothing);
+//      const smoothing0 = bootstrapSmoothing(x0, opts.smoothing);
+//      const smoothing1 = bootstrapSmoothing(x1, opts.smoothing);
+//
+//      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples, void 0, [
+//        smoothing0,
+//        smoothing1,
+//      ]);
 
-      ci = stats.mode.hsmDifferenceTest(x0, x1, opts.level, opts.resamples, void 0, [
-        smoothing0,
-        smoothing1,
-      ]);
+      ci = stats.mode.studentizedHsmDifferenceTest(x0, x1, opts.level, opts.resamples, 100)
 
       result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
     }
 
+    // summary of the difference
     if (request.has(HypothesisAnnotations.hsmDifferenceSummary)) {
       const fmt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 1 });
       let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
 
       if (ci) {
-        const lo = ci[0] / hsm1.mode;
-        const hi = ci[1] / hsm1.mode;
+        const lo = ci[0] / hsm1;
+        const hi = ci[1] / hsm1;
 
         summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
       }
@@ -332,6 +338,13 @@ function tof64Samples(conflation: conflations.Conflation<duration.Duration>) {
     .map(s => [s.sample.toF64Array!(), s.sample] as const);
 }
 
+function toHSMSampleDist(conflation: conflations.Conflation<duration.Duration>) {
+  return conflation
+    .stat()
+    .filter(s => s.status === 'consistent')
+    .map(s => stats.mode.hsm(s.sample.toF64Array!()).mode);
+}
+
 function kdeMode(
   sample: Indexable<number>,
   summary: stats.online.SimpleSummary<number>
@@ -355,7 +368,7 @@ function kdeMode(
 }
 
 function hsmConflation(
-  pooledSample: Float64Array,
+  pooledSample: Indexable<number>,
   ciLevel?: number,
   resamples = 500,
   smoothing?: number

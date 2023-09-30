@@ -2,6 +2,7 @@ import { sort } from '../array.js';
 import { assert, Indexable, random, stats } from '../index.js';
 import { online } from '../stats.js';
 import * as boot from './bootstrap.js';
+import { mean } from './centralTendency.js';
 import { quantile, qcd } from './util.js';
 
 /** A Robust Estimation of the Mode */
@@ -203,10 +204,10 @@ export function hsmDifferenceTest(
   }
 
   //console.info(hsms.reduce((acc, x) => acc + x + ', ', ''));
-  {
-    const os = online.Gaussian.fromValues(hsms);
-    console.info('jarqueBera', os.skewness(1), os.kurtosis(1), stats.jarqueBera(os.N(), os.skewness(1), os.kurtosis(1), 1))
-  }
+  // {
+  //   const os = online.Gaussian.fromValues(hsms);
+  //   console.info('jarqueBera', os.skewness(1), os.kurtosis(1), stats.jarqueBera(os.N(), os.skewness(1), os.kurtosis(1), 1))
+  // }
 
   return [
     quantile(hsms, 0.5 - level / 2),
@@ -222,11 +223,13 @@ export function studentizedHsmDifferenceTest(
   x0: Indexable<number>,
   x1: Indexable<number>,
   level: number,
+  /** number of primary resamples */
   K: number,
+  /** number of secondary resamples */
   KK: number,
   entropy = random.mathRand
 ): [lo: number, hi: number] {
-  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => hsm(x0).mode - hsm(x1).mode;
+  const estimator = (x0: Indexable<number>, x1: Indexable<number>) => mean(x0) - mean(x1);
   const resampler = boot.pairedStudentizedResampler(
     x0, x1, estimator, KK, entropy
   );
@@ -242,6 +245,7 @@ export function studentizedHsmDifferenceTest(
   }
 
   const bootStd = estStat.std();
+  console.info('jarqueBera', stats.jarqueBera(estStat.N(), estStat.skewness(1), estStat.kurtosis(1), 1))
 
   return [
     stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),

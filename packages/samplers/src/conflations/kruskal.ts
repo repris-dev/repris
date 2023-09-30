@@ -73,8 +73,8 @@ console.info('sDistMedian', sDistMedian);
     // Confidence of the sampling dist
     const c99 = stats.mode.medianConfidence(samplingDist.map(x => x.mode), 0.99, 1000);
     const m99 = (c99[1] - c99[0]) / sDistMedian;
-
-console.info('c99', m99);
+//
+console.info('m99', m99);
 
     // Sorting of the sampling distribution, distance from HSM (ascending)
     let subset = samplingDist.slice()
@@ -114,8 +114,8 @@ console.info('>> kw1', kw.effectSize, kw.pValue());
 console.info('------------')   ;
 
       // mark consistent samples
-      if (kw.effectSize <= opts.maxEffectSize) {
-//      if (m99 < 0.01) {
+//      if (kw.effectSize <= opts.maxEffectSize) {
+      if (m99 < 0.01) {
         subset.forEach(x => (statIndex.get(x.raw)!.status = 'consistent'));
       }
     }
