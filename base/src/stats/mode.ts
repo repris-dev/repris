@@ -89,9 +89,6 @@ export function hsm(sample: Indexable<number>): REM {
 
   while (windowSize >= 2) {
     windowSize = Math.ceil(windowSize * .5);
-
-    const w = sample[bound[1]] - sample[bound[0]];
-
     bound = modalSearch(
       sample, windowSize, bound[0], (bound[1] - bound[0]) + 1
     ).range;
