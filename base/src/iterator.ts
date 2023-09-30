@@ -125,3 +125,30 @@ export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iter
     yield fn(x, i++)
   }
 }
+
+export function* filter<T>(xs: Iterable<T>, fn: (x: T, idx?: number) => boolean): Iterable<T> {
+  let i = 0;
+
+  for (const x of xs) {
+    if (fn(x, i++)) yield x;
+  }
+}
+
+export function* pairs<T>(xs: Iterable<T>): Iterable<[T, T]> {
+  const it = xs[Symbol.iterator]();
+  const pair = [void 0, void 0] as unknown as [T, T];
+
+  while (true) {
+    const a = it.next();
+    const b = it.next();
+    
+    if (a.done === false && b.done === false) {
+      pair[0] = a.value;
+      pair[1] = b.value;
+
+      yield pair;
+    } else {
+      break;
+    }
+  }
+}
