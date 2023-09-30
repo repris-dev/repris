@@ -1,9 +1,13 @@
 import { stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
-import { duration } from '../samples.js';
+import { duration, Sample } from '../samples.js';
 import * as conflations from '../conflations.js';
 import { hypothesis } from '../index.js';
+
+const ConflationAnnotations = Object.freeze({
+  mean: 'mean:conflation' as typeid,
+});
 
 const HypothesisAnnotations = Object.freeze({
   /** The relative change between the two samples */
@@ -24,6 +28,35 @@ const HypothesisAnnotations = Object.freeze({
   /** A text summary of the difference */
   differenceSummary: 'mean:hypothesis:summaryText' as typeid,
 });
+
+const conflationAnnotator: ann.Annotator = {
+  annotations() {
+    return Object.values(ConflationAnnotations).map(x => x);
+  },
+
+  annotate(
+    conflation: conflations.Conflation<Sample<unknown>>,
+    request: Map<typeid, {}>
+  ): Status<ann.AnnotationBag | undefined> {
+    if (this.annotations().findIndex(id => request.has(id)) < 0) {
+      return Status.value(void 0);
+    }
+
+    const result = new Map<typeid, ann.Annotation>();
+    const xs = conflation.samplingDistribution?.();
+
+    if (xs !== void 0 && xs.length > 0) {
+      result.set(
+        ConflationAnnotations.mean,
+        conflation.asQuantity(stats.online.Gaussian.fromValues(xs).mean())
+      );
+    }
+
+    return Status.value(ann.DefaultBag.from(result));
+  },
+};
+
+ann.register('@annotator:conflation:mean', conflationAnnotator);
 
 const hypothesisAnnotator: ann.Annotator = {
   annotations() {
