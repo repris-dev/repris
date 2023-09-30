@@ -3,7 +3,7 @@ import { Config } from '@jest/types';
 import { snapshotManager } from '@repris/samplers';
 import { buildSnapshotResolver } from './snapshotResolver.js';
 
-export function StagingAreaResolver(config: Config.ProjectConfig): snapshotManager.PathResolver {
+export function IndexResolver(config: Config.ProjectConfig): snapshotManager.PathResolver {
   const haste = HasteMap.default.getStatic(config);
 
   const resolver = (testFilePath: string) =>
@@ -12,7 +12,7 @@ export function StagingAreaResolver(config: Config.ProjectConfig): snapshotManag
   return resolver;
 }
 
-export async function IndexResolver(config: Config.ProjectConfig): Promise<snapshotManager.PathResolver> {
+export async function BaselineResolver(config: Config.ProjectConfig): Promise<snapshotManager.PathResolver> {
   const resolver = await buildSnapshotResolver(config);
   return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
 }

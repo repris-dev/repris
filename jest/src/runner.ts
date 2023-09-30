@@ -17,7 +17,7 @@ import {
 import { typeid, assert, iterator as iter, Status } from '@repris/base';
 
 import * as reprisConfig from './config.js';
-import { IndexResolver, StagingAreaResolver } from './snapshotUtils.js';
+import { BaselineResolver, IndexResolver } from './snapshotUtils.js';
 
 export interface AugmentedAssertionResult extends AssertionResult {
   repris?: {
@@ -140,7 +140,7 @@ export default async function testRunner(
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> {
   const reprisCfg = await reprisConfig.load(globalConfig.rootDir);
-  const stagingAreaMgr = new snapshotManager.SnapshotFileManager(StagingAreaResolver(config));
+  const stagingAreaMgr = new snapshotManager.SnapshotFileManager(IndexResolver(config));
 
   // index for this test
   let idxSnapshot: snapshots.Snapshot | undefined;
@@ -259,7 +259,7 @@ export default async function testRunner(
       throw new Error('Cache must be enabled to update snapshots');
     }
 
-    const snapStat = await commitToSnapshot(config, testPath, idxSnapshot);
+    const snapStat = await commitToBaseline(config, testPath, idxSnapshot);
     testResult.snapshot.added += snapStat.added;
     testResult.snapshot.updated += snapStat.updated;
 
@@ -294,14 +294,14 @@ export default async function testRunner(
 }
 
 /**
- * Move fixtures from the index to the snapshot.
+ * Move fixtures from the index to the baseline snapshot.
  */
-async function commitToSnapshot(
+async function commitToBaseline(
   config: Config.ProjectConfig,
   testPath: string,
   index: snapshots.Snapshot
 ) {
-  const s = new snapshotManager.SnapshotFileManager(await IndexResolver(config));
+  const s = new snapshotManager.SnapshotFileManager(await BaselineResolver(config));
   const snapFile = await s.loadOrCreate(testPath);
 
   if (Status.isErr(snapFile)) {

@@ -20,7 +20,7 @@ import {
 } from '@repris/samplers';
 import { Status, iterator, typeid, uuid } from '@repris/base';
 
-import { StagingAreaResolver, IndexResolver } from '../snapshotUtils.js';
+import { IndexResolver, BaselineResolver } from '../snapshotUtils.js';
 import { TableTreeReporter } from '../tableReport.js';
 import * as reprisConfig from '../config.js';
 import { gradedColumns } from '../reporterUtils.js';
@@ -78,7 +78,7 @@ async function reset(_argv: string[]) {
     watchman: false,
   });
 
-  const sfm = new snapshotManager.SnapshotFileManager(StagingAreaResolver(projCfg));
+  const sfm = new snapshotManager.SnapshotFileManager(IndexResolver(projCfg));
 
   // test paths
   const search = new core.SearchSource(context);
@@ -121,12 +121,12 @@ async function show(argv: string[]): Promise<void> {
     watchman: false,
   });
 
-  const sfm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
+  const baseline = new snapshotManager.SnapshotFileManager(await BaselineResolver(projCfg));
   const search = new core.SearchSource(context);
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
   const reprisCfg = await reprisConfig.load(projCfg.rootDir);
 
-  await showSnapshotDetail(projCfg, reprisCfg, testFiles, sfm);
+  await showSnapshotDetail(projCfg, reprisCfg, testFiles, baseline);
 }
 
 async function compare(_argv: string[]): Promise<void> {
@@ -137,13 +137,13 @@ async function compare(_argv: string[]): Promise<void> {
     watchman: false,
   });
 
-  const sfm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
-  const indexm = new snapshotManager.SnapshotFileManager(await StagingAreaResolver(projCfg));
+  const baseline = new snapshotManager.SnapshotFileManager(await BaselineResolver(projCfg));
+  const indexm = new snapshotManager.SnapshotFileManager(await IndexResolver(projCfg));
   const search = new core.SearchSource(context);
   const testFiles = (await search.getTestPaths(cfg.globalConfig)).tests;
   const reprisCfg = await reprisConfig.load(projCfg.rootDir);
 
-  await showComparison(projCfg, reprisCfg, testFiles, indexm, sfm);
+  await showComparison(projCfg, reprisCfg, testFiles, indexm, baseline);
 }
 
 type ComparedFixtures = {
@@ -156,7 +156,7 @@ async function showComparison(
   reprisCfg: reprisConfig.SCIConfig,
   testFiles: jReporters.Test[],
   index: snapshotManager.SnapshotFileManager,
-  sn: snapshotManager.SnapshotFileManager
+  baseline: snapshotManager.SnapshotFileManager
 ) {
   const annotationRequests = reprisConfig.annotationRequester(reprisCfg.comparison.annotations);
   const columns = gradedColumns(reprisCfg.comparison.annotations);
@@ -167,10 +167,10 @@ async function showComparison(
   });
 
   for (const t of testFiles) {
-    if (!(await index.exists(t.path)) || !(await sn.exists(t.path))) continue;
+    if (!(await index.exists(t.path)) || !(await baseline.exists(t.path))) continue;
 
     const [snapIndex, err1] = await index.loadOrCreate(t.path);
-    const [snap, err2] = await sn.loadOrCreate(t.path);
+    const [snapBaseline, err2] = await baseline.loadOrCreate(t.path);
 
     if (err1) panic(err1);
     if (err2) panic(err2);
@@ -179,8 +179,8 @@ async function showComparison(
     println(path);
 
     const comparisons = iterator.map(
-      snapshots.joinSnapshotFixtures(snapIndex!, snap!),
-      ([index, snap]) => {
+      snapshots.joinSnapshotFixtures(snapIndex!, snapBaseline!),
+      ([index, base]) => {
         const annotations = annotators.DefaultBag.from([]);
 
         let x0: conflations.DurationResult | undefined;
@@ -201,15 +201,15 @@ async function showComparison(
         }
 
         // Load snapshot samples and annotations
-        if (snap?.conflation?.annotations) {
+        if (base?.conflation?.annotations) {
           x1 = Status.get(
             conflations.DurationResult.fromJson(
-              snap.conflation.result,
-              new Map(iterator.map(snap.samples, ({ sample }) => [sample[uuid], sample]))
+              base.conflation.result,
+              new Map(iterator.map(base.samples, ({ sample }) => [sample[uuid], sample]))
             )
           );
 
-          const bag = annotators.DefaultBag.fromJson(snap.conflation.annotations);
+          const bag = annotators.DefaultBag.fromJson(base.conflation.annotations);
           applyMissingAnnotations(bag, annotationRequests('@snapshot'), x1);
           annotations.union(bag, '@snapshot');
         }
@@ -226,7 +226,7 @@ async function showComparison(
         }
 
         return {
-          name: (index?.name ?? snap?.name) as wt.FixtureName,
+          name: (index?.name ?? base?.name) as wt.FixtureName,
           annotations,
         };
       }

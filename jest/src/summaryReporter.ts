@@ -4,7 +4,7 @@ import type { Config } from '@jest/types';
 import { SummaryReporter } from '@jest/reporters';
 import { snapshotManager } from '@repris/samplers';
 import type { AugmentedTestResult } from './runner.js';
-import { StagingAreaResolver } from './snapshotUtils.js';
+import { IndexResolver } from './snapshotUtils.js';
 
 export default class BenchmarkSummaryReporter extends SummaryReporter {
   projectTestMap = new Map<Config.ProjectConfig, string[]>();
@@ -134,7 +134,7 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
   private async deleteStagingArea() {
     for (const [projConfig, testPaths] of this.projectTestMap) {
-      const stagingArea = new snapshotManager.SnapshotFileManager(StagingAreaResolver(projConfig));
+      const stagingArea = new snapshotManager.SnapshotFileManager(IndexResolver(projConfig));
       for (const path of testPaths) {
         await stagingArea.delete(path);
       }
