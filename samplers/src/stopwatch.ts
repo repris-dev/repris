@@ -1,4 +1,4 @@
-import { Status, isPromise, typeid, assert, array, timer, iterator, quantity as q } from '@repris/base';
+import { Status, typeid, assert, array, timer, iterator, quantity as q } from '@repris/base';
 import * as types from './types.js';
 import * as samples from './samples.js';
 import * as wt from './wireTypes.js';
@@ -13,7 +13,6 @@ export type Options = typeof defaultSamplerOptions;
 export interface StopwatchState extends types.SamplerState<timer.HrTime>
 {
   keepRunning(): boolean;
-
   range(i?: number): number;
   ranges(): number[];
 }
@@ -25,7 +24,7 @@ const defaultSamplerOptions = {
 
   /* The range of observations to take for the sample */
   'sampleSize.min': 10,
-  'sampleSize.max': 1000,
+  'sampleSize.max': 10_000,
 
   /**
    * The maximum size of the collected sample, using reservoir sampling.

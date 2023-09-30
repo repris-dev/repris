@@ -8,5 +8,5 @@ export default {
   testRunner: '@repris/jest/runner',
   maxWorkers: 1,
   maxConcurrency: 1,
-  testTimeout: 10_000,
+  testTimeout: 15_000,
 };

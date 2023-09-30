@@ -15,9 +15,7 @@
   "exports": {
     "./reporter": "./.tsc/reporter.js",
     "./summaryReporter": "./.tsc/summaryReporter.js",
-    "./runner": {
-      "default": "./.tsc/runner.js"
-    },
+    "./runner": "./.tsc/runner.js",
     "./stopwatch-env": {
       "types": "./env/stopwatch-env.d.ts",
       "default": "./.tsc/setupStopwatch.js"
