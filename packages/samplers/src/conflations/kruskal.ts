@@ -48,8 +48,8 @@ export class KWConflation<T> {
     let subset = stat.slice();
 
     if (N > opts.maxSize) {
-      // reject the outlier samples
-      const rejector = outlierSelection(subset, s => s.statistic);
+      // reject the outlier sample(s)
+      const rejector = createOutlierSelection(subset, s => s.statistic);
 
       for (let n = N; n > opts.maxSize; n--) {
         const s = rejector();
@@ -90,7 +90,7 @@ export class KWConflation<T> {
   }
 }
 
-export function outlierSelection<T>(
+export function createOutlierSelection<T>(
   keys: Indexable<T>,
   toScalar: (k: T) => number,
   entropy = random.PRNGi32()
@@ -98,16 +98,22 @@ export function outlierSelection<T>(
   const N = keys.length, xs = new Float64Array(N);
   for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
 
-  const xsTmp = xs.slice();
-  const sigmas = new Float64Array(N),
-    med = stats.mode.shorth(xsTmp).mode,
-    std = stats.mad(xsTmp, med).normMad;
-
-  if (std > 0) {
-    // weight by distance from the median, normalized by
-    // estimate of standard deviation 
-    for (let i = 0; i < N; i++) {
-      sigmas[i] = (Math.abs(xs[i] - med) / std);
+  // std. Devs from the mean for each sample
+  const sigmas = new Float64Array(N);
+  
+  { 
+    // Mean: mean of the narrowest 50% of the distribution (shorth)
+    // std dev.: median absolute deviation from the mean 
+    const xsTmp = xs.slice();
+    const mean = stats.mode.shorth(xsTmp).mode,
+      std = stats.mad(xsTmp, mean).normMad;
+  
+    if (std > 0) {
+      // weight by distance from the median, normalized by
+      // estimate of standard deviation 
+      for (let i = 0; i < N; i++) {
+        sigmas[i] = Math.abs(xs[i] - mean) / std;
+      }
     }
   }
 
