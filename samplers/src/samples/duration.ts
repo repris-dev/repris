@@ -8,7 +8,6 @@ import {
   Indexable,
   array,
   iterator,
-  partitioning,
 } from '@sampleci/base';
 import * as ann from '../annotators.js';
 import * as quantity from '../quantity.js';
@@ -141,35 +140,29 @@ export class Duration implements types.MutableSample<timer.HrTime> {
 export type ConflationOptions = typeof defaultConflationOptions;
 
 export const defaultConflationOptions = {
-  /**
-   * The minimum similarity (from 0 to 1) for two samples to be considered
-   * in the same cluster during conflation
-   */
-  minSimilarity: 0.9,
-
-  /**
-   * The minimum proportion of all samples which must meet the inclusion
-   * criteria for the subset to be considered representative
-   */
-  minSubsetProportion: 0.5,
-
-  /**
-   * The maximum number of samples in the conflation
-   */
+  /** The maximum number of samples in the conflation */
   maxSize: 5,
+
+  /**
+   * Threshold of similarity for the conflation to be considered valid, between
+   * 0 (completely dissimilar) and 1 (maximum similarity).
+   */
+  minSimilarity: 0.5,
+
+  /**
+   * Method to remove samples from a conflation when more than the maximum
+   * number are supplied.
+   */
+  exclusionMethod: 'outliers' as 'slowest' | 'outliers',
 };
 
 /** A Sample conflation result based on pair-wise Mann-Whitney U tests */
 interface MWUConflationAnalysis {
-  /**
-   * All sample indices ordered by the number of times it is more likely to
-   * produce lower values in a sample-by-sample comparison, i.e. fastest to
-   * slowest.
-   */
-  ordered: Int32Array;
+  /** Sample indices ordered from 'best' to 'worst' depending on the method used. */
+  ordered: number[];
 
   /**
-   * Samples excluded from the consistent subset. These will be the slowest
+   * Samples excluded These will be the slowest
    * samples in the conflation.
    */
   excluded: number[];
@@ -202,7 +195,7 @@ export class Conflation implements types.Conflation<timer.HrTime> {
     const a = this.analysis();
     if (!excludeOutliers) {
       return samples.length > maxSize
-        ? array.subsetOf(samples, a.ordered.subarray(0, maxSize), [])
+        ? array.subsetOf(samples, a.ordered.slice(0, maxSize), [])
         : samples;
     }
 
@@ -220,91 +213,134 @@ export class Conflation implements types.Conflation<timer.HrTime> {
   }
 
   static analyze(samples: Indexable<number>[], opts: ConflationOptions): MWUConflationAnalysis {
-    const N = samples.length;
-
-    if (N === 0) {
+    if (samples.length === 0) {
       return {
-        ordered: new Int32Array(0),
+        ordered: [],
         excluded: [],
         consistentSubset: [],
       };
     }
 
-    // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
-    // is not possible. Instead we order by the sum of 'win' effect sizes in pair-wise
-    // comparisons.
-    const wins = new Float32Array(N);
-    const edges = [] as [number, number][];
-
-    // Normalized similarities of each edge, between 0 and 1 where 1 is 'equal-chance'
-    const similarities = [] as number[];
-
-    for (let i = 0; i < N; i++) {
-      for (let j = i + 1; j < N; j++) {
-        const mwu = stats.mwu(samples[i], samples[j]).effectSize - 0.5;
-        const similarity = 1 - Math.abs(mwu) * 2;
-
-        if (similarity >= opts.minSimilarity) {
-          edges.push([i, j]);
-          similarities.push(similarity);
-        }
-
-        wins[i] += mwu;
-        wins[j] -= mwu;
-      }
-    }
-
-    // sort all samples
-    const orderByWins = new Int32Array(N);
-    array.fillAscending(orderByWins, 0);
-    orderByWins.sort((a, b) => wins[b] - wins[a]);
-
-    // set of excluded samples
-    const excluded = new Set<number>(orderByWins.subarray(opts.maxSize));
-
-    let consistentSubset: number[] = [];
-
-    if (edges.length > 0) {
-      // connected components of samples, ignoring excluding samples
-      const cc = partitioning.from(
-        iterator.filter(edges, ([a, b]) => !excluded.has(a) && !excluded.has(b)),
-        N
-      );
-
-      if (cc.countGroups() === 1) {
-        // take all samples
-        consistentSubset = iterator.collect(cc.iterateGroup(0));
-      } else {
-        // Cohesion of each component
-        const groupCohesion = new Float32Array(N);
-        edges.forEach(([a, b], i) => {
-          if (cc.get(a) === cc.get(b)) groupCohesion[cc.get(a)] += similarities[i];
-        });
-
-        // sort samples by:
-        //  1. group size (descending)
-        //  2. within-group cohesion (descending)
-        const groups = iterator.collect(cc.iterateGroups()).sort((a, b) => {
-          const deltaSize = cc.groupSize(b) - cc.groupSize(a);
-          return deltaSize === 0 ? groupCohesion[b] - groupCohesion[a] : deltaSize;
-        });
-
-        // take the largest group.
-        consistentSubset = iterator.collect(cc.iterateGroup(groups[0]));
-      }
-    }
-
-    // check the conflation is large enough
-    if (consistentSubset.length < 2) {
-      consistentSubset.length = 0;
-    }
-
-    return {
-      ordered: orderByWins,
-      excluded: Array.from(excluded),
-      consistentSubset,
-    };
+    return opts.exclusionMethod === 'outliers'
+      ? analyzeByOutliers(samples, opts)
+      : analyzeByFastest(samples, opts);
   }
+}
+
+type MWUEdge = [adx: number, bdx: number, mwu: number];
+
+/**
+ * @internal
+ * @returns Edges tagged with effect sizes of each sample pair,
+ * between -1 and 1
+ */
+export function allPairsMWU(samples: Indexable<number>[]): MWUEdge[] {
+  const N = samples.length;
+  const edges = [] as MWUEdge[];
+
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const mwu = 2 * (stats.mwu(samples[i], samples[j]).effectSize - 0.5);
+      edges.push([i, j, mwu]);
+    }
+  }
+
+  return edges;
+}
+
+function similarityMean(N: number, comparisons: MWUEdge[], subset: Int32Array) {
+  const weights = new Float32Array(N);
+  subset.forEach((idx) => (weights[idx] = 1));
+
+  let mean = 0;
+  for (const [a, b, mwu] of comparisons) {
+    const w = weights[a] * weights[b];
+    mean += (1 - Math.abs(mwu)) * w;
+  }
+
+  const K = subset.length;
+  mean /= (K * (K - 1)) / 2;
+
+  assert.inRange(mean, 0, 1);
+  return mean;
+}
+
+function analyzeByOutliers(
+  samples: Indexable<number>[],
+  opts: ConflationOptions
+): MWUConflationAnalysis {
+  const N = samples.length;
+  const edges = allPairsMWU(samples);
+
+  let consistentSubset = new Int32Array(N);
+  array.fillAscending(consistentSubset, 0);
+
+  const outliers = [] as number[];
+  const sum = new Float32Array(N);
+
+  // iteratively remove the outlier sample
+  while (consistentSubset.length > 2 && consistentSubset.length > opts.maxSize) {
+    sum.fill(0);
+
+    // reduce the subset by one via leave-one-out cross validation
+    for (let n = 0; n < consistentSubset.length; n++) {
+      const i = consistentSubset[n];
+      for (const [a, b, mwu] of edges) {
+        if (a !== i && b !== i) {
+          // symmetric similarity
+          sum[n] += 1 - Math.abs(mwu);
+        }
+      }
+    }
+
+    // extract the sample that produces the highest similarity sum (in its absence) and is
+    // thus the largest outlier
+    consistentSubset.sort((a, b) => sum[a] - sum[b]);
+    outliers.push(consistentSubset[consistentSubset.length - 1]);
+    consistentSubset = consistentSubset.subarray(0, -1);
+  }
+
+  assert.eq(N, consistentSubset.length + outliers.length);
+  const mean = similarityMean(N, edges, consistentSubset);
+
+  return {
+    ordered: Array.from(iterator.concat([consistentSubset, outliers])),
+    excluded: Array.from(outliers),
+    consistentSubset: mean >= opts.minSimilarity ? Array.from(consistentSubset) : [],
+  };
+}
+
+function analyzeByFastest(
+  samples: Indexable<number>[],
+  opts: ConflationOptions
+): MWUConflationAnalysis {
+  const N = samples.length;
+  const edges = allPairsMWU(samples);
+
+  // Mann-whitney U is not transitive, and so a full ordering of all sample pairs
+  // is not possible. Instead we order by the sum of 'win' effect sizes in pair-wise
+  // comparisons.
+  const wins = new Float32Array(N);
+
+  edges.forEach(([a, b, mwu]) => {
+    wins[a] += mwu;
+    wins[b] -= mwu;
+  });
+
+  // sort all samples by wins
+  const orderByWins = new Int32Array(N);
+
+  array.fillAscending(orderByWins, 0);
+  orderByWins.sort((a, b) => wins[b] - wins[a]);
+
+  const consistentSubset = orderByWins.subarray(0, opts.maxSize);
+  const mean = similarityMean(N, edges, consistentSubset);
+
+  return {
+    ordered: Array.from(orderByWins),
+    excluded: Array.from(orderByWins.subarray(opts.maxSize)),
+    consistentSubset: mean >= opts.minSimilarity ? Array.from(consistentSubset) : [],
+  };
 }
 
 const sampleAnnotations = {
@@ -420,10 +456,9 @@ ann.register('@conflation:duration-annotator' as typeid, {
     );
 
     analysis.excluded.forEach((idx) => (summary[idx] = '×'));
-    analysis.consistentSubset.forEach((idx) => (summary[idx] = '*'));
+    analysis.consistentSubset.forEach((idx) => (summary[idx] = '✓'));
 
     const bag = ann.DefaultBag.from([[conflationAnnotations.summaryText, summary.join('')]]);
-
     return Status.value(bag);
   },
 });
