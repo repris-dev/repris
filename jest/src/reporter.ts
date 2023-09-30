@@ -90,8 +90,8 @@ export default class SampleReporter extends DefaultReporter {
       // report unknown annotations
       const missing = [];
       for (const c of columns) {
-        if (!c.id || !annotators.supports(c.id)) {
-          missing.push(c.id);
+        if (!c.type || !annotators.supports(c.type)) {
+          missing.push(c.type);
         }
       }
 

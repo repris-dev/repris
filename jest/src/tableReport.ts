@@ -5,15 +5,15 @@ import type * as config from './config.js';
 import * as cli from './cli.js';
 
 export interface ColumnQuality {
-  id: typeid;
+  type: typeid;
   thresholds?: number[];
 }
 
 export interface Column {
-  id: typeid;
+  type: typeid;
   displayName?: string;
   units?: string;
-  grading?: { id: typeid; thresholds?: config.GradingConfig['thresholds'] };
+  grading?: { type: typeid; thresholds?: config.GradingConfig['thresholds'] };
 }
 
 export interface RenderedLine {
@@ -74,7 +74,7 @@ export class TerminalReport<Id> {
    */
   load(rowid: Id, bag: anno.AnnotationBag): boolean {
     const cells = this.columns.map((c) => {
-      const ann = bag.annotations.get(c.id);
+      const ann = bag.annotations.get(c.type);
 
       if (ann !== undefined) {
         let cell = this.fmt.format(ann);
@@ -107,7 +107,7 @@ export class TerminalReport<Id> {
    * @param bag A bag of annotations containing the quality annotation
    */
   private _colorizeByQuality(cell: Cell, config: ColumnQuality, bag: anno.AnnotationBag): Cell {
-    const ann = bag.annotations.get(config.id);
+    const ann = bag.annotations.get(config.type);
     const colors = [chalk.green, chalk.yellow, chalk.red];
 
     if (typeof ann === 'number' && Array.isArray(config.thresholds)) {
@@ -143,7 +143,7 @@ export class TerminalReport<Id> {
   reset() {
     this.rowIndex.clear();
     this.titleCells = this.columns.map(
-      (c) => (c.displayName ?? c.id) + (c.units ? ` (${c.units})` : '')
+      (c) => (c.displayName ?? c.type) + (c.units ? ` (${c.units})` : '')
     );
     this.columnWidths = this.titleCells.map((c) => c.length);
   }
