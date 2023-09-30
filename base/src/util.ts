@@ -74,3 +74,10 @@ export function isObject(item: any): item is object {
   return item && typeof item === 'object' && !Array.isArray(item) && item !== null;
 }
 
+//
+// UUIDs
+//
+
+export type uuid = string & As<'@uuid'>;
+
+export const uuid = Symbol.for('@uuid');

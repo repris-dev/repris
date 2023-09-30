@@ -1,5 +1,6 @@
 import * as random from './random.js';
 import * as OS from './stats/OnlineStats.js';
+import { uuid } from './util.js';
 
 test('normal distribution (1)', () => {
   const rng = random.gaussian(10, 1, random.PRNGi32(31));
@@ -69,3 +70,26 @@ test('uniformi distribution', () => {
 
   expect(tot).toBe(N);
 });
+
+describe('newUuid', () => {
+  test('seeded', () => {
+    const entropy1 = random.PRNGi32(91);
+    expect(random.newUuid(entropy1)).toBe('5356efa2-3a47-4296-950c-cdbe5cc938c4');
+    expect(random.newUuid(entropy1)).toBe('9e80c283-edaa-49ce-b301-47f58f247e1e');
+
+    const entropy2 = random.PRNGi32(72);
+    expect(random.newUuid(entropy2)).toBe('6bd05bf4-4e7e-45b3-89db-1c4d87eb52de');
+    expect(random.newUuid(entropy2)).toBe('e884c14a-96a3-43a4-bb2c-7045d172a34f');
+  });
+  
+  
+  test('unseeded', () => {
+    const set = new Set<uuid>();
+
+    for (let i = 0; i < 100; i++) {
+      const uuid = random.newUuid();
+      expect(set.has(uuid)).toBeFalsy();
+      set.add(uuid);
+    }
+  });
+})

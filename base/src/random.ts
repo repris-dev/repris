@@ -1,4 +1,5 @@
 import * as assert from './assert.js';
+import { uuid } from './util.js';
 
 export const randMax = 2147483647; // 2^31 - 1
 
@@ -98,4 +99,19 @@ export function gaussian(mean = 0, stdDev = 1, generator = mathRand): Distributi
 
   fn.rng = generator;
   return fn;
+}
+
+/**
+ * Generate a RFC4122-compliant UUID
+ * @param generator Optional source of entropy.
+ */
+export function newUuid(generator?: Generator) {
+  if (generator !== void 0) {
+    // Inspired by https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid
+    return (<any>[1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c: any) =>
+      (c ^ (generator() % 256) & 15 >> c / 4).toString(16)
+    );
+  }
+
+  return globalThis.crypto.randomUUID() as uuid;
 }
