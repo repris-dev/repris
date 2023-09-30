@@ -18,6 +18,14 @@ export function is(val: any, msg?: string): void {
   }
 }
 
+export function isDefined<T>(val: T | undefined | null, msg?: string): asserts val is T {
+  if (__DEBUG) {
+    if (typeof val === 'undefined' || val === null) {
+      err(msg ?? `Expected ${val} to be defined`);   
+    }
+  }
+}
+
 export function le(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
     if (a > b) err(msg ?? `Expected ${a} to be <= ${b}`);
