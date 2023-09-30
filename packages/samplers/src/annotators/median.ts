@@ -2,7 +2,7 @@ import { stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 
-const Annotations = {
+export const Annotations = {
   median: 'median' as typeid,
 
   /** Inter-quartile range of the sample */
@@ -15,26 +15,20 @@ const Annotations = {
   qcd: 'median:qcd' as typeid,
 };
 
-const annotator = {
-  name: '@percentile:annotator',
-
+ann.register('@percentile:annotator', {
   annotations() {
     return Object.values(Annotations);
   },
 
   annotate(
     sample: samples.Sample<unknown>,
-    request: Map<typeid, {}>
+    _request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
-      return Status.value(void 0);
-    }
-
     if (!samples.duration.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const data = sample.toF64Array();
+    const data = sample.values('f64')!;
     const iqr = stats.iqr(data);
 
     const bag = ann.DefaultBag.from([
@@ -45,6 +39,4 @@ const annotator = {
 
     return Status.value(bag);
   },
-};
-
-ann.register(annotator.name, annotator);
+});

@@ -1,4 +1,4 @@
-import { Indexable, quantity, stats, Status, typeid } from '@repris/base';
+import { array, Indexable, quantity, stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
@@ -45,7 +45,7 @@ const SampleAnnotations = Object.freeze({
    * The RME is the half-width of the confidence interval divided by the
    * estimated HSM.
    */
-  hsmCIRME: {
+  hsmCIRel: {
     id: 'mode:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
@@ -60,7 +60,7 @@ const ConflationAnnotations = Object.freeze({
 
   hsmMode: 'mode:hsm:conflation' as typeid,
 
-  hsmCIRME: {
+  hsmCIRel: {
     id: 'mode:hsm:conflation:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
@@ -75,16 +75,12 @@ const sampleAnnotator: ann.Annotator = {
     sample: Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex(id => request.has(id)) < 0) {
-      return Status.value(void 0);
-    }
-
     if (!duration.Duration.is(sample)) {
       return Status.value(void 0);
     }
 
-    const data = sample.toF64Array();
-    const kdeResult = kdeMode(data, sample.summary());
+    const xs = sample.values('f64')!;
+    const kdeResult = kdeMode(xs, sample.summary());
 
     const result = new Map<typeid, ann.Annotation>([
       [SampleAnnotations.kdeMode, kdeResult.mode],
@@ -97,7 +93,7 @@ const sampleAnnotator: ann.Annotator = {
         ...SampleAnnotations.shorth.opts,
         ...request.get(SampleAnnotations.shorth.id),
       };
-      const shorth = stats.mode.shorth(data, opts.fraction);
+      const shorth = stats.mode.shorth(xs, opts.fraction);
 
       result.set(SampleAnnotations.shorth.id, shorth.mode);
       result.set(SampleAnnotations.shorthDispersion, shorth.variation);
@@ -109,35 +105,43 @@ const sampleAnnotator: ann.Annotator = {
         ...request.get(SampleAnnotations.lms.id),
       };
 
-      const lms = stats.mode.lms(data, opts.fraction);
+      const lms = stats.mode.lms(xs, opts.fraction);
       result.set(SampleAnnotations.lms.id, lms.mode);
       result.set(SampleAnnotations.lmsDispersion, lms.variation);
     }
 
     if (request.has(SampleAnnotations.hsm)) {
-      const hsm = stats.mode.hsm(data);
+      const hsm = stats.mode.hsm(xs);
 
       result.set(SampleAnnotations.hsm, sample.asQuantity(hsm.mode));
       result.set(SampleAnnotations.hsmDispersion, hsm.variation);
 
-      if (request.has(SampleAnnotations.hsmCIRME.id)) {
+      if (request.has(SampleAnnotations.hsmCIRel.id)) {
         const opts = {
-          ...SampleAnnotations.hsmCIRME.opts,
-          ...request.get(SampleAnnotations.hsmCIRME.id),
+          ...SampleAnnotations.hsmCIRel.opts,
+          ...request.get(SampleAnnotations.hsmCIRel.id),
         };
+        
+        array.sort(xs);
 
-        const smoothing = bootstrapSmoothing(data, opts.smoothing);
-        const hsmCI = stats.mode.hsmConfidence(data, opts.level, opts.resamples, smoothing);
+        const smoothing = hsmBootstrapSmoothing(xs, opts.smoothing);
+        const hsmCI = stats.bootstrap.confidenceInterval(xs,
+          xs => stats.mode.hsm(xs).mode,
+          opts.level,
+          opts.resamples,
+          smoothing
+        );
 
-        result.set(SampleAnnotations.hsmCIRME.id, quantity.create('percent', rme(hsmCI, hsm.mode)));
+        result.set(
+          SampleAnnotations.hsmCIRel.id,
+          quantity.create('percent', rme(hsmCI, hsm.mode))
+        );
       }
     }
 
     return Status.value(ann.DefaultBag.from(result));
   },
 };
-
-ann.register('@annotator:mode', sampleAnnotator);
 
 const conflationAnnotator: ann.Annotator = {
   annotations() {
@@ -148,43 +152,49 @@ const conflationAnnotator: ann.Annotator = {
     conflation: conflations.Conflation<Sample<unknown>>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex(id => request.has(id)) < 0) {
-      return Status.value(void 0);
-    }
-
-    if (!conflations.duration.Result.is(conflation) || !conflation.ready()) {
+    if (!conflation.ready()) {
       return Status.value(void 0);
     }
 
     // run pooled analysis only on the best samples
-    const samples = tof64Samples(conflation);
+    const samplingDist = conflation.samplingDistribution?.();
 
-    if (samples.length > 0) {
+    if (samplingDist && samplingDist?.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
 
+      // HSM statistics on the sampling distribution
       if (
         request.has(ConflationAnnotations.hsmMode) ||
-        request.has(ConflationAnnotations.hsmCIRME.id)
+        request.has(ConflationAnnotations.hsmCIRel.id)
       ) {
         const opts = {
-          ...ConflationAnnotations.hsmCIRME.opts,
-          ...request.get(ConflationAnnotations.hsmCIRME.id),
+          ...ConflationAnnotations.hsmCIRel.opts,
+          ...request.get(ConflationAnnotations.hsmCIRel.id),
         };
 
-        const pooledSample = concatSamples(samples);
-        const smoothing = bootstrapSmoothing(pooledSample, opts.smoothing);
-        const hsmAnalysis = hsmConflation(pooledSample, opts.level, opts.resamples, smoothing);
+        array.sort(samplingDist);
 
-        result.set(ConflationAnnotations.hsmMode, conflation.asQuantity(hsmAnalysis.mode));
+        const hsm = stats.mode.hsm(samplingDist);
+        result.set(ConflationAnnotations.hsmMode, conflation.asQuantity(hsm.mode));
 
-        if (request.has(ConflationAnnotations.hsmCIRME.id)) {
-          result.set(ConflationAnnotations.hsmCIRME.id, hsmAnalysis.rme!);
+        if (request.has(ConflationAnnotations.hsmCIRel.id)) {
+          const smoothing = hsmBootstrapSmoothing(samplingDist, opts.smoothing);
+          const hsmCI = stats.bootstrap.confidenceInterval(samplingDist,
+            xs => stats.mode.hsm(xs).mode,
+            opts.level,
+            opts.resamples,
+            smoothing
+          );
+
+          result.set(ConflationAnnotations.hsmCIRel.id, rme(hsmCI, hsm.mode));
         }
       }
 
+      // KDE statistics
       if (request.has(ConflationAnnotations.kdeMode)) {
-        const kdeAnalysis = kdeModeConflation(samples);
-        result.set(ConflationAnnotations.kdeMode, kdeAnalysis.mode);
+        const os = stats.online.Gaussian.fromValues(samplingDist);
+        const mode = kdeMode(samplingDist, os);
+        result.set(ConflationAnnotations.kdeMode, mode.mode);
       }
 
       return Status.value(ann.DefaultBag.from(result));
@@ -195,6 +205,7 @@ const conflationAnnotator: ann.Annotator = {
 };
 
 ann.register('@annotator:conflation:mode', conflationAnnotator);
+ann.register('@annotator:samples:mode', sampleAnnotator);
 
 interface KDEAnalysis {
   /** value where the density function is globally maximized */
@@ -217,19 +228,12 @@ interface KDEAnalysis {
  * However, an optimal smoothing parameter is hard to calculate. Instead
  * it is estimated here.
  */
-function bootstrapSmoothing(xs: Float64Array, level: number) {
+function hsmBootstrapSmoothing(xs: Indexable<number>, level: number) {
   if (level <= 0) return 0;
   // Estimate standard deviation from a proportion of the sample
   const std = stats.mode.estimateStdDev(xs, .66);
   // Use Scott's estimate
-  return (std / xs.length ** (-1 / 5)) * level;
-}
-
-function tof64Samples(conflation: conflations.Conflation<duration.Duration>) {
-  return conflation
-    .stat()
-    .filter(s => s.status === 'consistent')
-    .map(s => [s.sample.toF64Array!(), s.sample] as const);
+  return stats.kde.silvermansRule(std, xs.length);
 }
 
 function kdeMode(
@@ -254,25 +258,8 @@ function kdeMode(
   };
 }
 
-function hsmConflation(
-  pooledSample: Indexable<number>,
-  ciLevel?: number,
-  resamples = 500,
-  smoothing?: number
-) {
-  const { mode, variation } = stats.mode.hsm(pooledSample);
 
-  return {
-    mode,
-    variation,
-    rme:
-      ciLevel !== void 0
-        ? rme(stats.mode.hsmConfidence(pooledSample, ciLevel, resamples, smoothing), mode)
-        : void 0,
-  };
-}
-
-function concatSamples(samples: (readonly [Float64Array, duration.Duration])[]) {
+function concatSamples(samples: (readonly [Float64Array, Sample<unknown>])[]) {
   const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
   const concatSample = new Float64Array(N);
 
@@ -285,13 +272,14 @@ function concatSamples(samples: (readonly [Float64Array, duration.Duration])[]) 
   return concatSample;
 }
 
-function kdeModeConflation(samples: (readonly [Float64Array, duration.Duration])[]) {
+function kdeModeConflation(samples: (readonly [Float64Array, Sample<unknown>])[]) {
   // MISE-optimized bandwidth
   const hs: [raw: Float64Array, h: number][] = [];
 
   for (let i = 0; i < samples.length; i++) {
-    const [raw, s] = samples[i];
-    const h = stats.kde.cvBandwidth(raw, s.summary().std());
+    const [raw, _] = samples[i];
+    const os = stats.online.Gaussian.fromValues(raw);
+    const h = stats.kde.cvBandwidth(raw, os.std());
 
     hs.push([raw, h]);
   }
@@ -299,9 +287,7 @@ function kdeModeConflation(samples: (readonly [Float64Array, duration.Duration])
   // find the mode
   const [mode] = stats.kde.findConflationMaxima(stats.kde.gaussian, hs);
 
-  return {
-    mode,
-  };
+  return mode;
 }
 
 /** Relative error */

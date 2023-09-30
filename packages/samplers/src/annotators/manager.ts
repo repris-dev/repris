@@ -131,9 +131,21 @@ export function annotate(
   >
 ): Status<AnnotationBag> {
   const result = new Map<typeid, Annotation>();
+  const annotatorSubset = new Set<Annotator>();
+
+  for (const [typeid] of request) {
+    if (annotatorMap.has(typeid)) {
+      annotatorSubset.add(annotators.get(annotatorMap.get(typeid)!)!);
+    } else {
+      return Status.err(`Unknown annotation "${ typeid }"`)
+    }
+  }
 
   // Union the results of each annotator in to one AnnotationBag
-  for (const [, annotator] of annotators) {
+  for (const annotator of annotatorSubset) {
+    const canAnnotate = annotator.annotations().find(a => request.has(a)) !== void 0;
+    if (!canAnnotate) { continue; }
+
     const r = annotator.annotate(item, request);
     if (Status.isErr(r)) {
       return r;

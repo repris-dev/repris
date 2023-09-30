@@ -102,8 +102,16 @@ export class Duration implements MutableSample<timer.HrTime, number> {
     return this.onlineStats.N();
   }
 
-  values() {
-    return this.times.values;
+  values(): Iterable<number>;
+  values(type: 'f64'): Float64Array | undefined;
+  values(type?: 'f64'): Float64Array | Iterable<number> | undefined {
+    if (type === 'f64') {
+      const dst = new Float64Array(this.times.N());
+      array.copyTo(this.times.values, dst);
+      return dst;
+    }
+
+    return this.times.values as Iterable<number>;
   }
 
   asQuantity(value: number): q.Quantity {
@@ -130,17 +138,11 @@ export class Duration implements MutableSample<timer.HrTime, number> {
 
   significant(): boolean {
     if (this.sampleSize() >= 3) {
-      const hsm = stats.mode.lms(this.toF64Array());
+      const hsm = stats.mode.lms(this.times.values);
       return hsm.variation < this.opts.significanceThreshold;
     }
 
     return false;
-  }
-
-  toF64Array(dst = new Float64Array(this.times.N())) {
-    assert.gte(dst.length, this.times.N());
-    array.copyTo(this.times.values, dst);
-    return dst;
   }
 
   toJson(): WireType {

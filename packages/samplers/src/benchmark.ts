@@ -242,7 +242,7 @@ ann.register('@benchmark:annotator' as typeid, {
         }
       });
 
-      // <uncertainty> (<active samples>/<total runs>)
+      // <uncertainty> (<total stored>/<total runs>)
       const tot = consistent + outlier;
       summary = `${tot > 1 ? confl.uncertainty().toFixed(2) : '-'} (${tot}/${fixt.totalRuns()})`;
     } else {

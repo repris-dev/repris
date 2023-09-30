@@ -1,19 +1,17 @@
 import { stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
-import { duration, Sample } from '../samples.js';
+import { Sample } from '../samples.js';
 
 const Annotations = {
-  /** */
+  /** Nonparametric measure of spread */
   qn: 'allPairs:scale:qn' as typeid,
 
-  /** */
+  /** Nonparametric measure of spread */
   sn: 'allPairs:scale:sn' as typeid,
 };
 
-const annotator = {
-  name: '@allPairs:annotator',
-
+ann.register('@allPairs:annotator', {
   annotations() {
     return Object.values(Annotations);
   },
@@ -22,15 +20,7 @@ const annotator = {
     sample: Sample<unknown>,
     request: Map<typeid, {}>
   ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex((id) => request.has(id)) < 0) {
-      return Status.value(void 0);
-    }
-
-    if (!duration.Duration.is(sample)) {
-      return Status.value(void 0);
-    }
-
-    const data = sample.toF64Array();
+    const data = sample.values('f64')!;
     const result = new Map<typeid, ann.Annotation>();
 
     if (request.has(Annotations.qn)) {
@@ -45,6 +35,4 @@ const annotator = {
 
     return Status.value(ann.DefaultBag.from(result));
   },
-};
-
-ann.register(annotator.name, annotator);
+});

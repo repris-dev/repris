@@ -20,13 +20,16 @@ import * as types from './types.js';
 export type Options = {
   /** Minimum number of samples in a valid conflation */
   minSize: number;
+
   /** The maximum number of samples in the cache */
   maxSize: number;
+
   /**
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
   maxUncertainty: number;
+
   /** The location estimation to use for each sample */
   locationEstimationType: typeid;
 };
@@ -236,6 +239,7 @@ function aggregateAndFilter<T>(
     const xsTmp = subset.map(w => w.statistic);
     const os = stats.online.Gaussian.fromValues(xsTmp);
 
+    // spread as the coefficient of variation
     relativeSpread = os.cov(1);
 
     // Sort by distance from the mean as the measure of centrality

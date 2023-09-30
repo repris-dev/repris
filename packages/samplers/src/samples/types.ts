@@ -26,6 +26,7 @@ export interface Sample<V> extends json.Serializable<wt.SampleData>
 
   /** The values that constitute the sample */
   values(): Iterable<V>;
+  values(type: 'f64'): Float64Array | undefined;
 
   /**
    * @returns true if the sample is statistically significant for
