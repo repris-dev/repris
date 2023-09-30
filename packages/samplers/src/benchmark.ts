@@ -242,9 +242,9 @@ ann.register('@benchmark:annotator' as typeid, {
         }
       });
 
-      // <effect size> (<active samples>/<total runs>)
+      // <uncertainty> (<active samples>/<total runs>)
       const tot = consistent + outlier;
-      summary = `${tot > 1 ? confl.effectSize().toFixed(2) : '-'} (${tot}/${fixt.totalRuns()})`;
+      summary = `${tot > 1 ? confl.uncertainty().toFixed(2) : '-'} (${tot}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)
       summary = `- (-/${fixt.totalRuns()})`;

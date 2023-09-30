@@ -73,19 +73,20 @@ export default {
     ],
   },
 
+  // prettier-ignore
   comparison: {
     annotations: [
       {
         '@index': [
           [
-            'mode:hsm:conflation',
+            'mean:conflation',
             {
               displayName: 'Index',
               grading: [
-                'mode:hsm:hypothesis:significantDifference',
+                // highlight if this snapshot is significantly faster
+                'mean:hypothesis:significantDifference',
                 {
                   ctx: '@test',
-                  // prettier-ignore
                   rules: [
                     { apply: chalk.dim },
                     { '<': 0, apply: chalk.reset }
@@ -97,13 +98,13 @@ export default {
         ],
         '@test': [
           [
-            'mode:hsm:hypothesis:summaryText',
+            'mean:hypothesis:summaryText',
             {
               displayName: 'Change (99% CI)',
               grading: [
-                'mode:hsm:hypothesis:significantDifference',
+                // color if there is a significant difference
+                'mean:hypothesis:significantDifference',
                 {
-                  // prettier-ignore
                   rules: [
                     { '==': 0, apply: chalk.dim },
                     { '<': 0, apply: chalk.green },
@@ -113,18 +114,24 @@ export default {
               ],
             },
           ],
-          ['mode:hsm:hypothesis:difference-ci', { display: false, options: { level: 0.99 } }],
+          [
+            'mean:hypothesis:difference-ci',
+            {
+              display: false,
+              options: { level: 0.99 }
+            }
+          ],
         ],
         '@baseline': [
           [
-            'mode:hsm:conflation',
+            'mean:conflation',
             {
               displayName: 'Baseline',
               grading: [
-                'mode:hsm:hypothesis:significantDifference',
+                // highlight if this snapshot is significantly faster
+                'mean:hypothesis:significantDifference',
                 {
                   ctx: '@test',
-                  // prettier-ignore
                   rules: [
                     { apply: chalk.dim },
                     { '>': 0, apply: chalk.reset }

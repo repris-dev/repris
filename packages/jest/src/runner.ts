@@ -15,7 +15,7 @@ import {
   snapshotManager,
   benchmark as f,
 } from '@repris/samplers';
-import { typeid, assert, iterator as iter, Status, uuid } from '@repris/base';
+import { typeid, assert, iterator as iter, Status, uuid, asTuple } from '@repris/base';
 
 import * as reprisConfig from './config.js';
 import { BaselineResolver, IndexResolver } from './snapshotUtils.js';
@@ -380,20 +380,23 @@ function reconflateBenchmark(
   conflationRequest: Map<typeid, any>,
   benchmarkRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
-  // sort existing samples by age (oldest first)
-  const foo = iter.collect(bench.samples())
-    .sort((a, b) => a.run - b.run)
+  const allSamples = iter.collect(bench.samples())
+    .map(s => asTuple([s.sample, bench.annotations().get(s.sample[uuid])]));
 
-  const allSamples = foo.map(s => s.sample);
-
-  allSamples.push(newEntry.sample);
+  allSamples.push([newEntry.sample, newEntry.annotations]);
 
   // Conflate the new and previous samples together
   const newConflation = conflations.duration.conflate(allSamples, opts);
 
+  if (Status.isErr(newConflation)) {
+    dbg('Failed to create conflation %s', newConflation[1].message);
+    // return the original benchmark
+    return bench;
+  }
+
   // Update the aggregated benchmark, discarding sample(s)
   // rejected during the conflation analysis.
-  const result = bench.addRun(newConflation);
+  const result = bench.addRun(newConflation[0]);
 
   // set sample annotation
   for (const { sample: s } of result.samples()) {
@@ -401,12 +404,15 @@ function reconflateBenchmark(
   }
 
   // Annotate this conflation
-  const conflationBag = annotators.annotate(newConflation, conflationRequest);
+  const conflationBag = annotators.annotate(newConflation[0], conflationRequest);
 
   if (Status.isErr(conflationBag)) {
     dbg('Failed to annotate conflation %s', conflationBag[1].message);
   } else {
-    result.annotations().set(newConflation[uuid], Status.get(conflationBag).toJson());
+    result.annotations().set(
+      newConflation[0][uuid],
+      Status.get(conflationBag).toJson()
+    );
   }
 
   // Annotate the benchmark and store these annotations in the benchmark itself

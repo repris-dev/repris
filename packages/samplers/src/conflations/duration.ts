@@ -1,8 +1,9 @@
-import { random, Status, typeid, uuid, quantity as q, assert, iterator } from '@repris/base';
+import { random, Status, typeid, uuid, quantity as q, assert, quantity } from '@repris/base';
 import { duration } from '../samples.js';
 import * as wt from '../wireTypes.js';
 import * as types from './types.js';
 import { KWConflation, KWConflationResult } from './kruskal.js';
+import { annotators } from '../index.js';
 
 export type Options = {
   /** Minimum number of samples in a valid conflation */
@@ -13,24 +14,37 @@ export type Options = {
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: number,
-  /**
-   * Method to remove samples from a cache when more than the maximum
-   * number are supplied.
-   */
-  exclusionMethod: 'slowest' | 'outliers',
-
-  inputOrder?: 'oldestFirst',
+  maxUncertainty: number,
+  /** The location estimation to use for each samples */
+  locationEstimationType: typeid
 }
 
-export function conflate(samples: Iterable<duration.Duration>, opts: Options): Result {
-  const kw = new KWConflation(iterator.collect(iterator.map(samples, x => [x.toF64Array(), x])));
+type DurationWT = wt.Conflation & {
+  statistic: number[]
+}
 
+export function conflate(
+  samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
+  opts: Options,
+): Status<Result> {
+  const points = [] as [number, duration.Duration][];
+  for (const [sample, bag] of samples) {
+    if (bag !== void 0 && bag[opts.locationEstimationType]) {
+      const anno = annotators.fromJson(bag[opts.locationEstimationType]);
+      const val = quantity.isQuantity(anno) ? anno.scalar : Number(anno);
+      points.push([Number(val), sample]);
+    } else {
+      // todo: annotate the sample
+      return Status.err(`Sample could not be conflated. Point estimate '${ opts.locationEstimationType }' is missing` );
+    }
+  }
+  
+  const kw = new KWConflation(points);
   const kwAnalysis = kw.conflate(opts);
   const summary = summarize(kwAnalysis.stat);
   const isReady = summary.consistent >= opts.minSize;
 
-  return new Result(isReady, kwAnalysis);
+  return Status.value(new Result(isReady, kwAnalysis));
 }
 
 export class Result implements types.Conflation<duration.Duration> {
@@ -44,9 +58,14 @@ export class Result implements types.Conflation<duration.Duration> {
     obj: wt.Conflation,
     refs: Map<uuid, duration.Duration>
   ): Status<Result> {
-    let stat = [];
+    if (obj['@type'] !== Result[typeid]) {
+      return Status.err('Not a valid conflation type');
+    }
 
-    for (const s of obj.samples) {
+    const wt = obj as DurationWT;
+
+    let stat = [];
+    for (const s of wt.samples) {
       const ref = s['@ref'];
 
       if (!refs.has(ref)) {
@@ -59,12 +78,13 @@ export class Result implements types.Conflation<duration.Duration> {
       });
     }
 
-    const result = new Result(obj.isReady, {
-      effectSize: obj.effectSize,
+    const result = new Result(wt.isReady, {
+      relativeSpread: wt.uncertainty,
+      samplingDistribution: wt.statistic,
       stat,
     });
 
-    result._uuid = obj['@uuid'];
+    result._uuid = wt['@uuid'];
 
     return Status.value(result);
   }
@@ -79,32 +99,36 @@ export class Result implements types.Conflation<duration.Duration> {
     return this._uuid;
   }
 
-  constructor(private _isReady: boolean, private _kwResult: KWConflationResult<duration.Duration>) {}
+  constructor(
+    private _isReady: boolean,
+    private _kwResult: KWConflationResult<duration.Duration>)
+  {
+  }
 
   stat() {
     return this._kwResult.stat;
   }
 
-  effectSize(): number {
-    return this._kwResult.effectSize;
+  uncertainty(): number {
+    return this._kwResult.relativeSpread;
   }
 
-  /** A sufficiently large consistent subset was found */
   ready(): boolean {
     return this._isReady;
   }
 
-  values(): Iterable<any> {
-    throw 'not impl';
-  }
-
   /** Convert a sample value as a quantity */
   asQuantity(value: number): q.Quantity {
+    // just use the first sample to convert a value
     assert.gt(this._kwResult.stat.length, 0);
     return this._kwResult.stat[0].sample.asQuantity(value);
   }
 
-  toJson(): wt.Conflation {
+  samplingDistribution(): number[] {
+    return this._kwResult.samplingDistribution;
+  }
+
+  toJson(): DurationWT {
     const samples = this._kwResult.stat
       // filter samples which were excluded from the analysis
       .filter(s => s.status !== 'rejected')
@@ -117,7 +141,8 @@ export class Result implements types.Conflation<duration.Duration> {
       '@type': this[typeid],
       '@uuid': this[uuid],
       samples,
-      effectSize: this._kwResult.effectSize,
+      uncertainty: this._kwResult.relativeSpread,
+      statistic: this._kwResult.samplingDistribution,
       isReady: this._isReady,
     };
   }

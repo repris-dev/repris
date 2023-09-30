@@ -3,7 +3,6 @@ import { Indexable, quantity, stats, Status, typeid } from '@repris/base';
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
 import * as conflations from '../conflations.js';
-import { hypothesis } from '../index.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
@@ -65,26 +64,6 @@ const ConflationAnnotations = Object.freeze({
     id: 'mode:hsm:conflation:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
-});
-
-const HypothesisAnnotations = Object.freeze({
-  /** The relative change between the two samples */
-  hsmDifference: 'mode:hsm:hypothesis:difference' as typeid,
-
-  /**
-   * Whether the difference is statistically significant.
-   * Note that this annotation is dependant on 'mode:hsm:hypothesis:difference-ci'.
-   */
-  hsmSignificantDifference: 'mode:hsm:hypothesis:significantDifference' as typeid,
-
-  /** Confidence interval of the difference between the two samples */
-  hsmDifferenceCI: {
-    id: 'mode:hsm:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, smoothing: 0.33 },
-  },
-
-  /** A text summary of the difference */
-  hsmDifferenceSummary: 'mode:hsm:hypothesis:summaryText' as typeid,
 });
 
 const sampleAnnotator: ann.Annotator = {
@@ -217,83 +196,6 @@ const conflationAnnotator: ann.Annotator = {
 
 ann.register('@annotator:conflation:mode', conflationAnnotator);
 
-const hypothesisAnnotator: ann.Annotator = {
-  annotations() {
-    return Object.values(HypothesisAnnotations).map(x => (typeof x === 'object' ? x.id : x));
-  },
-
-  annotate(
-    hypot: hypothesis.DefaultHypothesis<conflations.Conflation<duration.Duration>>,
-    request: Map<typeid, {}>
-  ): Status<ann.AnnotationBag | undefined> {
-    if (this.annotations().findIndex(id => request.has(id)) < 0 || !hypothesis.DefaultHypothesis.is(hypot)) {
-      return Status.value(void 0);
-    }
-
-    const result = new Map<typeid, ann.Annotation>();
-
-    const mean = stats.centralTendency.mean;
-    const [c0, c1] = hypot.operands();
-
-    const x0 = toHSMSampleDist(c0);
-    const x1 = toHSMSampleDist(c1);
-
-    const mean0 = mean(x0);
-    const mean1 = mean(x1);
-    const relChange = (mean0 - mean1) / mean1;
-
-    result.set(HypothesisAnnotations.hsmDifference, relChange);
-
-    let ci: [lo: number, hi: number] | undefined;
-
-    // hsm difference confidence intervals
-    if (request.has(HypothesisAnnotations.hsmDifferenceCI.id)) {
-      const opts = {
-        ...HypothesisAnnotations.hsmDifferenceCI.opts,
-        ...request.get(HypothesisAnnotations.hsmDifferenceCI.id),
-      };
-
-      ci = stats.bootstrap.studentizedDifferenceTest(
-        x0, x1,
-        (x0, x1) => mean(x0) - mean(x1),
-        opts.level,
-        opts.resamples,
-        50,
-      );
-    
-      result.set(HypothesisAnnotations.hsmDifferenceCI.id, ci);
-    }
-
-    // summary of the difference
-    if (request.has(HypothesisAnnotations.hsmDifferenceSummary)) {
-      const fmt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 1 });
-      let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
-
-      if (ci) {
-        const lo = ci[0] / mean1;
-        const hi = ci[1] / mean1;
-
-        summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
-      }
-
-      result.set(HypothesisAnnotations.hsmDifferenceSummary, summary);
-    }
-
-    if (request.has(HypothesisAnnotations.hsmSignificantDifference)) {
-      if (ci) {
-        // Accept the null hypothesis (no difference) if the interval
-        // includes 0, otherwise reject
-        const reject = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
-        result.set(HypothesisAnnotations.hsmSignificantDifference, reject ? relChange : 0);
-      }
-    }
-
-    return Status.value(ann.DefaultBag.from(result));
-  },
-};
-
-ann.register('@annotator:hypothesis:mode', hypothesisAnnotator);
-
 interface KDEAnalysis {
   /** value where the density function is globally maximized */
   mode: number;
@@ -328,13 +230,6 @@ function tof64Samples(conflation: conflations.Conflation<duration.Duration>) {
     .stat()
     .filter(s => s.status === 'consistent')
     .map(s => [s.sample.toF64Array!(), s.sample] as const);
-}
-
-function toHSMSampleDist(conflation: conflations.Conflation<duration.Duration>) {
-  return conflation
-    .stat()
-    .filter(s => s.status === 'consistent')
-    .map(s => stats.mode.hsm(s.sample.toF64Array!()).mode);
 }
 
 function kdeMode(

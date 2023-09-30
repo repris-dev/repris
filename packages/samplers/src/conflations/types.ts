@@ -13,7 +13,7 @@ export interface AnalysisOptions {
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: number;
+  maxUncertainty: number;
 }
 
 export type ConflatedSampleStatus =
@@ -33,13 +33,15 @@ export type ConflatedSampleStatus =
    */
   | 'consistent';
 
+/** A function to conflate a set of samples */
+export type Conflator<T extends Sample<any>> = (
+  samples: readonly T[],
+  opts: AnalysisOptions
+) => Conflation<T>;
 
-export type Conflator<T extends Sample<any>> = (samples: T[], opts: AnalysisOptions) => Conflation<T>;
-
-// todo: rename to Consolidation?
+// todo: rename to Aggregation?
 /** Represents the consolidation of several independent samples of the same quantity */
-export interface Conflation<T extends Sample<V>, V = any>
-  extends json.Serializable<wt.Conflation> {
+export interface Conflation<T extends Sample<V>, V = any> extends json.Serializable<wt.Conflation> {
   /** The kind of conflation result */
   readonly [typeid]: typeid;
 
@@ -47,20 +49,21 @@ export interface Conflation<T extends Sample<V>, V = any>
   readonly [uuid]: uuid;
 
   /** Samples ordered from 'best' to 'worst' depending on the method used. */
-  stat(): { sample: T; status: ConflatedSampleStatus }[];
+  stat(): readonly { sample: T; status: ConflatedSampleStatus }[];
 
   /**
-   * Effect size of the 'consistent' subset of samples. A lower effect size indicates
-   * a more homogeneous subset
+   * A measure of the robustness of the 'consistent' subset, if any. An
+   * uncertainty of zero means the samples are entirely heterogeneous
+   * according to the analysis used.
    */
-  effectSize(): number;
+  uncertainty(): number;
 
   /** A sufficiently large consistent subset was found */
   ready(): boolean;
 
-  /** Aggregate the homogeneous subset in to a single sample */
-  values(): Iterable<V>;
-
   /** Convert a sample value as a quantity */
   asQuantity(value: V): q.Quantity;
+
+  /** A conflation may be able to produce a sampling distribution */
+  samplingDistribution?(): readonly number[];
 }

@@ -2,22 +2,15 @@ import { stats, Indexable, array, assert, random, lazy } from '@repris/base';
 
 import { AnalysisOptions, ConflatedSampleStatus } from './types.js';
 
-export interface KWOptions extends AnalysisOptions {
-  /**
-   * Method to remove samples from a cache when more than the maximum
-   * number are supplied.
-   */
-  exclusionMethod: 'slowest' | 'outliers';
-
-  inputOrder?: 'oldestFirst';
-}
-
 export type KWConflationResult<T> = {
   /** Status/classification of each sample */
   stat: { sample: T; status: ConflatedSampleStatus }[];
 
-  /** Effect size of the consistent subset */
-  effectSize: number;
+  /** Sampling distribution of the consistent subset, if any */
+  samplingDistribution: number[];
+
+  /** Relative scale of the consistent subset */
+  relativeSpread: number;
 };
 
 /**
@@ -25,47 +18,38 @@ export type KWConflationResult<T> = {
  * analysis of variance and Dunn's post-hoc test
  */
 export class KWConflation<T> {
-  readonly kw: stats.KruskalWallisResult<Indexable<number>> | undefined;
-  readonly raw: Indexable<number>[];
+  constructor(private taggedPointEstimates: [pointEstimate: number, tag: T][]) {}
 
-  constructor(private taggedSamples: [sample: Indexable<number>, tag: T][]) {
-    const N = taggedSamples.length;
+  conflate(opts: AnalysisOptions): KWConflationResult<T> {
+    let { taggedPointEstimates: taggedDist } = this;
 
-    this.raw = taggedSamples.map(x => x[0]);
-    this.kw = N >= 2 ? stats.kruskalWallis(this.raw) : void 0;
-  }
-
-  conflate(opts: KWOptions): KWConflationResult<T> {
-    let { taggedSamples: samples, raw: rawSamples, kw } = this;
-
-    const N = samples.length;
+    const N = taggedDist.length;
 
     if (N < 2) {
-      const stat =
-        N === 1 ? [{ sample: samples[0][1], status: 'consistent' as ConflatedSampleStatus }] : [];
+      const stat = N === 1
+        ? [{ sample: taggedDist[0][1], status: 'consistent' as ConflatedSampleStatus }]
+        : [];
 
       return {
         stat,
-        effectSize: 0,
+        relativeSpread: 0,
+        samplingDistribution: [taggedDist[0][0]]
       };
     }
 
-    assert.isDefined(kw);
-
     // Sampling distribution, sorted by hsm;
-    const samplingDist = this.taggedSamples.map(([raw, tag]) => ({
-      raw,
+    let stat = this.taggedPointEstimates.map(([pointEst, tag]) => ({
       sample: tag,
-      mode: stats.mode.hsm(raw).mode,
+      statistic: pointEst,
       status: 'outlier' as ConflatedSampleStatus
     }));
 
     // Sorting of the sampling distribution, distance from mean (desc)
-    let subset = samplingDist.slice();
+    let subset = stat.slice();
 
     if (N > opts.maxSize) {
       // reject the outlier samples
-      const rejector = outlierSelection(subset, s => s.mode);
+      const rejector = outlierSelection(subset, s => s.statistic);
 
       for (let n = N; n > opts.maxSize; n--) {
         const s = rejector();
@@ -78,41 +62,30 @@ export class KWConflation<T> {
       assert.eq(subset.length, opts.maxSize);
     }
 
-console.info('samplingDist', subset.map(x => x.mode));
+    const samplingDistribution = [] as number[];
+    let relativeSpread = 0;
 
-    // median of the sampling distribution
-    const sDistMean = stats.centralTendency.mean(samplingDist.map(x => x.mode));
+    {
+      const xsTmp = stat.map(w => w.statistic);
+      const os = stats.online.Gaussian.fromValues(xsTmp);
 
-console.info('sDistMean', sDistMean);
+      relativeSpread = os.cov(1);
 
-    // Confidence of the sampling dist
-    const c99 = stats.mode.medianConfidence(samplingDist.map(x => x.mode), 0.99, 1000);
-    const m99 = (c99[1] - c99[0]) / sDistMean;
-
-console.info('m99', m99);
-
-{
-  const xsTmp = samplingDist.map(w => w.mode);
-  const med = stats.median(xsTmp), std = stats.mad(xsTmp, med).normMad;
-
-  console.info('w99', std / med, stats.allPairs.crouxQn(xsTmp).correctedSpread / med)
-}
+      // Sort by distance from the mean as the measure of centrality
+      stat = stat.sort((a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()))
+    }
 
     if (subset.length >= opts.minSize) {
-      // resort by mode (ascending)
-
-console.info('------------')   ;
-
       // mark consistent samples
-//      if (kw.effectSize <= opts.maxEffectSize) {
-      if (m99 < opts.maxEffectSize) {
-        subset.forEach(x => x.status = 'consistent');
+      if (relativeSpread <= opts.maxUncertainty) {
+        subset.forEach(x => (x.status = 'consistent', samplingDistribution.push(x.statistic)));
       }
     }
 
     return {
-      stat: samplingDist,
-      effectSize: m99
+      stat,
+      relativeSpread,
+      samplingDistribution,
     };
   }
 }

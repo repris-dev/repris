@@ -17,6 +17,7 @@ export type SampleData = json.Value & {
   '@uuid': uuid;
 };
 
+// TODO - rename to Aggregate?
 export type Conflation = {
   /** The type of Conflation used */
   '@type': string;
@@ -25,10 +26,12 @@ export type Conflation = {
   '@uuid': uuid;
 
   /** The samples included in the conflation */
-  samples: { '@ref': uuid, outlier: boolean }[];
+  samples: { '@ref': uuid; outlier: boolean }[];
+
+  statistic: json.Value;
 
   /** */
-  effectSize: number;
+  uncertainty: number;
 
   /** */
   isReady: boolean;
