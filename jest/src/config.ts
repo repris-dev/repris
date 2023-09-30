@@ -4,32 +4,30 @@ import { assignDeep, RecursivePartial } from '@sampleci/base';
 
 const dbg = debug('sci:config');
 
-export interface SCIConfig
-{
+export interface SCIConfig {
   sampler: {
     /** Configuration of the sampler */
-    options: import('@sampleci/samplers').stopwatch.Options;
-  }
+    options: RecursivePartial<import('@sampleci/samplers').stopwatch.Options>;
+  };
 
   sample: {
     /** Configuration of each sample */
-    options: import('@sampleci/samplers').samples.duration.SampleOptions;
-    
+    options: RecursivePartial<import('@sampleci/samplers').samples.duration.SampleOptions>;
+
     /** The annotations to compute for each sample */
     annotations: (string | [id: string, config: AnnotationConfig])[];
   };
 
   conflation: {
     /** Configuration of each conflation */
-    options: import('@sampleci/samplers').samples.duration.ConflationOptions;
-    
+    options: RecursivePartial<import('@sampleci/samplers').samples.duration.ConflationOptions>;
+
     /** The annotations to compute for each conflation */
     annotations: (string | [id: string, config: AnnotationConfig])[];
   };
 }
 
-export interface GradingConfig
-{
+export interface GradingConfig {
   /** Annotation configuration */
   options?: any;
 
@@ -40,8 +38,9 @@ export interface GradingConfig
   thresholds?: number[];
 }
 
-export interface AnnotationConfig
-{
+export interface AnnotationConfig {
+  display?: boolean;
+
   /** The title to display in reports */
   displayName?: string;
 
@@ -51,46 +50,57 @@ export interface AnnotationConfig
   /**
    * A grading can be configured to annotate the 'quality' of an annotation.
    * The grading of an annotation is used by reporters to color the statistic.
-   * 
+   *
    * For example, the mean value of a sample could be graded using
    * the coefficient of variance as a proxy for the 'noisiness' of the sample.
    */
   grading?: [id: string, config: GradingConfig] | GradingConfig;
 }
 
+const defaultConfig: SCIConfig = {
+  sampler: {
+    options: {},
+  },
 
-const defaultConfig: RecursivePartial<SCIConfig> = {
   sample: {
+    options: {},
     annotations: [
       ['duration:iter', { displayName: 'iter' }],
-      ['duration:min', { displayName: 'min' }],
+      ['duration:min', { displayName: 'min', display: false }],
       ['mode:hsm', { displayName: 'mode' }],
-      ['mode:hsm:ci-rme', {
-        displayName: 'ci',
-        grading: {
-          thresholds: [
-            0,    // >= good
-            0.05, // >= ok
-            0.1,  // >= poor
-          ],
-        }
-      }]
+      [
+        'mode:hsm:ci-rme',
+        {
+          displayName: 'ci',
+          grading: {
+            thresholds: [
+              0, // >= good
+              0.05, // >= ok
+              0.1, // >= poor
+            ],
+          },
+        },
+      ],
     ],
   },
 
   conflation: {
+    options: {},
     annotations: [
       ['mode:hsm:conflation', { displayName: 'mode(*)' }],
-      ['mode:hsm:conflation:ci-rme', {
-        displayName: 'ci(*)',
-        grading: {
-          thresholds: [
-            0,    // >= good
-            0.05, // >= ok
-            0.1,  // >= poor
-          ],
-        }
-      }]
+      [
+        'mode:hsm:conflation:ci-rme',
+        {
+          displayName: 'ci(*)',
+          grading: {
+            thresholds: [
+              0, // >= good
+              0.05, // >= ok
+              0.1, // >= poor
+            ],
+          },
+        },
+      ],
     ],
   },
 };
@@ -98,27 +108,45 @@ const defaultConfig: RecursivePartial<SCIConfig> = {
 /** Map of rootDir to config */
 const sessionConfigs = new Map<string, SCIConfig>();
 
-const loadEsm = (filepath: string) => import(filepath);
+const loadEsm = async (filepath: string) => {
+  try {
+    dbg(`Loading (${filepath})`);
+    const exports = await import(filepath);
+
+    if (typeof exports.default === 'object') {
+      return exports.default;
+    } else {
+      dbg("Config file doesn't have a valid default export");
+    }
+  } catch (e) {
+    dbg('Failed to Load config file %s', e);
+  }
+
+  return {};
+};
+
 const explorer = lilconfig('sci', {
   loaders: {
     '.js': loadEsm,
     '.mjs': loadEsm,
-  }
+  },
 });
 
 export async function load(rootDir: string): Promise<SCIConfig> {
   if (!sessionConfigs.has(rootDir)) {
     const searchResult = await explorer.search(rootDir);
 
-    sessionConfigs.set(rootDir, assignDeep(
-      {}, defaultConfig, !searchResult?.isEmpty ? searchResult?.config : {}
-    ));
+    if (searchResult?.filepath) {
+      const config = assignDeep(
+        {},
+        defaultConfig,
+        !searchResult?.isEmpty ? searchResult?.config : {}
+      );
 
-    if (searchResult?.filepath)
-      dbg(`Config file loaded (${ searchResult?.filepath })`);
-    else
-      dbg(`Config file Not found`);
+      dbg(config);
+      sessionConfigs.set(rootDir, config);
+    } else dbg(`Config file Not found`);
   }
 
   return sessionConfigs.get(rootDir)!;
-};
+}
