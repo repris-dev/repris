@@ -23,7 +23,7 @@ const defaultDurationOptions = {
    * Threshold of similarity for the conflation to be considered valid, between
    * 0 (maximum similarity) and 1 (completely dissimilar) inclusive.
    */
-  maxEffectSize: 0.075,
+  maxEffectSize: 0.05,
 
   /** Minimum number of samples in a valid conflation */
   minConflationSize: 3,
@@ -116,15 +116,16 @@ export class Duration implements Conflation<timer.HrTime> {
   }
 
   static analyze(samples: Indexable<number>[], opts: DurationOptions): MWUConflationAnalysis {
-    if (samples.length < 2) {
+    const N = samples.length;
+
+    if (N < 2) {
       return {
-        stat: samples.length === 1 ? [{ index: 0, status: 'consistent' }] : [],
+        stat: N === 1 ? [{ index: 0, status: 'consistent' }] : [],
         ready: false,
         effectSize: 0,
       };
     }
 
-    const N = samples.length;
     let kw = stats.kruskalWallis(samples);
 
     // sort all samples by pairwise-similarity or by average ranking
@@ -137,25 +138,26 @@ export class Duration implements Conflation<timer.HrTime> {
       ])
     );
 
-    // initial subset
-    let subset = sorted.map((idx) => samples[idx]);
+    // consistent subset
+    let subset = samples.slice();
 
     if (N > opts.maxCacheSize) {
+      const sortedSamples = sorted.map((idx) => samples[idx]);
+
       // reject the outlier samples
-      for (const sample of iterator.subSpan(subset, opts.maxCacheSize)) {
-        stat.get(sample)!.status = 'rejected';
+      for (const s of sortedSamples.slice(opts.maxCacheSize)) {
+        stat.get(s)!.status = 'rejected';
       }
 
-      // from the remaining samples, compute KW again. ensure the samples
-      // are in the original order
-      subset = subset.slice(0, opts.maxCacheSize);
+      // from the remaining samples, compute KW again.
+      subset = sortedSamples.slice(0, opts.maxCacheSize);
       kw = stats.kruskalWallis(subset);
     }
 
     if (kw.effectSize > opts.maxEffectSize && subset.length > opts.minConflationSize) {
       // try to find a cluster of samples which are consistent
       const cluster = dunnsCluster(kw, opts.minConflationSize);
-      subset = array.subsetOf(samples, cluster, []);
+      subset = array.subsetOf(subset, cluster, []);
 
       if (subset.length > 0) {
         kw = stats.kruskalWallis(subset);

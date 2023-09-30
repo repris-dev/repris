@@ -122,14 +122,24 @@ describe('DurationConflation', () => {
     expect(a.rejected.length).toBe(0);
   });
 
-  test('maxSize', () => {
-    const conf = new Duration([sA, sB, sC, sD, sE, sF], { maxEffectSize: 1, maxCacheSize: 4 });
+  test('maxCacheSize', () => {
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 1, maxCacheSize: 4 });
     const a = postProcess(conf.analysis());
 
-    expect(a.order).toHaveValues([0, 1, 2, 3, 4, 5]);
-    expect(a.rejected).toEqual([4, 5]);
-    expect(a.consistent).toHaveValues([0, 1, 2, 3]);
+    expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
+    expect(a.rejected).toEqual([3, 0]);
+    expect(a.consistent).toHaveValues([5, 1, 2, 4]);
     expect(a.outlier).toEqual([]);
+  });
+
+  test('maxCacheSize, maxEffectSize', () => {
+    const conf = new Duration([sF, sB, sC, sD, sE, sA], { maxEffectSize: 0.33, maxCacheSize: 4 });
+    const a = postProcess(conf.analysis());
+
+    expect(a.order).toHaveValues([5, 1, 2, 4, 3, 0]);
+    expect(a.rejected).toEqual([3, 0]);
+    expect(a.consistent).toHaveValues([5, 1, 2]);
+    expect(a.outlier).toEqual([4]);
   });
 });
 
