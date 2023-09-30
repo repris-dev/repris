@@ -8,10 +8,12 @@ describe('OnlineStats', () => {
     stats.push(1);
     expect(stats.N()).toBe(1);
     expect(stats.mean()).toBe(1);
+    expect(stats.range()).toEqual([0, 1]);
 
     stats.push(2);
     expect(stats.N()).toBe(2);
     expect(stats.mean()).toBe(1.5);
+    expect(stats.range()).toEqual([0, 2]);
 
     stats.push(3);
     expect(stats.N()).toBe(3);
@@ -20,6 +22,7 @@ describe('OnlineStats', () => {
     expect(stats.cov()).toBeCloseTo(0.4082, 4);
     expect(stats.skewness()).toBe(0);
     expect(stats.kurtosis()).toBe(-1.5);
+    expect(stats.range()).toEqual([0, 3]);
   });
 
   test('positive skew', () => {

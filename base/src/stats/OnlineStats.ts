@@ -1,4 +1,16 @@
-export default class OnlineStats {
+export interface SimpleSummary<T> {
+  N(): T;
+  mean(): T;
+  std(): T;
+  cov(): T;
+  skewness(): T;
+  kurtosis(): T;
+  range(): [T, T];
+}
+
+export default class OnlineStats implements SimpleSummary<number> {
+  #min = Infinity;
+  #max = -Infinity;
   #n = 0;
   #M1 = 0;
   #M2 = 0;
@@ -17,9 +29,14 @@ export default class OnlineStats {
 
   kurtosis() { return (this.#n * this.#M4) / (this.#M2 * this.#M2) - 3; }
 
+  range(): [number, number] { return [this.#min, this.#max]; }
+
   push(x: number) {
     const n1 = this.#n;
     const n = ++this.#n;
+
+    this.#min = Math.min(this.#min, x)
+    this.#max = Math.max(this.#max, x)
 
     const delta = x - this.#M1;
     const delta_n = delta / n;
@@ -34,15 +51,27 @@ export default class OnlineStats {
     return n;
   }
 
-  clone() {
-    const s = new OnlineStats();
+  reset() {
+    this.#n = this.#M1 = this.#M2 = this.#M3 = this.#M4 = 0;
+    this.#min = Infinity;
+    this.#max = -Infinity
+  }
 
-    s.#n = this.#n;
-    s.#M1 = this.#M1;
-    s.#M2 = this.#M2;
-    s.#M3 = this.#M3;
-    s.#M4 = this.#M4;
+  toJson() {
+    return { n: this.#n, m1: this.#M1, m2: this.#M2, m3: this.#M3, m4: this.#M4, min: this.#min, max: this.#max };
+  }
 
-    return;
+  static fromJson(v: ReturnType<OnlineStats['toJson']>) {
+    const stat = new OnlineStats();
+
+    stat.#n = v.n;
+    stat.#min = v.min;
+    stat.#max = v.max;
+    stat.#M1 = v.m1;
+    stat.#M2 = v.m2;
+    stat.#M3 = v.m3;
+    stat.#M4 = v.m4;
+
+    return stat;
   }
 }
