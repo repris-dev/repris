@@ -1,6 +1,6 @@
 import { Indexable, stats, Status, typeid } from '@sampleci/base';
 import * as ann from '../annotators.js';
-import { Duration, Sample, Conflation, DurationConflation } from '../samples.js';
+import { duration, Sample, Conflation } from '../samples.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
@@ -77,11 +77,11 @@ const sampleAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== (Duration[typeid] as typeid)) {
+    if (sample[typeid] !== (duration.Duration[typeid] as typeid)) {
       return Status.value(void 0);
     }
 
-    const d = sample as Duration;
+    const d = sample as duration.Duration;
     const data = d.toF64Array();
     const kdeResult = kdeMode(data, d.summary());
 
@@ -140,15 +140,15 @@ const conflationAnnotator: ann.Annotator = {
       return Status.value(void 0);
     }
 
-    if (conflation[typeid] !== DurationConflation[typeid] as typeid) {
+    if (conflation[typeid] !== duration.Conflation[typeid] as typeid) {
       return Status.value(void 0);
     }
 
-    const c = conflation as DurationConflation;
+    const c = conflation as duration.Conflation;
     const samples = Array.from(c.samples()).map(
-      s => [s.toF64Array(), s] as [Float64Array, Duration]
+      s => [s.toF64Array(), s] as [Float64Array, duration.Duration]
     );
-  
+
     if (samples.length > 0) {
       const result = new Map<typeid, ann.Annotation>();
 
@@ -219,7 +219,7 @@ function kdeMode(
 }
 
 function hsmConflation(
-  samples: [Float64Array, Duration][],
+  samples: [Float64Array, duration.Duration][],
   ciLevel?: number,
 ) {
   const N = samples.reduce((acc, [raw]) => acc + raw.length, 0);
@@ -242,7 +242,7 @@ function hsmConflation(
 }
 
 function kdeModeConflation(
-  samples: [Float64Array, Duration][],
+  samples: [Float64Array, duration.Duration][],
 ) {  
   // MISE-optimized bandwidth
   const hs: [raw: Float64Array, h: number][] = [];

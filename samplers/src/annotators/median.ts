@@ -1,6 +1,6 @@
 import { stats, Status, typeid } from '@sampleci/base';
 import * as ann from '../annotators.js';
-import { Duration, Sample } from '../samples.js';
+import { duration, Sample } from '../samples.js';
 
 const Annotations = {
   median: 'median' as typeid,
@@ -30,12 +30,11 @@ const annotator = {
       return Status.value(void 0);
     }
 
-    if (sample[typeid] !== Duration[typeid]) {
+    if (sample[typeid] !== duration.Duration[typeid]) {
       return Status.value(void 0);
     }
 
-    const d = sample as Duration;
-    const data = d.toF64Array();
+    const data = (sample as duration.Duration).toF64Array();
     const iqr = stats.iqr(data);
 
     const bag = ann.DefaultBag.from([

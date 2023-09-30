@@ -1,2 +1,2 @@
 export * from './samples/types.js';
-export * from './samples/duration.js';
+export * as duration from './samples/duration.js';

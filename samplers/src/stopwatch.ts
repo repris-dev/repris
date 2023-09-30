@@ -7,7 +7,7 @@ import * as wt from './wireTypes.js';
 export type SamplerFn<Args extends any[]> = types.SamplerFn<timer.HrTime, StopwatchState, Args>
 
 /** options supported by the sampler */
-export type SamplerOptions = typeof defaultSamplerOptions;
+export type Options = typeof defaultSamplerOptions;
 
 /** State available to the function under test */
 export interface StopwatchState extends types.SamplerState<timer.HrTime>
@@ -18,7 +18,7 @@ export interface StopwatchState extends types.SamplerState<timer.HrTime>
   ranges(): number[];
 }
 
-export const defaultSamplerOptions = {
+const defaultSamplerOptions = {
   /* Time to spend collecting the sample (ms) */
   'duration.min': 500,
   'duration.max': 7_500,
@@ -56,7 +56,7 @@ const SECOND = timer.cvtFrom(1, 'second');
 export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrTime> {
   static readonly [typeid] = '@sampler:stopwatch' as typeid;
   
-  readonly opts: SamplerOptions;
+  readonly opts: Options;
   readonly state: StopwatchState;
   readonly clock: timer.Clock;
   readonly result: samples.MutableSample<timer.HrTime>;
@@ -72,7 +72,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
   constructor (
     private readonly fn: SamplerFn<Args>,
     private parameter: number[],
-    opts: Partial<SamplerOptions> = { },
+    opts?: Partial<Options>,
     timeSource = timer.create(),
     private readonly gc: () => void = (() => {})
   )
@@ -82,8 +82,8 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
     this.state = new DefaultState(this.clock, parameter);
     this.timeSource = timeSource.clone();
 
-    this.result = new samples.Duration(
-      this.opts['reservoirSample.capacity'] < 0 ? this.opts['sampleSize.max'] : this.opts['reservoirSample.capacity']
+    this.result = new samples.duration.Duration(
+      { maxCapacity: this.opts['reservoirSample.capacity'] < 0 ? this.opts['sampleSize.max'] : this.opts['reservoirSample.capacity'] }
     );
 
     this.durationBounds = {
@@ -278,7 +278,7 @@ class DefaultState implements StopwatchState {
 export class Builder<Args extends any[]>
     implements types.Builder<timer.HrTime, Sampler<Args>>
 {
-  private options: SamplerOptions = Object.assign({ } as Record<string, any>,
+  private options: Options = Object.assign({ } as Record<string, any>,
       defaultSamplerOptions);
 
   private params = {
@@ -291,7 +291,7 @@ export class Builder<Args extends any[]>
     gc: void 0  as (() => undefined) | undefined,  
   };
 
-  opt(key: keyof SamplerOptions, value: any): this {
+  opt(key: keyof Options, value: any): this {
     this.options[key] = value;
     return this;
   }

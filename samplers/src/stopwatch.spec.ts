@@ -53,7 +53,7 @@ describe('Builder', () => {
   });
 });
 
-var opts: Partial<stopwatch.SamplerOptions> = {
+var opts: Partial<stopwatch.Options> = {
   'warmup.duration.max': 100,
   'duration.max': 500
 }

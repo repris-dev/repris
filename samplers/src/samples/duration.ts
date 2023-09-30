@@ -5,6 +5,13 @@ import * as wt from '../wireTypes.js';
 import * as types from './types.js';
 import { Sample } from './types.js';
 
+export type SampleOptions = typeof defaultSampleOptions;
+
+export const defaultSampleOptions = {
+  maxCapacity: Number.MAX_SAFE_INTEGER,
+  significanceThreshold: 0.01
+};
+
 /** Json representation of a duration sample */
 type WireType = wt.SampleData & {
   summary: ReturnType<stats.online.Lognormal['toJson']>,
@@ -25,26 +32,17 @@ function isDurationSampleWT(x: unknown): x is WireType {
 /** A sample of HrTime durations in nanoseconds */
 export class Duration implements types.MutableSample<timer.HrTime> {
   static [typeid] = '@sample:duration' as typeid;
-
-  static is(x: any) {
-    return x[typeid] === Duration[typeid];
-  }
+  static is(x: any): x is Duration { return x[typeid] === Duration[typeid]; }
 
   readonly [typeid] = Duration[typeid];
 
+  private opts: SampleOptions;
   private times: stats.ReservoirSample<timer.HrTime>;
-
-  // TODO: stats specifically for bigint
   private onlineStats: stats.online.Lognormal;
 
-  constructor (
-    private maxCapacity?: number,
-    private significanceThreshold = 0.01
-  ) {
-    this.times = new stats.ReservoirSample(
-      maxCapacity === void 0 ? Number.MAX_SAFE_INTEGER : maxCapacity
-    );
-
+  constructor (opts_: Partial<SampleOptions> = {}) {
+    this.opts = Object.assign({}, defaultSampleOptions, opts_);
+    this.times = new stats.ReservoirSample(this.opts.maxCapacity);
     this.onlineStats = new stats.online.Lognormal();
   }
 
@@ -77,7 +75,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
   significant(): boolean {
     if (this.sampleSize() >= 3) {
       const hsm = stats.mode.lms(this.toF64Array());
-      return hsm.variation < this.significanceThreshold;
+      return hsm.variation < this.opts.significanceThreshold;
     }
 
     return false;
@@ -103,8 +101,8 @@ export class Duration implements types.MutableSample<timer.HrTime> {
       units: 'microseconds' as quantity.Units
     };
 
-    if (this.maxCapacity !== void 0) {
-      obj.maxSize = this.maxCapacity;
+    if (this.opts.maxCapacity !== void 0) {
+      obj.maxSize = this.opts.maxCapacity;
     }
 
     return obj;
@@ -115,7 +113,7 @@ export class Duration implements types.MutableSample<timer.HrTime> {
       return Status.err(`Invalid ${ Duration[typeid] } sample`);;
     }
 
-    const sample = new Duration(x.maxSize);
+    const sample = new Duration({ maxCapacity: x.maxSize });
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
 
     if (Array.isArray(x.values)) {
@@ -125,6 +123,12 @@ export class Duration implements types.MutableSample<timer.HrTime> {
     return Status.value(sample);
   }
 }
+
+export type ConflationOptions = typeof defaultConflationOptions;
+
+export const defaultConflationOptions = {
+  sensitivity: 0.25
+};
 
 /** A Sample conflation result based on pair-wise Mann-Whitney U tests */
 type MWUConflationAnalysis = {
@@ -138,27 +142,34 @@ type MWUConflationAnalysis = {
    * so the easiest way to counteract this is to choose those samples clustered
    * around the minimum duration.
    */
-  consistent: number[],
+  consistentSubset: number[],
 
   /**
    * All sample indices ordered by the number of times it is more likely to
-   * produce lower values in a sample-by-sample comparison.
+   * produce lower values in a sample-by-sample comparison, i.e. fastest to
+   * slowest.
    */
   ordered: Int32Array,
 };
 
-export class DurationConflation implements types.Conflation<timer.HrTime> {
+export class Conflation implements types.Conflation<timer.HrTime> {
   static [typeid] = '@conflation:duration' as typeid;
 
-  readonly [typeid] = DurationConflation[typeid];
+  readonly [typeid] = Conflation[typeid];
 
+  private opts: ConflationOptions;
   private allSamples: Duration[] = [];
   private rawSamples: Float64Array[] = [];
   private analysisCache?: MWUConflationAnalysis;
 
-  constructor (private exclusionThreshold = 0.25) { }
+  constructor (initial?: Iterable<Duration>, opts?: Partial<ConflationOptions>) {
+    this.opts = Object.assign({}, defaultConflationOptions, opts);
+    if (initial !== void 0) {
+      for (const x of initial) this.push(x);
+    }
+  }
 
-  samples(maxSize = 5, all = false): Iterable<Duration> {
+  samples(maxSize = 5, all = false): Duration[] {
     const allSamples = this.allSamples;
 
     if (all && maxSize >= allSamples.length) {
@@ -168,11 +179,13 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
 
     const a = this.analysis();
 
+console.info(`XX ${allSamples.length}/${a.consistentSubset.length}`);
+
     const series = all
       // consider all samples
       ? Array.from(iterator.range(0, allSamples.length))
       // consider only those samples in agreement
-      : a.consistent;
+      : a.consistentSubset;
 
     if (maxSize < series.length) {
       // find the fastest subset
@@ -180,21 +193,21 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
       const result = [] as Duration[];
 
       for (let i = 0; i < series.length; i++) {
-        const idx = a.ordered[i];
-        if (subset.has(idx)) {
-          if (result.push(allSamples[idx]) >= maxSize) break;
+        const ith = a.ordered[i];
+        if (subset.has(ith)) {
+          if (result.push(allSamples[ith]) >= maxSize) break;
         }
       }
 
       return result;
     }
 
-    return array.subsetOf(allSamples, series, []);
+    return array.subsetOf(allSamples, series, [] as Duration[]);
   }
 
   analysis(): MWUConflationAnalysis {
-    return this.analysisCache ??= DurationConflation.analyze(
-      this.rawSamples, this.exclusionThreshold
+    return this.analysisCache ??= Conflation.analyze(
+      this.rawSamples, this.opts.sensitivity
     );
   }
 
@@ -205,7 +218,8 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
   }
 
   static analyze(
-    samples: Indexable<number>[], maxDissimilarity: number
+    samples: Indexable<number>[],
+    maxDissimilarity: number,
   ): MWUConflationAnalysis {
     const N = samples.length;
 
@@ -219,7 +233,7 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
         const mwu = stats.mwu(samples[i], samples[j]).effectSize;
-        // Normalized effect-size between 0 and 1 where 0 is 'equal-chance' or homogeneous.
+        // Normalized effect-size between 0 and 1 where 0 is 'equal-chance'.
         const es = Math.abs(mwu - 0.5) * 2;
         ess.push(es);
 
@@ -236,27 +250,26 @@ export class DurationConflation implements types.Conflation<timer.HrTime> {
     ordered.sort((a, b) => wins[b] - wins[a]);
 
     const fastest = ordered[0];
-    const consistent = [fastest];
+    const consistentSubset = [fastest];
 
+    // Pick the subset close enough to the fastest
     for (let k = 1; k < N; k++) {
       const kth = ordered[k];
       const es = ess[math.triMatIdx(N, fastest, kth)];
 
       if (es < maxDissimilarity) {
-        consistent.push(kth);
-      } else {
-        break;
+        consistentSubset.push(kth);
       }
     }
 
     // The fastest sample disagrees with all the other samples
-    if (consistent.length < 2) {
-      consistent.length = 0;
+    if (consistentSubset.length < 2) {
+      consistentSubset.length = 0;
     }
 
     return {
       ordered,
-      consistent,
+      consistentSubset,
     };
   }
 }

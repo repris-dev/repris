@@ -23,7 +23,7 @@ describe('DurationConflation', () => {
   const sF = create(1005, 5, 250);
 
   test('samples() - cluster of 3, 1 outlier', () => {
-    const conf = new duration.DurationConflation();
+    const conf = new duration.Conflation();
 
     conf.push(sB);
     conf.push(sA);
@@ -33,15 +33,15 @@ describe('DurationConflation', () => {
     const result = conf.analysis();
 
     // samples a, b, c
-    expect(result.consistent.length).toBe(3);
-    expect(result.consistent.includes(2)).toBeFalsy();
+    expect(result.consistentSubset.length).toBe(3);
+    expect(result.consistentSubset.includes(2)).toBeFalsy();
 
     // The outlier is also the slowest
     expect(result.ordered[result.ordered.length - 1]).toBe(2);
   });
 
   test('samples() - 2 clusters of 2', () => {
-    const conf = new duration.DurationConflation();
+    const conf = new duration.Conflation();
 
     conf.push(sD);
     conf.push(sB);
@@ -51,9 +51,9 @@ describe('DurationConflation', () => {
     const result = conf.analysis();
 
     // The faster cluster is selected
-    expect(result.consistent.length).toBe(2);
-    expect(result.consistent).toContain(1);
-    expect(result.consistent).toContain(2);
+    expect(result.consistentSubset.length).toBe(2);
+    expect(result.consistentSubset).toContain(1);
+    expect(result.consistentSubset).toContain(2);
 
     // fastest samples
     expect(result.ordered.indexOf(1)).toBeLessThanOrEqual(1);
@@ -66,23 +66,17 @@ describe('DurationConflation', () => {
 
   test('exclusionThreshold', () => {
     { // Low threshold
-      const thresh = 0.2;
-      const conf = new duration.DurationConflation(thresh);
+      const sensitivity = 0.2;
+      const conf = new duration.Conflation([sE, sF], { sensitivity });
   
-      conf.push(sE);
-      conf.push(sF);
-      
-      expect(conf.analysis().consistent.length).toBe(0);
+      expect(conf.analysis().consistentSubset.length).toBe(0);
     }
     { // high threshold
-      const thresh = 0.8;
-      const conf = new duration.DurationConflation(thresh);
+      const sensitivity = 0.8;
+      const conf = new duration.Conflation([sE, sF], { sensitivity });
   
-      conf.push(sE);
-      conf.push(sF);
-
       const a = conf.analysis();
-      expect(a.consistent.length).toBe(2);
+      expect(a.consistentSubset.length).toBe(2);
       expect(Array.from(a.ordered)).toEqual([0, 1]);
     }
   });
