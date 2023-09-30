@@ -1,9 +1,9 @@
 import * as random from '../random.js';
 import * as kde from './kde.js';
-import OnlineStats from './OnlineStats.js';
+import * as OS from './OnlineStats.js';
 import { iqr } from './util.js';
 
-describe('kde', () => {
+describe('findMaxima', () => {
   test('finds one peak', () => {
     const gen = random.PRNGi32(34);
     const rng3 = random.gaussian(3, 0.25, gen);
@@ -16,7 +16,7 @@ describe('kde', () => {
     }
 
     const h = kde.silvermansRule(
-      OnlineStats.fromValues(sample).std(),
+      OS.Gaussian.fromValues(sample).std(),
       sample.length,
       iqr(sample)
     );
@@ -26,3 +26,18 @@ describe('kde', () => {
   });
 });
 
+test('gaussian kernel', () => {
+  const d = kde.estimate(kde.gaussian, [100], 1, 100);
+  expect(d).toBeCloseTo(0.3989, 4);
+
+  // +1 standard deviation from the mean
+  const d1 = kde.estimate(kde.gaussian, [100], 1, 101);
+  expect(d1).toBeCloseTo(0.242, 4);
+
+  // -1 standard deviation from the mean
+  const d2 = kde.estimate(kde.gaussian, [100], 1, 99);
+  expect(d2).toBeCloseTo(0.242, 4);
+
+  const d3 = kde.estimate(kde.gaussian, [100, 100], 1, 100);
+  expect(d3).toBeCloseTo(0.3989, 4);
+});
