@@ -64,16 +64,6 @@ export type Conflation = {
   annotations: AnnotationBag;
 };
 
-export type Report = {
-  epoch: Epoch;
-  fixtures: Fixture[];
-};
-
-/**
- * 
- */
-
-
 /** A collection of results of one or more runs of a test suite in a particular epoch */
 export type Snapshot = {
   /** All fixtures collected over multiple runs. */
