@@ -98,7 +98,8 @@ export class TerminalReport<Id> {
       this.rowIndex.set(rowid, [{ cells: [], duration }]);  
     } else {
       const cells = this.columns.map(c => {
-        const ann = bag!.annotations.get(c.id) ?? conflationAnnotations.annotations.get(c.id);
+        const selectedBag = bag!.annotations.has(c.id) ? bag! : conflationAnnotations;
+        const ann = selectedBag.annotations.get(c.id);
 
         if (ann !== undefined) {
           let cell = this.fmt.format(ann);
@@ -106,7 +107,7 @@ export class TerminalReport<Id> {
             cell = this._colorizeByQuality(
               cell,
               c.quality,
-              bag!,
+              selectedBag,
             );
           }
 
