@@ -1,6 +1,7 @@
 import { defaults } from '@sampleci/util/globals.config';
 import pkg from './package.json' assert { type: 'json' };
 
+// Setup sampleci dev-env within the jest host (for the reporter)
 Object.assign(globalThis, defaults(pkg));
 
 export default {
