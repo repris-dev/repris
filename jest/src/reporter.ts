@@ -183,7 +183,7 @@ export default class SampleReporter extends DefaultReporter {
 
   override onTestCaseResult(
     test: Test,
-    tcr: import('./custom-runner.js').AugmentedAssertionResult,
+    tcr: import('./runner.js').AugmentedAssertionResult,
   ) {
     super.onTestCaseResult(test, tcr);
 

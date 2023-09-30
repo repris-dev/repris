@@ -10,11 +10,11 @@
   ],
   "type": "module",
   "exports": {
-    "./custom-reporter": {
-      "default": "./.tsc/custom-reporter.js"
+    "./reporter": {
+      "default": "./.tsc/reporter.js"
     },
-    "./custom-runner": {
-      "default": "./.tsc/custom-runner.js"
+    "./runner": {
+      "default": "./.tsc/runner.js"
     },
     "./stopwatch-env": {
       "types": "./env/stopwatch-env.d.ts",
