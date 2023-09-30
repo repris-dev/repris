@@ -17,6 +17,8 @@ export type ReporterConfig = {
   columns?: Column[]
 }
 
+type TableRowKey = `${ string }-${ string }`;
+
 const { ICONS } = specialChars;
 const WARN = chalk.reset.inverse.yellow.bold(' WARN ');
 
@@ -25,7 +27,7 @@ export default class SampleReporter extends DefaultReporter {
 
   protected override _globalConfig: Config.GlobalConfig;
 
-  table: TerminalReport<string>;
+  table: TerminalReport<TableRowKey>;
   consoleWidth!: { columns: number };
 
   constructor(
@@ -34,7 +36,7 @@ export default class SampleReporter extends DefaultReporter {
   ) {
     super(globalConfig);
 
-    this.table = new TerminalReport<string>(config?.columns ?? []);
+    this.table = new TerminalReport<TableRowKey>(config?.columns ?? []);
     this._globalConfig = globalConfig;
   }
 
@@ -122,7 +124,7 @@ export default class SampleReporter extends DefaultReporter {
           const moveTo = `\x1b[${ (w - line.length) + 1 }G`;
           this.log(moveTo + line.line);
         }
-        this._logTestResults(result.testResults);
+        this._logTestResults(test.path, result.testResults);
       }
 
       this.printTestFileFailureMessage(
@@ -142,24 +144,24 @@ export default class SampleReporter extends DefaultReporter {
     super.onTestCaseResult(test, tcr);
 
     if (tcr.sample) {
-      this.table.load(tcr.fullName, tcr.sample)
+      this.table.load(`${ test.path }-${ tcr.fullName }`, tcr.sample)
     }
   }
 
-  private _logTestResults(testResults: Array<AssertionResult>) {
+  private _logTestResults(path: string, testResults: Array<AssertionResult>) {
     const suite = SampleReporter.groupTestsBySuites(testResults);
 
-    this._logSuite(suite, 0);
+    this._logSuite(path, suite, 0);
     this._logLine();
   }
 
-  private _logSuite(suite: Suite, indentLevel: number) {
+  private _logSuite(path: string, suite: Suite, indentLevel: number) {
     if (suite.title) { 
       this._logLine(suite.title, indentLevel);
     }
 
-    this._logTests(suite.tests, indentLevel + 1);
-    suite.suites.forEach(suite => this._logSuite(suite, indentLevel + 1));
+    this._logTests(path, suite.tests, indentLevel + 1);
+    suite.suites.forEach(suite => this._logSuite(path, suite, indentLevel + 1));
   }
 
   private _getIcon(status: string) {
@@ -171,9 +173,9 @@ export default class SampleReporter extends DefaultReporter {
     return chalk.green(ICONS.success);
   }
 
-  private _logTests(tests: Array<AssertionResult>, indentLevel: number) {
+  private _logTests(path: string, tests: Array<AssertionResult>, indentLevel: number) {
     if (this._globalConfig.expand) {
-      tests.forEach(test => this._logTest(test, indentLevel));
+      tests.forEach(test => this._logTest(path, test, indentLevel));
     } else {
       const summedTests = tests.reduce<{
         pending: Array<AssertionResult>;
@@ -185,7 +187,7 @@ export default class SampleReporter extends DefaultReporter {
           } else if (test.status === 'todo') {
             result.todo.push(test);
           } else {
-            this._logTest(test, indentLevel);
+            this._logTest(path, test, indentLevel);
           }
 
           return result;
@@ -203,11 +205,11 @@ export default class SampleReporter extends DefaultReporter {
     }
   }
   
-  private _logTest(test: AssertionResult & { sample?: any }, indentLevel: number) {
+  private _logTest(path: string, test: AssertionResult, indentLevel: number) {
     const status = this._getIcon(test.status);
     const title = chalk.dim(test.title);
     const prefix = '  '.repeat(indentLevel || 0) + `${status} ${title}`;
-    const renderedCells = this.table.renderRow(test.fullName);
+    const renderedCells = this.table.renderRow(`${ path }-${ test.fullName }`);
 
     if (renderedCells) {
       // move to terminal column to right-align the table

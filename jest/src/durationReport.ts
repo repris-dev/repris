@@ -71,13 +71,17 @@ export class TerminalReport<Id> {
   fmt = new ValueFormatter();
   colMargin = 2;
   emptyCell = [chalk.dim('?'), 1] as Cell;
-  rowIndex = new Map<Id, { cells: Cell[], duration: samples.Duration }>();
+  rowIndex = new Map<Id, { cells: Cell[], duration: samples.Duration }[]>();
   columnWidths!: number[];
   titleCells!: string[];
 
   count() { return this.rowIndex.size; }
 
-  /** Load a sample in to the table */
+  /**
+   * Load a sample in to the table.
+   * Multiple samples can have the same id. When rendered, samples by the same id
+   * are rendered in the order they were loaded in to the table.
+   */
   load(rowid: Id, sample: wt.SampleData): boolean {
     const d = samples.Duration.fromJson(sample);
     if (Status.isErr(d)) { return false; }
@@ -88,7 +92,8 @@ export class TerminalReport<Id> {
     const [bag, err] = anno.annotate(duration, this.annotationRequest);
 
     if (err) {
-      this.rowIndex.set(rowid, { cells: [], duration });  
+      // Render as an empty row
+      this.rowIndex.set(rowid, [{ cells: [], duration }]);  
     } else {
       const cells = this.columns.map(c => {
         const ann = bag!.annotations.get(c.id);
@@ -115,7 +120,10 @@ export class TerminalReport<Id> {
         this.columnWidths[i] = Math.max(w, Cell.length(cells[i]))
       );
 
-      this.rowIndex.set(rowid, { cells, duration });
+      const entry = this.rowIndex.get(rowid) ?? []
+      entry.push({ cells, duration });
+
+      this.rowIndex.set(rowid, entry);
     }
 
     return true;
@@ -185,12 +193,20 @@ export class TerminalReport<Id> {
     return this._renderRow(this.titleCells);
   }
 
-  renderRow(rowid: Id): RenderedLine {
+  renderRow(rowid: Id): RenderedLine | undefined {
     if (!this.rowIndex.has(rowid)) {
-      return { line: '', length: 0 };
+      return;
     }
 
-    return this._renderRow(this.rowIndex.get(rowid)!.cells);
+    const orderedEntries = this.rowIndex.get(rowid)!;
+    assert.gt(orderedEntries.length, 0);
+
+    const row = this._renderRow(orderedEntries.shift()!.cells);
+    if (orderedEntries.length === 0) {
+      this.rowIndex.delete(rowid);
+    }
+
+    return row;
   }
 }
 

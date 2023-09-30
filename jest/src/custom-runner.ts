@@ -21,24 +21,37 @@ export default async function testRunner(
 ) {
   const samples = new Map<string, samples.Sample<unknown>>();
 
-  const sendMessageWrapper: TestFileEvent = (evt, args) => {
+  function sendMessageWrapper(evt: keyof TestEvents, args: any) {
     if (evt === 'test-case-result') {
-      const [_path, assertionResult] = args as TestEvents['test-case-result'];
-      
-      if (assertionResult && samples.has(assertionResult.fullName)) {
-        // assign samples generated during the test case to the associated test case result
-        (assertionResult as any).sample = samples.get(assertionResult.fullName)!.toJson();
+      const [_testPath, assertionResult] = args as TestEvents['test-case-result'];
+      const key = assertionResult.fullName;
+
+      if (assertionResult && samples.has(key)) {
+        // assign serialized samples generated during the test case to the associated test case result
+        (assertionResult as any).sample = samples.get(key)!.toJson();
+        samples.delete(key);
       }
     }
 
     if (sendMessageToJest) sendMessageToJest(evt, args);
   }
 
-  initializeEnvironment(
-    environment,
-    (matcherState: any, sample: samples.Sample<unknown>) =>
-      samples.set(matcherState.currentTestName, sample)
-  );
+  function onSample(
+    matcherState: jest.MatcherState & Record<string, any>,
+    sample: samples.Sample<unknown>
+  ) {
+    const key = matcherState.currentTestName;
+    samples.set(key, sample);
+  }
 
-  return await circus(globalConfig, config, environment, runtime, testPath, sendMessageWrapper);
+  initializeEnvironment(environment, onSample);
+
+  return await circus(
+    globalConfig,
+    config,
+    environment,
+    runtime,
+    testPath,
+    sendMessageWrapper
+  );
 }
