@@ -104,7 +104,7 @@ function annotateComparison(
   const x1 = base ? tryLoadConflation(base) : void 0;
 
   if (x1) {
-    const bag = annotators.DefaultBag.fromJson(index?.conflation?.annotations ?? {});
+    const bag = annotators.DefaultBag.fromJson(base?.conflation?.annotations ?? {});
     annotators.annotateMissing(bag, annotationRequests('@snapshot'), x1);
     annotations.union(bag, '@snapshot');
   }
