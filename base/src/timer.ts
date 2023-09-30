@@ -1,4 +1,5 @@
 import * as assert from './assert.js';
+import { divRounded } from './math.js';
 import { As } from './util.js';
 
 export enum Unit {
@@ -11,6 +12,7 @@ export enum Unit {
 
 export type UnitType = keyof typeof Unit;
 
+/** A measure of time in nanoseconds */
 export type HrTime = As<bigint>
 
 export interface Timer
@@ -48,10 +50,10 @@ export interface Hand
 export function cvtTo(time: HrTime, units: UnitType): HrTime {
   switch (units) {
     case 'nanosecond':  return time;
-    case 'microsecond': return time / 100n as HrTime;
-    case 'millisecond': return time / 1000_000n as HrTime;
-    case 'second':      return time / 1000_000_000n as HrTime;
-    case 'hz':          return time / 1000_000_000_000n as HrTime;
+    case 'microsecond': return divRounded(time, 1000n) as HrTime;
+    case 'millisecond': return divRounded(time, 1000_000n) as HrTime;
+    case 'second':      return divRounded(time, 1000_000_000n) as HrTime;
+    case 'hz':          return divRounded(time, 1000_000_000_000n) as HrTime;
   }
   throw new Error(`Unknown Unit '${ units }'`);
 }
