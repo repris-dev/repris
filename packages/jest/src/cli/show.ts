@@ -66,8 +66,6 @@ async function showSnapshotDetail(
   );
 
   for (const t of testFiles) {
-    if (!(await index.exists(t.path)) || !(await baseline.exists(t.path))) continue;
-
     const [snapBaseline, err1] = await baseline.loadOrCreate(t.path);
     const [snapIndex, err2] = await index.loadOrCreate(t.path);
 

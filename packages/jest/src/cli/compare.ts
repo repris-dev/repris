@@ -66,8 +66,6 @@ async function showComparison(
   });
 
   for (const t of testFiles) {
-    if (!(await index.exists(t.path)) || !(await baseline.exists(t.path))) continue;
-
     const [snapIndex, err1] = await index.loadOrCreate(t.path);
     const [snapBaseline, err2] = await baseline.loadOrCreate(t.path);
 
