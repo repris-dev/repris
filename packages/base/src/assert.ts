@@ -71,8 +71,11 @@ export function finite(val: any, msg?: string): void {
   }
 }
 
+// @ts-ignore
 export function never(msg?: string): never {
-  err(msg ?? 'Unexpected');
+  if (__DEBUG) {
+    err(msg ?? 'Unexpected');
+  }
 }
 
 export function valuesEq(a: ArrayLike<any>, b: ArrayLike<any>): void {
