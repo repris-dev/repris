@@ -1,8 +1,6 @@
 import { sort } from '../array.js';
 import { assert, Indexable, stats } from '../index.js';
-import { centralTendency } from '../stats.js';
-import * as boot from './bootstrap.js';
-import { quantile, qcd } from './util.js';
+import { qcd } from './util.js';
 
 /** A Robust Estimation of the Mode */
 export type REM = {

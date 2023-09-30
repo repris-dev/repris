@@ -24,7 +24,9 @@ export type Options = {
   maxCapacity: number;
 
   /**
-   * 
+   * If the Quartile coefficient of dispersion (QCD) about the mode of
+   * the sample falls below this threshold the sample can be considered
+   * sufficiently concentrated at the mode.
    */
   significanceThreshold: number;
 }
