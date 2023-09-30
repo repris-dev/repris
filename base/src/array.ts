@@ -23,8 +23,9 @@ export function fill<T>(arr: Indexable<T>, val: T): void {
 }
 
 /** Sets all values in in increments of 1 */
-export function fillAscending(arr: Indexable<number>, initial: number): void {
+export function fillAscending<T extends Indexable<number>>(arr: T, initial: number): T {
   for (let i = 0; i < arr.length; i++) { arr[i] = initial++; }
+  return arr;
 }
 
 /** Copy values from src to dest */

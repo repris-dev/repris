@@ -31,7 +31,8 @@
     "build:tsc": "tsc --build tsconfig.json tsconfig.spec.json",
     "build:vite": "MODE=production vite build",
     "build": "run-s -l build:tsc build:vite",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:debug": "NODE_OPTIONS=--experimental-vm-modules node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand"
   },
   "license": "MIT"
 }
