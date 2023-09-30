@@ -14,6 +14,10 @@
     },
     "./snapshotResolver.cjs": {
       "default": "./snapshotResolver.cjs"
+    },
+    "./matchers.cjs": {
+      "default": "./matchers.cjs",
+      "types": "./matchers.d.ts"
     }
   }
 }
