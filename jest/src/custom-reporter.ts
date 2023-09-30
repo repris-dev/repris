@@ -4,7 +4,6 @@ import type {
   AssertionResult,
   Suite,
   Test,
-  TestCaseResult,
   TestResult,
 } from '@jest/test-result';
 import type { Config } from '@jest/types';
@@ -12,7 +11,7 @@ import { specialChars, preRunMessage } from 'jest-util';
 import { DefaultReporter, ReporterOnStartOptions } from '@jest/reporters';
 
 import { typeid } from '@sampleci/base';
-import { annotators, wiretypes as wt } from '@sampleci/samplers';
+import { annotators } from '@sampleci/samplers';
 
 import { TerminalReport, Column } from './durationReport.js';
 import * as config from './config.js';
@@ -184,12 +183,12 @@ export default class SampleReporter extends DefaultReporter {
 
   override onTestCaseResult(
     test: Test,
-    tcr: TestCaseResult & { sample?: wt.AnnotationBag; conflation?: wt.AnnotationBag },
+    tcr: import('./custom-runner.js').AugmentedAssertionResult,
   ) {
     super.onTestCaseResult(test, tcr);
 
-    if (tcr.sample) {
-      this.table!.load(`${ test.path }-${ tcr.fullName }`, tcr.sample, tcr.conflation);
+    if (tcr.sci?.sample) {
+      this.table!.load(`${ test.path }-${ tcr.fullName }`, tcr.sci.sample, tcr.sci?.conflation);
     }
   }
 

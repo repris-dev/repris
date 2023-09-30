@@ -3,13 +3,22 @@ import { debug } from 'util';
 import circus from 'jest-circus/runner';
 import type { JestEnvironment } from '@jest/environment';
 import type { Config } from '@jest/types';
-import type { TestEvents, TestFileEvent } from '@jest/test-result';
+import type { AssertionResult, TestEvents, TestFileEvent } from '@jest/test-result';
 
 import { annotators, samples, conflations, wiretypes as wt } from '@sampleci/samplers';
 import { typeid, assert, iterator } from '@sampleci/base';
 
 import { SampleCacheManager, RecordCounter, AggregatedFixture } from './cacheManager.js';
 import * as sciConfig from './config.js';
+
+export interface AugmentedAssertionResult extends AssertionResult {
+  sci?: {
+    /** Sample annotations for this fixture */
+    sample?: wt.AnnotationBag;
+    /** Conflation annotations for this fixture */
+    conflation?: wt.AnnotationBag;
+  }
+}
 
 const dbg = debug('sci:runner');
 
@@ -32,7 +41,12 @@ export default async function testRunner(
 ) {
   const cfg = await sciConfig.load(globalConfig.rootDir),
     cacheFile = new SampleCacheManager(config, testPath),
-    counter = new RecordCounter<string>();
+    titleCount = new RecordCounter<string>();
+
+  /** Conflation annotation config */
+  const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
+  /** Conflation annotation config */
+  const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
 
   let pendingSample: samples.Sample<unknown> | undefined;
 
@@ -45,12 +59,7 @@ export default async function testRunner(
     pendingSample = sample;
   }
 
-  /** Conflation annotation config */
-  const sampleAnnotations = normaliseAnnotationCfg(cfg.sample.annotations);
-  /** Conflation annotation config */
-  const conflationAnnotations = normaliseAnnotationCfg(cfg.conflation.annotations);
-
-  function sendMessageWrapper(evt: keyof TestEvents, args: any) {
+  function onTestEvent(evt: keyof TestEvents, args: any) {
     if (evt === 'test-case-result') {
       const [_testPath, assertionResult] = args as TestEvents[typeof evt];
 
@@ -58,20 +67,21 @@ export default async function testRunner(
         && pendingSample?.[typeid] === samples.Duration[typeid]
       ) {
         const s = pendingSample as samples.Duration;
+        const augmentedResult = assertionResult as AugmentedAssertionResult;
         
         // assign serialized sample generated during the most recent test case
         // to this test case result
-        (assertionResult as any).sample = annotate(s, sampleAnnotations);
+        augmentedResult.sci = { sample: annotate(s, sampleAnnotations) };
 
         if (config.cache) {
           const title = assertionResult.ancestorTitles.concat(assertionResult.title);
           // nth-time in this test run this fixture name has been seen
-          const nth = counter.increment(JSON.stringify(title));
+          const nth = titleCount.increment(JSON.stringify(title));
           // load the previous samples of this fixture from the cache
           const cachedFixture = cacheFile.getFixture(title, nth);
           // publish the conflation on the current test case result
-          (assertionResult as any).conflation = conflate(
-            s, cachedFixture, conflationAnnotations, cfg.conflation.options,
+          augmentedResult.sci.conflation = conflate(
+            s,cachedFixture, conflationAnnotations, cfg.conflation.options,
           )?.annotations;
 
           cacheFile.updateFixture(title, nth, cachedFixture);
@@ -93,11 +103,11 @@ export default async function testRunner(
     environment,
     runtime,
     testPath,
-    sendMessageWrapper
+    onTestEvent
   );
   
   if (config.cache) {
-    // commit the new test run
+    // commit the new test run to the cache
     cacheFile.save();
   }
 
