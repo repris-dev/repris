@@ -29,14 +29,14 @@ export function median(sample: Indexable<number>): number {
 }
 
 /** median absolute deviation of the given sample */
-export function mad(sample: Indexable<number>, x: number): MADResult {
+export function mad(sample: Indexable<number>, x: number, p = 0.5): MADResult {
   const devs = new Float64Array(sample.length);
 
   for (let i = 0; i < devs.length; i++) {
     devs[i] = Math.abs(x - sample[i]);
   }
 
-  const mad = median(devs);
+  const mad = percentile(devs, p);
 
   return {
     mad, normMad: 1.4826 * mad
