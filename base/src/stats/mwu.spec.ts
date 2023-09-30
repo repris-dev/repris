@@ -139,6 +139,7 @@ describe('kruskalWallis', () => {
 
     expect(result.H).toEqual(0);
     expect(result.effectSize).toEqual(0);
+    expect(result.pValue()).toEqual(1);
   });
 
   test('3 samples, 1 observation', () => {
