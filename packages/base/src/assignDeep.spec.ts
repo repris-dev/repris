@@ -97,7 +97,7 @@ it('should merge object properties without affecting any object', () => {
 
   const actual = { a: 4, b: 1, c: 2, d: 5 };
 
-  expect(assignDeep(<any>{}, one, two, three)).toEqual(actual);
+  expect(assignDeep<any>({}, one, two, three)).toEqual(actual);
 
   expect(actual).not.toStrictEqual(one);
   expect(actual).not.toStrictEqual(two);
