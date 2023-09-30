@@ -7,33 +7,33 @@ import { hypothesis } from '../index.js';
 
 const ConflationAnnotations = Object.freeze({
   /** The mean of the sampling distribution */
-  mean: 'mean:conflation' as typeid,
+  mean: 'conflation:mean' as typeid,
 
   /** confidence interval of the mean */
   meanCI: {
-    id: 'mean:conflation:ci' as typeid,
+    id: 'conflation:mean:ci' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   }
 });
 
 const HypothesisAnnotations = Object.freeze({
   /** The relative change between the two samples */
-  relativeDifference: 'mean:hypothesis:difference' as typeid,
+  relativeDifference: 'hypothesis:mean:difference' as typeid,
 
   /**
    * Whether the difference is statistically significant.
-   * Note that this annotation is dependant on 'mean:hypothesis:difference-ci'.
+   * Note that this annotation is dependant on 'hypothesis:mean:difference-ci'.
    */
-  significantDifference: 'mean:hypothesis:significantDifference' as typeid,
+  significantDifference: 'hypothesis:mean:significant-difference' as typeid,
 
-  /** Confidence interval of the difference between the two samples */
+  /** Confidence interval of the difference of means between the two samples */
   differenceCI: {
-    id: 'mean:hypothesis:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50, smoothing: 0.33 },
+    id: 'hypothesis:mean:difference-ci' as typeid,
+    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50 },
   },
 
   /** A text summary of the difference */
-  differenceSummary: 'mean:hypothesis:summaryText' as typeid,
+  differenceSummary: 'hypothesis:mean:summary-text' as typeid,
 });
 
 ann.register('@annotator:conflation:mean', {

@@ -8,6 +8,6 @@ export const defaults = {
     minSize: 20,
     maxSize: 30,
     maxUncertainty: 0.025,
-    locationEstimationType: 'mode:hsm' as typeid,
+    locationEstimationType: 'sample:hsm' as typeid,
   } as const satisfies import('./conflations/samplingDistribution.js').Options
 };

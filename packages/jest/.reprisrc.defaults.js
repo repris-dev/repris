@@ -8,7 +8,7 @@ import { defaults } from '@repris/samplers';
  * @returns {import('./src/config').AnnotationRequest}
  */
 function benchmarkSummary(displayName, ctx = undefined) {
-  return ['benchmark:summaryText', {
+  return ['benchmark:summary-text', {
     displayName,
     grading: [
       'benchmark:stable', {
@@ -35,8 +35,8 @@ export default {
     test: {
       annotations: [
         ['duration:iter', { displayName: 'N' }],
-        ['mode:hsm', { displayName: 'Mode' }],
-        ['mode:hsm:ci-rme', {
+        ['sample:hsm', { displayName: 'Mode' }],
+        ['sample:hsm:ci-rme', {
           displayName: '95% CI',
           grading: {
             rules: [
@@ -53,11 +53,11 @@ export default {
     show: {
       annotations: [{
         '@index': [
-          ['mean:conflation', { displayName: 'mean'}],
+          ['conflation:mean', { displayName: 'mean'}],
           benchmarkSummary('Index', '@index'),
         ],
         '@baseline': [
-          ['mean:conflation', { displayName: 'mean'}],
+          ['conflation:mean', { displayName: 'mean'}],
           benchmarkSummary('Baseline', '@baseline'),
         ]
       }]
@@ -66,11 +66,11 @@ export default {
     compare: {
       annotations: [{
         '@index': [
-          ['mean:conflation', {
+          ['conflation:mean', {
             displayName: 'Index',
             grading: [
               // highlight if this snapshot is significantly faster
-              'mean:hypothesis:significantDifference',
+              'hypothesis:mean:significant-difference',
               {
                 ctx: '@test',
                 rules: [
@@ -83,11 +83,11 @@ export default {
         ],
 
         '@test': [
-          ['mean:hypothesis:summaryText', {
+          ['hypothesis:mean:summary-text', {
             displayName: 'Change (99% CI)',
             grading: [
               // color if there is a significant difference
-              'mean:hypothesis:significantDifference',
+              'hypothesis:mean:significant-difference',
               {
                 rules: [
                   { '==': 0, apply: chalk.dim },
@@ -98,18 +98,18 @@ export default {
             ],
           }],
 
-          ['mean:hypothesis:difference-ci', {
+          ['hypothesis:mean:difference-ci', {
             display: false,
             options: { level: 0.99 }
           }],
         ],
 
         '@baseline': [
-          ['mean:conflation', {
+          ['conflation:mean', {
               displayName: 'Baseline',
               grading: [
                 // highlight if this snapshot is significantly faster
-                'mean:hypothesis:significantDifference',
+                'hypothesis:mean:significant-difference',
                 {
                   ctx: '@test',
                   rules: [

@@ -3,16 +3,16 @@ import * as ann from '../annotators.js';
 import * as samples from '../samples.js';
 
 export const Annotations = {
-  median: 'median' as typeid,
+  median: 'sample:median' as typeid,
 
   /** Inter-quartile range of the sample */
-  iqr: 'median:iqr' as typeid,
+  iqr: 'sample:iqr' as typeid,
 
   /**
    * Quartile coefficient of dispersion
    * https://en.wikipedia.org/wiki/Quartile_coefficient_of_dispersion
    */
-  qcd: 'median:qcd' as typeid,
+  qcd: 'sample:qcd' as typeid,
 };
 
 ann.register('@percentile:annotator', {

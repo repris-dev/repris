@@ -210,7 +210,7 @@ export const annotations = {
    *   <active subset>/<total samples> (<Kruskal-Wallis effect-size>)
    *
    */
-  summaryText: 'benchmark:summaryText' as typeid,
+  summaryText: 'benchmark:summary-text' as typeid,
 
   nRuns: 'benchmark:runs' as typeid,
 

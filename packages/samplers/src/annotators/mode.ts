@@ -6,39 +6,39 @@ import * as conflations from '../conflations.js';
 
 const SampleAnnotations = Object.freeze({
   /** Minimum value of the sample KDE where the density function is globally maximized */
-  kdeMode: 'mode:kde' as typeid,
+  kdeMode: 'sample:kde:mode' as typeid,
 
   /** Optimum bandwidth for the sample */
-  kdeBandwidth: 'mode:kde:bandwidth' as typeid,
+  kdeBandwidth: 'sample:kde:bandwidth' as typeid,
 
   /**
    * A coefficient derived from the Full width at half maximum (FWHM) of the
    * empirical PDF located at the mode
    */
-  kdeDispersion: 'mode:kde:dispersion' as typeid,
+  kdeDispersion: 'sample:kde:dispersion' as typeid,
 
   /** Sample shorth robust mode estimator */
   shorth: {
-    id: 'mode:shorth' as typeid,
+    id: 'sample:shorth' as typeid,
     opts: { fraction: 0.33 },
   },
 
-  shorthDispersion: 'mode:shorth:dispersion' as typeid,
+  shorthDispersion: 'shorth:dispersion' as typeid,
 
   /** Least Median of Squares (LMS) robust mode estimator */
   lms: {
-    id: 'mode:lms' as typeid,
+    id: 'sample:lms' as typeid,
     opts: { fraction: 0.33 },
   },
 
   /** Quartile coefficient of dispersion (QCD) of the sample window containing the mode */
-  lmsDispersion: 'mode:lms:dispersion' as typeid,
+  lmsDispersion: 'sample:lms:dispersion' as typeid,
 
   /** Half-sample mode, D. Bickel */
-  hsm: 'mode:hsm' as typeid,
+  hsm: 'sample:hsm' as typeid,
 
   /** Quartile coefficient of dispersion (QCD) of the sample window containing the mode */
-  hsmDispersion: 'mode:hsm:dispersion' as typeid,
+  hsmDispersion: 'sample:hsm:dispersion' as typeid,
 
   /**
    * The relative margin-of-error of the HSM confidence interval.
@@ -46,7 +46,7 @@ const SampleAnnotations = Object.freeze({
    * estimated HSM.
    */
   hsmCIRel: {
-    id: 'mode:hsm:ci-rme' as typeid,
+    id: 'sample:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
 });
@@ -56,12 +56,12 @@ const ConflationAnnotations = Object.freeze({
    * Minimum value of the conflation of samples where the density estimation
    * function is globally maximized
    */
-  kdeMode: 'mode:kde:conflation' as typeid,
+  kdeMode: 'conflation:kde' as typeid,
 
-  hsmMode: 'mode:hsm:conflation' as typeid,
+  hsmMode: 'conflation:hsm' as typeid,
 
   hsmCIRel: {
-    id: 'mode:hsm:conflation:ci-rme' as typeid,
+    id: 'conflation:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
 });
