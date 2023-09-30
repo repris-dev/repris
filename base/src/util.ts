@@ -18,14 +18,16 @@ export type Indexable<T> = { [i: number]: T; readonly length: number; }
 export type Status<T = unknown> = [null, Error] | [T];
 
 export namespace Status {
-  export const ok: Status = [1];
+  export const ok: Status = Object.freeze([1]) as Status;
 
+  /** Create an error */
   export function err<T = any>(msg: string | Error): Status<T> {
     return typeof msg === 'string'
         ? [null, new Error(msg)]
         : [null, msg];
   }
 
+  /** Check the given status is an error */
   export function isErr(s: Status): s is [null, Error] {
     return s.length === 2;
   }
