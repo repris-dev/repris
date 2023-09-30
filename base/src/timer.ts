@@ -119,7 +119,7 @@ export function createClock(
       return emit(id === tickId && tickId >= 0, timer.current());
     },
     cancel(duration?: HrTime) {
-      if (typeof duration === 'object') { emit(true, duration); }
+      if (duration !== void 0) { emit(true, duration); }
       tickId++;
     }
   };

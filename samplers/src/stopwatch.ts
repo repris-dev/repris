@@ -179,10 +179,9 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<timer.HrT
     assert.is(this.phase !== Phase.Ready);
     const { result, timeSource, opts, durationBounds } = this;
 
-    let e1 = this.totalElapsed, e2 = e1;
+    const e1 = this.totalElapsed, e2 = this.totalElapsed += duration;
 
     if (valid) {
-      e2 = this.totalElapsed += duration;
       result.push(duration);
     }
 
@@ -279,13 +278,13 @@ class DefaultState implements StopwatchState {
 export class Builder<Args extends any[]>
     implements types.Builder<timer.HrTime, Sampler<Args>>
 {
-  private options = Object.assign({ } as Record<string, any>,
+  private options: SamplerOptions = Object.assign({ } as Record<string, any>,
       defaultSamplerOptions);
 
   private params = {
     fn: null    as SamplerFn<Args> | null,
     ranges: []  as [number, number][],
-    mul: null   as number | null,
+    mul: 8      as number,
     args: []    as number[][],
     units: null as timer.UnitType | 'auto' | null,
     timer: timer.create(),
@@ -293,7 +292,7 @@ export class Builder<Args extends any[]>
   };
 
   opt(key: keyof SamplerOptions, value: any): this {
-    this.options[key as any] = value;
+    this.options[key] = value;
     return this;
   }
 
@@ -315,7 +314,7 @@ export class Builder<Args extends any[]>
     return this;
   }
 
-  rangeMultiplier(mul: number) {
+  rangeMultiplier(mul: number): this {
     assert.gt(mul, 0);
     this.params.mul = mul;
     return this;
@@ -372,9 +371,7 @@ export class Builder<Args extends any[]>
 
     // ranges
     if (p.ranges.length > 0) {
-      const mul = typeof p.mul === 'number' ? p.mul : this.options['family.multiplier'];
-      const expansions = p.ranges.map(([lo, hi]) => range(lo, hi, mul));
-
+      const expansions = p.ranges.map(([lo, hi]) => range(lo, hi, p.mul));
       iterator.collect(iterator.cartesianProduct(expansions), values);
     }
     
