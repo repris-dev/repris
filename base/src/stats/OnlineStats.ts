@@ -1,5 +1,5 @@
 import { Indexable } from '../array.js';
-import { gt } from '../assert.js';
+import { gte } from '../assert.js';
 import { logNormal95 } from './intervals.js';
 
 export interface SimpleSummary<T> {
@@ -9,9 +9,9 @@ export interface SimpleSummary<T> {
 
   mode(): T;
 
-  std(): T;
+  std(ddof?: number): T;
 
-  cov(): T;
+  cov(ddof?: number): T;
 
   skewness(): T;
 
@@ -20,7 +20,13 @@ export interface SimpleSummary<T> {
   range(): [T, T];
 }
 
-export default class OnlineStats implements SimpleSummary<number> {
+export interface OnlineStat<T> extends SimpleSummary<T> {
+  push(x: T): void;
+
+  reset(): void;
+}
+
+export class Gaussian implements OnlineStat<number> {
   #min = Infinity;
   #max = -Infinity;
   #n = 0;
@@ -35,11 +41,11 @@ export default class OnlineStats implements SimpleSummary<number> {
 
   mode() { return this.mean(); }
 
-  std() { return Math.sqrt(this.#M2 / this.#n); }
+  std(ddof = 0) { return Math.sqrt(this.#M2 / (this.#n - ddof)); }
 
-  var() { return this.#M2 / this.#n; }
+  var(ddof = 0) { return this.#M2 / (this.#n - ddof); }
 
-  cov() { return this.std() / this.mean(); }
+  cov(ddof?: number) { return this.std(ddof) / this.mean(); }
 
   skewness() { return Math.sqrt(this.#n) * this.#M3 / (this.#M2 ** 1.5); }
 
@@ -77,8 +83,8 @@ export default class OnlineStats implements SimpleSummary<number> {
     return { n: this.#n, m1: this.#M1, m2: this.#M2, m3: this.#M3, m4: this.#M4, min: this.#min, max: this.#max };
   }
 
-  static fromJson(v: ReturnType<OnlineStats['toJson']>) {
-    const stat = new OnlineStats();
+  static fromJson(v: ReturnType<Gaussian['toJson']>) {
+    const stat = new Gaussian();
 
     stat.#n = v.n;
     stat.#min = v.min;
@@ -92,7 +98,7 @@ export default class OnlineStats implements SimpleSummary<number> {
   }
 
   static fromValues(sample: Indexable<number>) {
-    const os = new OnlineStats();
+    const os = new Gaussian();
 
     for (let i = 0; i < sample.length; i++) {
       os.push(sample[i]);
@@ -106,8 +112,8 @@ export default class OnlineStats implements SimpleSummary<number> {
  * Reference:
  * https://en.wikipedia.org/wiki/Log-normal_distribution
  */
-export class LognormalOnlineStats implements SimpleSummary<number> {
-  s = new OnlineStats();
+export class Lognormal implements SimpleSummary<number> {
+  s = new Gaussian();
 
   N(): number { return this.s.N(); }
 
@@ -115,17 +121,17 @@ export class LognormalOnlineStats implements SimpleSummary<number> {
     return Math.exp(this.s.mean() + (this.s.var() / 2));
   }
 
-  var(): number {
-    const v = this.s.var();
+  var(ddof?: number): number {
+    const v = this.s.var(ddof);
     return (Math.exp(v) - 1) * Math.exp(2 * this.s.mean() + v);
   }
 
-  std(): number {
-    return Math.sqrt(this.var());
+  std(ddof?: number): number {
+    return Math.sqrt(this.var(ddof));
   }
 
-  cov(): number {
-    return Math.sqrt(Math.exp(this.s.var()) - 1);
+  cov(ddof?: number): number {
+    return Math.sqrt(Math.exp(this.s.var(ddof)) - 1);
   }
 
   skewness(): number {
@@ -138,8 +144,8 @@ export class LognormalOnlineStats implements SimpleSummary<number> {
     return Math.exp(4 * s) + 2 * Math.exp(3 * s) + 3 * Math.exp(2 * s) - 6;
   }
 
-  mode(): number {
-    return Math.exp(this.s.mean() - this.s.var());
+  mode(ddof?: number): number {
+    return Math.exp(this.s.mean() - this.s.var(ddof));
   }
 
   range(): [number, number] {
@@ -148,7 +154,7 @@ export class LognormalOnlineStats implements SimpleSummary<number> {
   }
 
   push(x: number) {
-    gt(x, 0);
+    gte(x, 0);
     this.s.push(Math.log(x));
   }
 
@@ -177,15 +183,15 @@ export class LognormalOnlineStats implements SimpleSummary<number> {
     return 100 * (this.moe(ddof) / this.mean());
   }
 
-  static fromJson(v: ReturnType<LognormalOnlineStats['toJson']>) {
-    const stat = new LognormalOnlineStats();
-    stat.s = OnlineStats.fromJson(v);
+  static fromJson(v: ReturnType<Lognormal['toJson']>) {
+    const stat = new Lognormal();
+    stat.s = Gaussian.fromJson(v);
 
     return stat;
   }
 
   static fromValues(sample: Indexable<number>) {
-    const os = new LognormalOnlineStats();
+    const os = new Lognormal();
 
     for (let i = 0; i < sample.length; i++) {
       os.push(sample[i]);

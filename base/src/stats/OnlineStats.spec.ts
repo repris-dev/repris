@@ -1,8 +1,8 @@
-import OS from './OnlineStats.js';
+import { Gaussian } from './OnlineStats.js';
 
 describe('OnlineStats', () => {
   test('3 values', () => {
-    const stats = new OS();
+    const stats = new Gaussian();
     expect(stats.N()).toBe(0);
 
     stats.push(1);
@@ -26,7 +26,7 @@ describe('OnlineStats', () => {
   });
 
   test('positive skew', () => {
-    const stats = new OS();
+    const stats = new Gaussian();
 
     // positive skew
     [1, 1, 1, 1, 2, 3, 4].forEach(x => stats.push(x));
@@ -36,7 +36,7 @@ describe('OnlineStats', () => {
   });
 
   test('normal distribution', () => {
-    const stats = new OS();
+    const stats = new Gaussian();
 
     // approximately normal
     [1, 1.5, 2, 2, 2, 2, 2, 2.5, 3].forEach(x => stats.push(x));
