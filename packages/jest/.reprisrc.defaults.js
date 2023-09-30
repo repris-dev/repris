@@ -34,7 +34,7 @@ export default {
   commands: {
     test: {
       annotations: [
-        ['duration:iter', { displayName: 'N' }],
+        ['duration:iter', { displayName: 'Iter.' }],
         ['sample:hsm', { displayName: 'Mode' }],
         ['sample:hsm:ci-rme', {
           displayName: '95% CI',
