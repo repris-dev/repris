@@ -5,11 +5,11 @@ import { defaults } from '@repris/samplers';
 /** @type {import("./src/config").ReprisConfig} */
 export default {
   sampler: {
-    options: defaults.STOPWATCH_SAMPLER
+    options: defaults.samplers.stopwatch
   },
 
   sample: {
-    options: defaults.DURATION_SAMPLE,
+    options: defaults.sample.duration,
     annotations: [
       ['duration:iter', { displayName: 'N' }],
       ['mode:hsm', { displayName: 'Mode' }],
@@ -47,7 +47,7 @@ export default {
   },
 
   conflation: {
-    options: defaults.DURATION_CONFLATION,
+    options: defaults.conflations.duration,
     annotations: [
       [
         'mode:hsm:conflation',

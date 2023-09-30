@@ -8,7 +8,7 @@ const gen = random.PRNGi32(52);
 
 function create(mean: number, std: number, size: number) {
   const rng3 = random.gaussian(mean, std, gen);
-  const s = new duration.Duration(defaults.DURATION_SAMPLE);
+  const s = new duration.Duration(defaults.samples.duration);
 
   for (const x of iterator.take(size, iterator.gen(rng3))) {
     s.push(timer.HrTime.from(q.create('nanosecond', x)));

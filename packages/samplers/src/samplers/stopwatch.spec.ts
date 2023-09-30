@@ -5,7 +5,7 @@ import { duration } from '../samples.js';
 
 const opts: stopwatch.Options = assignDeep(
   {},
-  defaults.STOPWATCH_SAMPLER,
+  defaults.samplers.stopwatch,
   <any>{
     warmup: { duration: { max: 100 } },
     duration: { max: 500 },
@@ -17,7 +17,7 @@ describe('Sampler', () => {
     let n = 0;
   
     const fn = () => { n++ };
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const s = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await s.run();
   
@@ -36,7 +36,7 @@ describe('Sampler', () => {
       n++;
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw =
         await new stopwatch.Sampler<[number, string]>(fn, [], opts, sample)
           .run(1337, 'hello');
@@ -54,7 +54,7 @@ describe('Sampler', () => {
       n++;
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = await new stopwatch.Sampler<[]>(fn, [345, 678], opts, sample).run();
 
     expect(sw).toEqual(Status.ok);
@@ -68,7 +68,7 @@ describe('Sampler', () => {
       n++; throw new Error('oops');
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
 
@@ -83,7 +83,7 @@ describe('Sampler', () => {
       state.set(56_000_000n as timer.HrTime);
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
   
@@ -96,7 +96,7 @@ describe('Sampler', () => {
   
   test('run (synchronous) skips observations', async () => {
     const fn = (state: stopwatch.StopwatchState) => { state.skip(); }
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
   
@@ -115,7 +115,7 @@ describe('Sampler', () => {
       }
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
   
@@ -136,7 +136,7 @@ describe('Sampler', () => {
       }
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = await sw.run();
   
@@ -163,7 +163,7 @@ describe('Sampler', () => {
       });
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample);
     const result = sw.run() as Promise<Status>;
 
@@ -189,7 +189,7 @@ describe('Sampler', () => {
       });
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const sw = new stopwatch.Sampler<[]>(fn, [], opts, sample).run() as Promise<Status>;
 
     expect(sw).toBeInstanceOf(Promise);
@@ -213,7 +213,7 @@ describe('Sampler', () => {
       }
     }
   
-    const sample = new duration.Duration(defaults.DURATION_SAMPLE);
+    const sample = new duration.Duration(defaults.samples.duration);
     const result = new stopwatch.Sampler<[]>(fn, [], opts, sample).run() as Promise<Status>;
     expect(result).toBeInstanceOf(Promise);
   
