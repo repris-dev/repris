@@ -18,7 +18,10 @@
     ".": {
       "types": "./.tsc/index.d.ts",
       "development": "./.tsc/index.js",
-      "default": "./lib/index.es.js"
+      "default": {
+        "import": "./lib/index.js",
+        "require": "./lib/index.cjs"
+      }
     }
   },
   "dependencies": {

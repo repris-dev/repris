@@ -21,7 +21,7 @@ export default defineConfig({
         '.tsc/setupStopwatch.js',
         '.tsc/cli.js',
       ],
-      formats: ['es'],
+      formats: ['es','cjs'],
     },
     rollupOptions: {
       external: id =>

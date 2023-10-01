@@ -12,7 +12,7 @@ export default defineConfig({
     lib: {
       entry: '.tsc/index.js',
       fileName: 'index',
-      formats: ['es'],
+      formats: ['cjs', 'es'],
     },
     rollupOptions: {
       external: id => id.startsWith('node:'),

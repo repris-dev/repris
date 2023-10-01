@@ -10,6 +10,6 @@
     "types": ["@repris/jest/stopwatch-env", "jest"],
     "strict": true,
     "skipLibCheck": false,
-    "allowJs": true
+    "allowJs": true,
   }
 }
