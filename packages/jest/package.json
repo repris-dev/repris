@@ -48,7 +48,7 @@
       "development": "./.tsc/cli.js",
       "default": "./lib/cli.js"
     },
-    "./jest-preset": "./jest-preset.js"
+    "./jest-preset": "./preset.js"
   },
   "dependencies": {
     "@jest/core": "^29.7.0",

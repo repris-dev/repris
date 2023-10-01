@@ -26,6 +26,7 @@ type DistributionDigestWT = wt.BenchmarkDigest & {
   statistic: number[];
 };
 
+/** Create a digest from the given samples */
 export function process(
   samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
   opts: Options,

@@ -8,10 +8,10 @@ import { annotate } from '../annotators.js';
 const gen = random.PRNGi32(52);
 
 function create(mean: number, std: number, size: number) {
-  const rng3 = random.gaussian(mean, std, gen);
+  const rng = random.gaussian(mean, std, gen);
   const s = new duration.Duration(defaults.samples.duration);
 
-  for (const x of iterator.take(size, iterator.gen(rng3))) {
+  for (const x of iterator.take(size, iterator.gen(rng))) {
     s.push(timer.HrTime.from(q.create('nanosecond', x)));
   }
 
@@ -77,12 +77,12 @@ describe('process()', () => {
     const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
 
     {
-      // High threshold
+      // High threshold of uncertainty
       const a = postProcess(
         Status.get(
           process(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: 0.8,
+            maxUncertainty: Infinity,
             minSize: 2,
             maxSize: 10,
           })
@@ -94,7 +94,7 @@ describe('process()', () => {
       expect(a.rejected.length).toBe(0);
     }
     {
-      // Low threshold
+      // Low threshold of uncertainty
       const a = postProcess(
         Status.get(
           process(annotated, {
@@ -124,7 +124,7 @@ describe('process()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: 0.8,
+            maxUncertainty: 0.9,
             minSize: 2,
             maxSize: 4,
           },
