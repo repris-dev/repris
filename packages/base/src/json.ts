@@ -15,19 +15,17 @@ export interface Deserializer<T extends Serializable, J extends Value = Value> {
 }
 
 /** Gets the serialized type of T */
-export type AsSerialized<T> =
-  T extends Serializable<infer J> ? J
-  : never;
+export type AsSerialized<T> = T extends Serializable<infer J> ? J : never;
 
 export namespace bigint {
   export function toJson(x: bigint): string {
     return x.toString() + 'n';
-  };
-  
+  }
+
   export function fromJson(t: string): bigint {
     assert.gt(t.length, 0);
     assert.eq(t[t.length - 1], 'n');
-    
+
     return BigInt(t.substring(0, t.length - 1));
   }
 
@@ -47,14 +45,13 @@ export function stringify(object: Value, buffer = ''): string {
 
 function serialize(object: Value, buffer: string): string {
   if (object === null || typeof object !== 'object') {
-    // Primitive data type - Use ES6/JSON 
+    // Primitive data type - Use ES6/JSON
     buffer += JSON.stringify(object);
-
   } else if (Array.isArray(object)) {
-    // Array - Maintain element order     
+    // Array - Maintain element order
     buffer += '[';
     let next = false;
-    object.forEach((element) => {
+    object.forEach(element => {
       if (next) {
         buffer += ',';
       }
@@ -63,22 +60,23 @@ function serialize(object: Value, buffer: string): string {
       buffer += serialize(element, '');
     });
     buffer += ']';
-
   } else {
     // Object - Sort properties before serializing
     buffer += '{';
     let next = false;
-    Object.keys(object).sort().forEach((property) => {
-      if (next) {
-        buffer += ',';
-      }
-      next = true;
-      // Property names are strings - Use ES6/JSON
-      buffer += JSON.stringify(property);
-      buffer += ':';
-      // Property value - Recursive expansion
-      buffer += serialize(object[property], '');
-    });
+    Object.keys(object)
+      .sort()
+      .forEach(property => {
+        if (next) {
+          buffer += ',';
+        }
+        next = true;
+        // Property names are strings - Use ES6/JSON
+        buffer += JSON.stringify(property);
+        buffer += ':';
+        // Property value - Recursive expansion
+        buffer += serialize(object[property], '');
+      });
     buffer += '}';
   }
   return buffer;

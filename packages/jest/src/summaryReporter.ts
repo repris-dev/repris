@@ -23,14 +23,17 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
     epochStat: { complete: true },
   };
 
-  constructor(private globalConfig: Config.GlobalConfig, private _config?: unknown) {
+  constructor(
+    private globalConfig: Config.GlobalConfig,
+    private _config?: unknown,
+  ) {
     super(globalConfig);
   }
 
   override onTestResult(
     test?: Test,
     testResult?: AugmentedTestResult,
-    _results?: AggregatedResult
+    _results?: AggregatedResult,
   ): void {
     const stats = this.aggregatedBenchStats;
     if (testResult?.repris) {
@@ -62,7 +65,7 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
 
   override async onRunComplete(
     testContexts: Set<TestContext>,
-    aggregatedResults: AggregatedResult
+    aggregatedResults: AggregatedResult,
   ): Promise<void> {
     const stats = this.aggregatedBenchStats;
     const summary = this.getSummary();
@@ -86,14 +89,14 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
         summary.push(
           chalk.greenBright(
             ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
-              ' Index cleared.'
-          )
+              ' Index cleared.',
+          ),
         );
       } else {
         const totalBenchmarks = stats.cacheStat.totalBenchmarks + stats.snapshotStat.updatedTotal;
         summary.push(
           ` › ${stats.snapshotStat.updatedTotal} of ${totalBenchmarks} benchmark snapshots updated.` +
-            ' Re-run to collect additional samples.'
+            ' Re-run to collect additional samples.',
         );
       }
     } else {
@@ -101,13 +104,13 @@ export default class BenchmarkSummaryReporter extends SummaryReporter {
         if (stats.snapshotStat.updatedTotal > 0) {
           summary.push(
             ` › All ${stats.snapshotStat.updatedTotal} benchmark snapshots updated.` +
-              ' Re-run with -u to reset the index.'
+              ' Re-run with -u to reset the index.',
           );
         }
       } else {
         summary.push(
           ` › ${stats.cacheStat.stagedBenchmarks} of ${stats.cacheStat.totalBenchmarks} benchmark snapshots can be updated.` +
-            ' Re-run to collect additional samples.'
+            ' Re-run to collect additional samples.',
         );
       }
     }

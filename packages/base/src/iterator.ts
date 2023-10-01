@@ -12,7 +12,7 @@ export function returnWith<T>(value: T): Iterator<T, T> {
 }
 
 export function* cartesianProduct<T>(
-  elems: Indexable<Indexable<T>>
+  elems: Indexable<Indexable<T>>,
 ): IterableIterator<Indexable<T>> {
   let i = 0;
   while (true) {
@@ -114,7 +114,7 @@ export function* range(from: number, n: number): IterableIterator<number> {
 export function* subSpan<T>(
   xs: Indexable<T>,
   fromIdx: number,
-  n = xs.length - fromIdx
+  n = xs.length - fromIdx,
 ): Iterable<T> {
   if (n <= 0) return;
 
@@ -136,7 +136,7 @@ export function* map<A, B>(xs: Iterable<A>, fn: (x: A, idx?: number) => B): Iter
 
 export function* filter<T>(
   xs: Iterable<T>,
-  fn: (x: T, idx?: number) => boolean
+  fn: (x: T, idx?: number) => boolean,
 ): IterableIterator<T> {
   let i = 0;
 
@@ -185,9 +185,9 @@ export function count<T>(xs: Iterable<T>): number {
 export function* outerJoin<T>(
   as: Iterable<T>,
   bs: Iterable<T>,
-  keyOf: (t: T) => any
+  keyOf: (t: T) => any,
 ): Iterable<[T | undefined, T | undefined]> {
-  const keys = new Map<any, T>;
+  const keys = new Map<any, T>();
   for (const b of bs) {
     keys.set(keyOf(b), b);
   }
@@ -198,7 +198,7 @@ export function* outerJoin<T>(
     keys.delete(aKey);
 
     yield [a, bVal];
-  };
+  }
 
   for (const b of keys.values()) {
     yield [undefined, b];

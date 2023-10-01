@@ -7,7 +7,7 @@ console.table(define);
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
-console.info('__dirname', __dirname)
+console.info('__dirname', __dirname);
 export default defineConfig({
   define,
   build: {
@@ -19,13 +19,13 @@ export default defineConfig({
         '.tsc/summaryReporter.js',
         '.tsc/runner.js',
         '.tsc/setupStopwatch.js',
-        '.tsc/cli.js'
+        '.tsc/cli.js',
       ],
       formats: ['es'],
     },
     rollupOptions: {
-      external: (id) => id.startsWith('node:')
-        || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep))
+      external: id =>
+        id.startsWith('node:') || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep)),
     },
     outDir: './lib',
   },

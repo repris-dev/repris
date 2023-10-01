@@ -14,17 +14,17 @@ export function divRounded(dividend: bigint, divisor: bigint): bigint {
   is(divisor !== 0n);
   gte(dividend, 0n);
 
-  return (dividend + (divisor / 2n)) / divisor;
+  return (dividend + divisor / 2n) / divisor;
 }
 
-const invphi = (Math.sqrt(5) - 1) / 2;  // 1 / phi
-const invphi2 = (3 - Math.sqrt(5)) / 2;  // 1 / phi^2
+const invphi = (Math.sqrt(5) - 1) / 2; // 1 / phi
+const invphi2 = (3 - Math.sqrt(5)) / 2; // 1 / phi^2
 
 /**
  * Golden-section search
  * Finds the minimum of a uni-modal function within a specified interval
  * @see https://en.wikipedia.org/wiki/Golden-section_search
- * 
+ *
  * @param f A uni-modal function to evaluate X
  * @param a Lower bound of the search interval
  * @param b Upper bound of the search interval
@@ -38,10 +38,10 @@ export function gss(
   a: number,
   b: number,
   tol: number,
-  maxIter?: number
+  maxIter?: number,
 ): [number, number] {
   assert.gt(tol, Number.EPSILON);
-  
+
   [a, b] = [Math.min(a, b), Math.max(a, b)];
 
   let h = b - a;
@@ -49,7 +49,7 @@ export function gss(
 
   // Required steps to achieve tolerance
   let n = Math.ceil(Math.log(tol / h) / Math.log(invphi));
-  
+
   if (Number.isFinite(maxIter) && n > maxIter!) {
     assert.gt(maxIter, 0);
     n = Math.min(n, maxIter!);
@@ -84,7 +84,7 @@ export function gss(
 export function lerp(x1: number, x2: number, alpha: number) {
   assert.inRange(alpha, 0, 1);
 
-  return (x1 * (1 - alpha)) + (x2 * alpha);
+  return x1 * (1 - alpha) + x2 * alpha;
 }
 
 /**
@@ -107,5 +107,5 @@ export function triMatIdx(n: number, i: number, j: number) {
     j = tmp;
   }
 
-  return (n * (n-1) / 2) - (n - i) * ((n - i) - 1) / 2 + j - i - 1;
+  return (n * (n - 1)) / 2 - ((n - i) * (n - i - 1)) / 2 + j - i - 1;
 }

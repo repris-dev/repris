@@ -54,7 +54,7 @@ async function showComparison(
   reprisCfg: reprisConfig.ReprisConfig,
   testFiles: jReporters.Test[],
   index: snapshotManager.SnapshotFileManager,
-  baseline: snapshotManager.SnapshotFileManager
+  baseline: snapshotManager.SnapshotFileManager,
 ) {
   const annotationTree = reprisCfg.commands.compare?.annotations ?? [];
   const annotationRequests = reprisConfig.parseAnnotations(annotationTree);
@@ -77,7 +77,7 @@ async function showComparison(
 
     const comparisons = iterator.map(
       snapshots.joinSnapshotBenchmarks(snapIndex!, snapBaseline!),
-      ([index, base]) => annotateComparison(annotationRequests, index, base)
+      ([index, base]) => annotateComparison(annotationRequests, index, base),
     );
 
     testRenderer.render(comparisons, process.stderr);
@@ -87,7 +87,7 @@ async function showComparison(
 function annotateComparison(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
   index?: b.AggregatedBenchmark<samples.duration.Duration>,
-  base?: b.AggregatedBenchmark<samples.duration.Duration>
+  base?: b.AggregatedBenchmark<samples.duration.Duration>,
 ): ComparedBenchmarks {
   const annotations = annotators.DefaultBag.from([]);
 

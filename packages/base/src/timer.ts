@@ -84,7 +84,7 @@ export function create(): TimeSource {
 
 export function createClock(
   timer: TimeSource,
-  emit: (valid: boolean, duration: HrTime) => boolean
+  emit: (valid: boolean, duration: HrTime) => boolean,
 ): Clock {
   let currentTick = -1;
 
@@ -119,6 +119,6 @@ function nodeJSTimer(now = 0n as HrTime): TimeSource {
     },
     clone() {
       return nodeJSTimer(now);
-    }
+    },
   };
 }

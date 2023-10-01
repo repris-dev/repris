@@ -109,7 +109,7 @@ function DefaultFormatter(opts?: Intl.NumberFormatOptions): Formatter {
 
 class Dimensionless {
   static formatter(opts = Time.defaultNumberFormatting): Formatter {
-    const fmt = Intl.NumberFormat(void 0, opts)
+    const fmt = Intl.NumberFormat(void 0, opts);
     return {
       format(quantity: Quantity): string {
         if (!isUnitOf(quantity[UnitTag], 'dimensionless')) {
@@ -121,8 +121,8 @@ class Dimensionless {
         }
 
         return fmt.format(quantity.scalar);
-      }
-    }
+      },
+    };
   }
 }
 

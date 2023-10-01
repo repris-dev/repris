@@ -2,7 +2,7 @@ export function assertionsEnabled() {
   return __DEBUG;
 }
 
-function err (msg: string): never {
+function err(msg: string): never {
   throw new Error('[Failed assertion] ' + msg);
 }
 
@@ -21,7 +21,7 @@ export function is(val: any, msg?: string): void {
 export function isDefined<T>(val: T | undefined | null, msg?: string): asserts val is T {
   if (__DEBUG) {
     if (typeof val === 'undefined' || val === null) {
-      err(msg ?? `Expected ${val} to be defined`);   
+      err(msg ?? `Expected ${val} to be defined`);
     }
   }
 }
@@ -52,8 +52,7 @@ export function gte(a: any, b: any, msg?: string): void {
 
 export function inRange(val: any, min: any, max: any, msg?: string): void {
   if (__DEBUG) {
-    if (val < min || val > max)
-      err(msg ?? `Expected ${min} >= ${val} <= ${max}`)
+    if (val < min || val > max) err(msg ?? `Expected ${min} >= ${val} <= ${max}`);
   }
 }
 

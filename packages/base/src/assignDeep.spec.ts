@@ -53,7 +53,7 @@ test('should reassign with primitives', () => {
 });
 
 test('should retain properties', () => {
-  const one = {  };
+  const one = {};
   const two = { b: {} };
 
   const result = assignDeep(one, two);

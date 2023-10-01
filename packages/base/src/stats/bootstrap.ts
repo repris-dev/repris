@@ -53,7 +53,7 @@ export function studentizedResampler(
   sample: Indexable<number>,
   estimator: (xs: Indexable<number>) => number,
   secondResampleSize = 50,
-  entropy = random.PRNGi32()
+  entropy = random.PRNGi32(),
 ): () => StudentizedResample {
   const N = sample.length,
     resample = resampler(sample, entropy),
@@ -91,7 +91,7 @@ export function pairedStudentizedResampler(
   sample1: Indexable<number>,
   estimator: (xs0: Indexable<number>, xs1: Indexable<number>) => number,
   innerResampleSize = 50,
-  entropy = random.PRNGi32()
+  entropy = random.PRNGi32(),
 ): () => StudentizedResample {
   const N0 = sample0.length;
   const N1 = sample1.length;
@@ -157,13 +157,12 @@ export function differenceTest(
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 0);
-  assert.gte(smoothing, 0)
+  assert.gte(smoothing, 0);
 
   // bootstrap distribution of HSM differences
   const pointEsts = new Float64Array(K);
-  const [smoothing0, smoothing1] = typeof smoothing === 'number'
-    ? [smoothing, smoothing]
-    : smoothing;
+  const [smoothing0, smoothing1] =
+    typeof smoothing === 'number' ? [smoothing, smoothing] : smoothing;
 
   for (let i = 0, next0 = resampler(x0, entropy, smoothing0); i < K; i++) {
     pointEsts[i] = estimator(next0());
@@ -173,10 +172,7 @@ export function differenceTest(
     pointEsts[i] -= estimator(next1());
   }
 
-  return [
-    quantile(pointEsts, 0.5 - level / 2),
-    quantile(pointEsts, 0.5 + level / 2),
-  ];
+  return [quantile(pointEsts, 0.5 - level / 2), quantile(pointEsts, 0.5 + level / 2)];
 }
 
 /**
@@ -198,15 +194,13 @@ export function studentizedDifferenceTest(
   /** Number of secondary resamples */
   KK: number,
   /** Random source */
-  entropy = random.mathRand
+  entropy = random.mathRand,
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 0);
   assert.gt(K, 0);
 
-  const resampler = pairedStudentizedResampler(
-    x0, x1, estimator, KK, entropy
-  );
+  const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy);
 
   const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
@@ -223,7 +217,7 @@ export function studentizedDifferenceTest(
 
   return [
     stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),
-    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2)
+    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2),
   ];
 }
 
@@ -239,7 +233,7 @@ export function confidenceInterval(
   K: number,
   /** Smoothing to apply to resamples, if any */
   smoothing?: number,
-  entropy = random.mathRand
+  entropy = random.mathRand,
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
@@ -251,8 +245,5 @@ export function confidenceInterval(
     dist[i] = estimator(next());
   }
 
-  return [
-    quantile(dist, 0.5 - level / 2),
-    quantile(dist, 0.5 + level / 2),
-  ];
+  return [quantile(dist, 0.5 - level / 2), quantile(dist, 0.5 + level / 2)];
 }

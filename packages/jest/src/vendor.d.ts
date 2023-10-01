@@ -5,7 +5,7 @@ declare module 'jest-circus/runner' {
     environment,
     runtime,
     testPath,
-    sendMessageWrapper
+    sendMessageWrapper,
   ): Promise<import('@jest/test-result').TestResult>;
   export = run;
 }

@@ -24,7 +24,7 @@ const sampleAnnotator: ann.Annotator = {
 
   annotate(
     sample: Sample<unknown>,
-    _request: Map<typeid, {}>
+    _request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!duration.Duration.is(sample)) {
       return Status.value(void 0);
@@ -61,7 +61,7 @@ interface KDEAnalysis {
 
 function kdeMode(
   sample: Indexable<number>,
-  summary: stats.online.SimpleSummary<number>
+  summary: stats.online.SimpleSummary<number>,
 ): KDEAnalysis {
   // MISE-optimized bandwidth
   const h = stats.kde.cvBandwidth(sample, summary.std());

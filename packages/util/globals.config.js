@@ -7,6 +7,6 @@
 export function defaults(packageJson) {
   return {
     __PKG_VERSION: JSON.stringify(packageJson.version),
-    __DEBUG: process.env.MODE !== "production",
+    __DEBUG: process.env.MODE !== 'production',
   };
 }

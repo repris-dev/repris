@@ -15,7 +15,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: (id) => id.startsWith('node:')
+      external: id => id.startsWith('node:'),
     },
     outDir: './lib',
   },

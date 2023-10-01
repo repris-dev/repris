@@ -49,12 +49,10 @@ describe('gradedColumns', () => {
         { ctx: ['@ctx2'], type: 'c', displayName: 'col c' },
       ]);
     }
-    
+
     {
       const cols = util.gradedColumns(request, void 0);
-      expect(cols).toEqual([
-        { ctx: ['@ctx2'], type: 'c', displayName: 'col c' },
-      ]);
+      expect(cols).toEqual([{ ctx: ['@ctx2'], type: 'c', displayName: 'col c' }]);
     }
   });
 });

@@ -33,7 +33,7 @@ describe('lowerBound', () => {
   });
 
   it('handles an empty array', () => {
-    expect(array.lowerBound([], 0, lt)).toEqual(0)
+    expect(array.lowerBound([], 0, lt)).toEqual(0);
   });
 });
 
@@ -43,7 +43,7 @@ describe('partitionEqual', () => {
     const last = array.partitionEqual(arr, -1, 0, arr.length - 1);
 
     expect(last).toEqual(4);
-    expect(arr).toEqual([5, 4, 3, 2, -1])
+    expect(arr).toEqual([5, 4, 3, 2, -1]);
   });
 
   test('moves two values (a)', () => {
@@ -51,7 +51,7 @@ describe('partitionEqual', () => {
     const last = array.partitionEqual(arr, -1, 0, arr.length - 1);
 
     expect(last).toEqual(4);
-    expect(arr).toEqual([5, 4, 3, 2, -1, -1])
+    expect(arr).toEqual([5, 4, 3, 2, -1, -1]);
   });
 
   test('moves two values (b)', () => {
@@ -88,7 +88,7 @@ describe('partitionEqual', () => {
 
   test('moves zero values', () => {
     const arr = [6, 5, 4, 3, 2, 1];
-    
+
     expect(array.partitionEqual(arr, -1, 0, arr.length - 1)).toEqual(-1);
     expect(array.partitionEqual(arr, -1, 1, 3)).toEqual(-1);
   });
@@ -123,11 +123,11 @@ describe('quickSelect', () => {
 
 describe('removeAtIndices', () => {
   const arr = ['a', 'b', 'c'];
-  
+
   test('remove one index', () => {
     const a = arr.slice();
-  
-    const len = array.removeAtIndices(a, [1])
+
+    const len = array.removeAtIndices(a, [1]);
     expect(len).toBe(2);
 
     a.length = len;
@@ -136,8 +136,8 @@ describe('removeAtIndices', () => {
 
   test('remove two index', () => {
     const a = arr.slice();
-  
-    const len = array.removeAtIndices(a, [0, 2])
+
+    const len = array.removeAtIndices(a, [0, 2]);
     expect(len).toBe(1);
 
     a.length = len;
@@ -146,8 +146,8 @@ describe('removeAtIndices', () => {
 
   test('remove three index', () => {
     const a = arr.slice();
-  
-    const len = array.removeAtIndices(a, [0, 1, 2])
+
+    const len = array.removeAtIndices(a, [0, 1, 2]);
     expect(len).toBe(0);
 
     a.length = len;

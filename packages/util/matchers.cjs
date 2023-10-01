@@ -3,7 +3,7 @@ expect.extend({
     if (typeof min !== 'number') {
       throw new Error('expected min to be a number');
     }
-    
+
     if (typeof max !== 'number') {
       throw new Error('expected value to be a number');
     }
@@ -11,15 +11,16 @@ expect.extend({
     if (max < min) {
       throw new Error('expected min <= max');
     }
-    
+
     const pass = received >= min && received <= max;
 
     return {
       pass,
-      message: () => pass
-        ? `Expected ${received} not to be in range (${min}, ${max})`
-        : `Expected ${received} to be in range (${min}, ${max})`
-    }
+      message: () =>
+        pass
+          ? `Expected ${received} not to be in range (${min}, ${max})`
+          : `Expected ${received} to be in range (${min}, ${max})`,
+    };
   },
 
   toHaveValues(received, values) {
@@ -30,7 +31,7 @@ expect.extend({
     if (typeof received[Symbol.iterator] !== 'function') {
       throw new Error('expected received to be iterable');
     }
-    
+
     let missing = undefined;
 
     for (const x of values) {
@@ -53,9 +54,10 @@ expect.extend({
 
     return {
       pass,
-      message: () => pass
-        ? `Expected received to not contain all values of (${values})`
-        : `Expected received to contain (${missing})`
-    }
-  }
+      message: () =>
+        pass
+          ? `Expected received to not contain all values of (${values})`
+          : `Expected received to contain (${missing})`,
+    };
+  },
 });

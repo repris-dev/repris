@@ -18,7 +18,7 @@ ann.register('@allPairs:annotator', {
 
   annotate(
     sample: Sample<unknown>,
-    request: Map<typeid, {}>
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     const data = sample.values('f64')!;
     const result = new Map<typeid, ann.Annotation>();

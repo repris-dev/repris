@@ -13,7 +13,9 @@ export function IndexResolver(config: Config.ProjectConfig): snapshotManager.Pat
   return resolver;
 }
 
-export async function BaselineResolver(config: Config.ProjectConfig): Promise<snapshotManager.PathResolver> {
+export async function BaselineResolver(
+  config: Config.ProjectConfig,
+): Promise<snapshotManager.PathResolver> {
   const resolver = await buildSnapshotResolver(config);
   return (testFilePath: string) => resolver.resolveSnapshotPath(testFilePath);
 }

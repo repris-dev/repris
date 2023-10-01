@@ -73,7 +73,7 @@ const dbg = debug('repris:runner');
 function initializeEnvironment(
   environment: JestEnvironment,
   cfg: reprisConfig.ReprisConfig,
-  getState: (title: string[], nth: number) => snapshots.BenchmarkState
+  getState: (title: string[], nth: number) => snapshots.BenchmarkState,
 ) {
   const samples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
   const newSamples: { title: string[]; nth: number; sample: samples.Sample<unknown> }[] = [];
@@ -147,7 +147,7 @@ export default async function testRunner(
   environment: JestEnvironment,
   runtime: typeof import('jest-runtime'),
   testPath: string,
-  sendMessageToJest?: TestFileEvent
+  sendMessageToJest?: TestFileEvent,
 ): Promise<TestResult> {
   const reprisCfg = await reprisConfig.load(globalConfig.rootDir);
   const stagingAreaMgr = new snapshotManager.SnapshotFileManager(IndexResolver(config));
@@ -169,7 +169,9 @@ export default async function testRunner(
     indexedSnapshot?.benchmarkState(title, nth) ?? snapshots.BenchmarkState.Unknown;
 
   // Sample annotation config
-  const testAnnotations = reprisConfig.parseAnnotations(reprisCfg.commands.test?.annotations ?? [])();
+  const testAnnotations = reprisConfig.parseAnnotations(
+    reprisCfg.commands.test?.annotations ?? [],
+  )();
 
   // Wire up the environment
   const envState = initializeEnvironment(environment, reprisCfg, getBenchmarkState);
@@ -180,7 +182,7 @@ export default async function testRunner(
     environment,
     runtime,
     testPath,
-    sendMessageToJest
+    sendMessageToJest,
   );
 
   {
@@ -234,11 +236,11 @@ export default async function testRunner(
 
             // publish the digest annotations on the current test case result
             augmentedResult.repris.digest = newBenchmark
-              .annotations().get(newBenchmark.digest()?.[uuid]!);
+              .annotations()
+              .get(newBenchmark.digest()?.[uuid]!);
 
             // publish the current annotations on the current test case result
-            augmentedResult.repris.benchmark = newBenchmark
-              .annotations().get(newBenchmark[uuid]);
+            augmentedResult.repris.benchmark = newBenchmark.annotations().get(newBenchmark[uuid]);
           }
 
           break;
@@ -247,7 +249,7 @@ export default async function testRunner(
 
       if (!matched) {
         throw new Error(
-          `Couldn't pair sample "${title.concat(' ')}" to the test which produced it`
+          `Couldn't pair sample "${title.concat(' ')}" to the test which produced it`,
         );
       }
     }
@@ -313,7 +315,7 @@ export default async function testRunner(
 async function tryCommitToBaseline(
   config: Config.ProjectConfig,
   testPath: string,
-  index: snapshots.Snapshot
+  index: snapshots.Snapshot,
 ) {
   const s = new snapshotManager.SnapshotFileManager(await BaselineResolver(config));
   const snapFile = await s.loadOrCreate(testPath);
@@ -355,7 +357,7 @@ async function tryCommitToBaseline(
 
 function annotate(
   newSample: samples.duration.Duration,
-  request: Map<typeid, any>
+  request: Map<typeid, any>,
 ): annotators.AnnotationBag {
   const [bag, err] = annotators.annotate(newSample, request);
   if (err) {
@@ -372,7 +374,8 @@ function redigestBenchmark(
   opts: digests.duration.Options,
   annotationRequest: Map<typeid, any>,
 ): f.AggregatedBenchmark<samples.duration.Duration> {
-  const allSamples = iter.collect(bench.samples())
+  const allSamples = iter
+    .collect(bench.samples())
     .map(s => asTuple([s.sample, bench.annotations().get(s.sample[uuid])]));
 
   allSamples.push([newEntry.sample, newEntry.annotations]);
@@ -401,10 +404,7 @@ function redigestBenchmark(
   if (Status.isErr(digestBag)) {
     dbg('Failed to annotate digest %s', digestBag[1].message);
   } else {
-    result.annotations().set(
-      newDigest[0][uuid],
-      Status.get(digestBag).toJson()
-    );
+    result.annotations().set(newDigest[0][uuid], Status.get(digestBag).toJson());
   }
 
   // Annotate the benchmark and store these annotations in the benchmark itself

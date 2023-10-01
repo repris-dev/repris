@@ -16,13 +16,15 @@ describe('ReservoirSample', () => {
     expect(stats.mean()).toBeGreaterThan(498);
     expect(stats.mean()).toBeLessThan(502);
     expect(stats.skewness()).toBeCloseTo(0, 3);
-    expect(stats.std()).toBeCloseTo(Math.sqrt((1 / 12) * Math.pow(1000, 2)), 3)
+    expect(stats.std()).toBeCloseTo(Math.sqrt((1 / 12) * Math.pow(1000, 2)), 3);
   });
 
   test('Fills, resets reservoir', () => {
     const sample = new R(5);
-    for (let i = 0; i < 5; i++) { expect(sample.push(i)).toBe(false); }
-    
+    for (let i = 0; i < 5; i++) {
+      expect(sample.push(i)).toBe(false);
+    }
+
     expect(sample.count).toBe(5);
     expect(sample.N()).toBe(5);
     expect(sample.values).toEqual([0, 1, 2, 3, 4]);
@@ -36,8 +38,10 @@ describe('ReservoirSample', () => {
 
   test('Unbounded size', () => {
     const sample = new R<number>();
-    for (let i = 0; i < 1e3; i++) { expect(sample.push(i)).toBe(false); }
-    
+    for (let i = 0; i < 1e3; i++) {
+      expect(sample.push(i)).toBe(false);
+    }
+
     expect(sample.capacity).toBe(Infinity);
     expect(sample.count).toBe(1e3);
     expect(sample.N()).toBe(1e3);

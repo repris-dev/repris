@@ -32,7 +32,7 @@ An annotation is a piece of meta-data associated with benchmarks, samples, trove
 
 ### Index
 
-The index is used to build an accurate snapshot of the performance of your project in its current state. This is similar to the git index where changes are stored before being committed to the repository. In Repris the index stores troves of all the benchmarks across your project. 
+The index is used to build an accurate snapshot of the performance of your project in its current state. This is similar to the git index where changes are stored before being committed to the repository. In Repris the index stores troves of all the benchmarks across your project.
 
 The status of the index can be shown with the `show` command and cleared with the `reset` command.
 

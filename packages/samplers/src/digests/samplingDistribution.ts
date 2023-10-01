@@ -30,7 +30,7 @@ type DistributionDigestWT = wt.BenchmarkDigest & {
 export function process(
   samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
   opts: Options,
-  entropy?: random.Generator
+  entropy?: random.Generator,
 ): Status<Digest> {
   const points = [] as [number, duration.Duration][];
   for (const [sample, bag] of samples) {
@@ -41,7 +41,7 @@ export function process(
     } else {
       // todo: annotate the sample
       return Status.err(
-        `Sample could not be digested. Annotation '${opts.locationEstimationType}' is missing`
+        `Sample could not be digested. Annotation '${opts.locationEstimationType}' is missing`,
       );
     }
   }
@@ -104,11 +104,11 @@ export class Digest implements types.Digest<duration.Duration> {
 
   constructor(
     private _isReady: boolean,
-    private _aggregation: SamplingAggregation<duration.Duration>
+    private _aggregation: SamplingAggregation<duration.Duration>,
   ) {}
 
   N() {
-    return this._aggregation.stat.length; 
+    return this._aggregation.stat.length;
   }
 
   stat() {
@@ -178,12 +178,12 @@ export type SamplingAggregation<T> = {
 
 /**
  * Creates a digest of samples based on analysis of their sampling
- * distribution, excluding outliers 
+ * distribution, excluding outliers
  */
 function aggregateAndFilter<T>(
   taggedPointEstimates: [pointEstimate: number, tag: T][],
   opts: types.DigestOptions,
-  entropy?: random.Generator
+  entropy?: random.Generator,
 ): SamplingAggregation<T> {
   const N = taggedPointEstimates.length;
 
@@ -240,7 +240,7 @@ function aggregateAndFilter<T>(
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
-      (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean())
+      (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()),
     );
   }
 
@@ -259,7 +259,7 @@ function aggregateAndFilter<T>(
 export function createOutlierSelection<T>(
   keys: Indexable<T>,
   toScalar: (k: T) => number,
-  entropy = random.PRNGi32()
+  entropy = random.PRNGi32(),
 ): () => T | undefined {
   const N = keys.length,
     xs = new Float64Array(N);

@@ -53,7 +53,7 @@ export async function reset(_argv: string[]) {
   const extra =
     indexStat.totalSamples > 0
       ? ` ${chalk.bold(indexStat.totalSamples)} samples from ${chalk.bold(
-          indexStat.totalBenchmarks
+          indexStat.totalBenchmarks,
         )} benchmarks will be lost.`
       : '';
 
@@ -72,7 +72,7 @@ export async function reset(_argv: string[]) {
 async function showIndexSummary(
   projCfg: Config.ProjectConfig,
   testFiles: jReporters.Test[],
-  sfm: snapshotManager.SnapshotFileManager
+  sfm: snapshotManager.SnapshotFileManager,
 ): Promise<IndexStat> {
   const pending = [] as IndexFileStat[];
 

@@ -11,17 +11,13 @@ describe('findMaxima', () => {
     const rng6 = random.gaussian(6, 8, gen);
     const sample = new Float32Array(128);
 
-    for (let i = 0; i < sample.length - 1;) {
+    for (let i = 0; i < sample.length - 1; ) {
       sample[i++] = rng3();
       sample[i++] = rng6();
     }
 
-    const h = kde.silvermansRule(
-      OS.Gaussian.fromValues(sample).std(),
-      sample.length,
-      iqr(sample)
-    );
-    
+    const h = kde.silvermansRule(OS.Gaussian.fromValues(sample).std(), sample.length, iqr(sample));
+
     const [maxi] = kde.findMaxima(kde.gaussian, sample, h);
     expect(sample[maxi]).toBeCloseTo(3, 1 / 3);
   });
@@ -47,10 +43,10 @@ describe('findConflationMaxima', () => {
   test('conflates two samples', () => {
     const gen = random.PRNGi32(33);
     const std = 1;
-    
+
     const rng3 = random.gaussian(3, std, gen);
     const sample3 = Float32Array.from(iterator.take(250, iterator.gen(rng3)));
-    
+
     const rng5 = random.gaussian(5, std, gen);
     const sample5 = Float32Array.from(iterator.take(250, iterator.gen(rng5)));
 
@@ -60,13 +56,14 @@ describe('findConflationMaxima', () => {
     const m3 = kde.findMaxima(kde.gaussian, sample3, h3);
     const m5 = kde.findMaxima(kde.gaussian, sample5, h6);
 
-    const c = kde.findConflationMaxima(kde.gaussian,
-      [[sample3, h3], [sample5, h6]]
-    );
-    
+    const c = kde.findConflationMaxima(kde.gaussian, [
+      [sample3, h3],
+      [sample5, h6],
+    ]);
+
     expect(sample3[m3[0]]).toBeInRange(2.5, 3.5);
     expect(sample5[m5[0]]).toBeInRange(4.5, 5.5);
-    
+
     const mid = (5 + 3) / 2;
     expect(c[0]).toBeInRange(mid - 0.25, mid + 0.25);
   });

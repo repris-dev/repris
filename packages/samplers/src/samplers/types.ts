@@ -13,8 +13,7 @@ export interface SamplerFn<O, State extends SamplerState<O>, Args extends any[]>
 }
 
 /** Used to build a Sample<V> */
-export interface Sampler<V> extends json.Serializable<wt.Sampler>
-{
+export interface Sampler<V> extends json.Serializable<wt.Sampler> {
   /** build the sample asynchronously */
   run(): Promise<Status>;
 
@@ -23,8 +22,7 @@ export interface Sampler<V> extends json.Serializable<wt.Sampler>
 }
 
 /** State accessible to a sampler function */
-export interface SamplerState<O>
-{
+export interface SamplerState<O> {
   [Symbol.iterator](): Iterator<any>;
 
   /** set the observation for the current iteration */
@@ -35,8 +33,7 @@ export interface SamplerState<O>
 }
 
 /** A builder to configure a family of samplers */
-export interface Builder<V, S extends Sampler<V>>
-{
+export interface Builder<V, S extends Sampler<V>> {
   /** Create the samplers */
   build(): S[];
 }

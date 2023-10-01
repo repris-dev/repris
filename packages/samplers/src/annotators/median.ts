@@ -22,7 +22,7 @@ ann.register('@percentile:annotator', {
 
   annotate(
     sample: samples.Sample<unknown>,
-    _request: Map<typeid, {}>
+    _request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!samples.duration.Duration.is(sample)) {
       return Status.value(void 0);

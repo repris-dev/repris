@@ -30,7 +30,7 @@ describe('OnlineStats', () => {
 
     // positive skew
     [1, 1, 1, 1, 2, 3, 4].forEach(x => stats.push(x));
-    
+
     expect(stats.kurtosis()).toBeCloseTo(-0.7736, 3);
     expect(stats.skewness()).toBeCloseTo(0.8849, 4);
   });
@@ -40,7 +40,7 @@ describe('OnlineStats', () => {
 
     // approximately normal
     [1, 1.5, 2, 2, 2, 2, 2, 2.5, 3].forEach(x => stats.push(x));
-    
+
     expect(stats.kurtosis()).toBeCloseTo(0.06, 4);
     expect(stats.skewness()).toBeCloseTo(0, 4);
   });

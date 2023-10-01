@@ -85,8 +85,8 @@ describe('process()', () => {
             maxUncertainty: Infinity,
             minSize: 2,
             maxSize: 10,
-          })
-        )
+          }),
+        ),
       );
 
       expect(a.consistent).toEqual([sA, sF]);
@@ -102,8 +102,8 @@ describe('process()', () => {
             maxUncertainty: 0.1,
             minSize: 2,
             maxSize: 10,
-          })
-        )
+          }),
+        ),
       );
 
       expect(a.consistent).toEqual([]);
@@ -128,9 +128,9 @@ describe('process()', () => {
             minSize: 2,
             maxSize: 4,
           },
-          entropy
-        )
-      )
+          entropy,
+        ),
+      ),
     );
 
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
@@ -155,9 +155,9 @@ describe('process()', () => {
             minSize: 2,
             maxSize: 4,
           },
-          entropy
-        )
-      )
+          entropy,
+        ),
+      ),
     );
 
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);

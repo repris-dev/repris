@@ -1,0 +1,3 @@
+**/.tsc/
+**/dist/
+pnpm-lock.yaml

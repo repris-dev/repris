@@ -6,7 +6,7 @@ import { Status, iterator } from '@repris/base';
 /** defined by the stopwatch test-runner  */
 declare function onSample(
   matcherState: jest.MatcherState & Record<string, any>,
-  sample: samples.Sample<unknown>
+  sample: samples.Sample<unknown>,
 ): void;
 
 /** Current stopwatch opts, defined by the test-runner */
@@ -48,18 +48,14 @@ function createRunFn<T extends any[]>(fn: samplers.stopwatch.SamplerFn<T>) {
 
 const _this = globalThis as any;
 
-_this.bench = function (
-  testName: string,
-  fn: samplers.stopwatch.SamplerFn<[]>,
-  timeout?: number
-) {
+_this.bench = function (testName: string, fn: samplers.stopwatch.SamplerFn<[]>, timeout?: number) {
   return test(testName, createRunFn(fn), timeout);
 };
 
 _this.bench.only = function (
   testName: string,
   fn: samplers.stopwatch.SamplerFn<[]>,
-  timeout?: number
+  timeout?: number,
 ) {
   return test.only(testName, createRunFn(fn), timeout);
 };
@@ -67,7 +63,7 @@ _this.bench.only = function (
 _this.bench.skip = function (
   testName: string,
   fn: samplers.stopwatch.SamplerFn<[]>,
-  timeout?: number
+  timeout?: number,
 ) {
   return test.skip(testName, createRunFn(fn), timeout);
 };

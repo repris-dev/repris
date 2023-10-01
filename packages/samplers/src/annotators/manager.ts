@@ -116,7 +116,6 @@ export class DefaultBag implements AnnotationBag {
   }
 }
 
-
 export function supports(annotation: typeid) {
   return annotatorMap.has(annotation);
 }
@@ -128,7 +127,7 @@ export function annotate(
     {
       /* Options */
     }
-  >
+  >,
 ): Status<AnnotationBag> {
   const result = new Map<typeid, Annotation>();
   const annotatorSubset = new Set<Annotator>();
@@ -137,14 +136,16 @@ export function annotate(
     if (annotatorMap.has(typeid)) {
       annotatorSubset.add(annotators.get(annotatorMap.get(typeid)!)!);
     } else {
-      return Status.err(`Unknown annotation "${ typeid }"`)
+      return Status.err(`Unknown annotation "${typeid}"`);
     }
   }
 
   // Union the results of each annotator in to one AnnotationBag
   for (const annotator of annotatorSubset) {
     const canAnnotate = annotator.annotations().find(a => request.has(a)) !== void 0;
-    if (!canAnnotate) { continue; }
+    if (!canAnnotate) {
+      continue;
+    }
 
     const r = annotator.annotate(item, request);
     if (Status.isErr(r)) {
@@ -170,7 +171,7 @@ export function annotateMissing<A extends Annotatable>(
 ): Status<unknown> {
   // A new request which excludes pre-existing annotations
   const filteredRequest = new Map(
-    iterator.filter(request.entries(), anno => bag.annotations.get(anno[1]) === undefined)
+    iterator.filter(request.entries(), anno => bag.annotations.get(anno[1]) === undefined),
   );
 
   if (filteredRequest.size > 0) {

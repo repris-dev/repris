@@ -36,11 +36,14 @@ export default class SampleReporter extends DefaultReporter {
   loadingMutex: Promise<void>;
   testRenderer!: TableTreeReporter<AssertionResult>;
 
-  constructor(globalConfig: Config.GlobalConfig, private _config?: unknown) {
+  constructor(
+    globalConfig: Config.GlobalConfig,
+    private _config?: unknown,
+  ) {
     super(globalConfig);
     this._globalConfig = globalConfig;
 
-    this.loadingMutex = config.load(globalConfig.rootDir).then((cfg) => {
+    this.loadingMutex = config.load(globalConfig.rootDir).then(cfg => {
       const columns = loadColumns(cfg);
 
       this.testRenderer = new TableTreeReporter(columns, {
@@ -52,7 +55,7 @@ export default class SampleReporter extends DefaultReporter {
             return annotators.DefaultBag.fromJson({
               ...aar.repris.sample,
               ...aar.repris?.digest,
-              ...aar.repris?.benchmark
+              ...aar.repris?.benchmark,
             });
           }
         },
@@ -70,9 +73,7 @@ export default class SampleReporter extends DefaultReporter {
     return testResults.filter(({ status }) => status !== 'pending');
   }
 
-  protected override __wrapStdio(
-    stream: NodeJS.WritableStream | NodeJS.WriteStream,
-  ): void {
+  protected override __wrapStdio(stream: NodeJS.WritableStream | NodeJS.WriteStream): void {
     const write = stream.write.bind(stream);
 
     stream.write = (chunk: string) => {
@@ -85,7 +86,7 @@ export default class SampleReporter extends DefaultReporter {
 
   override async onRunStart(
     aggregatedResults: AggregatedResult,
-    options: ReporterOnStartOptions
+    options: ReporterOnStartOptions,
   ): Promise<void> {
     // always show the status/progress bar since benchmarks are usually long running
     super.onRunStart(aggregatedResults, { ...options, showStatus: true });
@@ -118,7 +119,7 @@ export default class SampleReporter extends DefaultReporter {
 
     if (!result.skipped) {
       const filtered = result.testResults.filter(
-        (test) => test.status !== 'todo' && test.status !== 'pending'
+        test => test.status !== 'todo' && test.status !== 'pending',
       );
 
       if (filtered.length > 0) {

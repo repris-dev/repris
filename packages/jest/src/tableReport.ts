@@ -98,7 +98,7 @@ export class TerminalReport<Id> {
 
     // update column widths
     this.columnWidths.forEach(
-      (w, i) => (this.columnWidths[i] = Math.max(w, Cell.length(cells[i])))
+      (w, i) => (this.columnWidths[i] = Math.max(w, Cell.length(cells[i]))),
     );
 
     const entry = this.rowIndex.get(rowid) ?? [];
@@ -145,7 +145,7 @@ export class TerminalReport<Id> {
   reset() {
     this.rowIndex.clear();
     this.titleCells = this.columns.map(
-      c => (c.displayName ?? c.type) + (c.units ? ` (${c.units})` : '')
+      c => (c.displayName ?? c.type) + (c.units ? ` (${c.units})` : ''),
     );
     this.columnWidths = this.titleCells.map(c => c.length);
   }
@@ -267,7 +267,10 @@ interface TreeStrategy<Leaf> {
 export class TableTreeReporter<Leaf> {
   table: TerminalReport<Leaf>;
 
-  constructor(public readonly columns: Column[], private strategy: TreeStrategy<Leaf>) {
+  constructor(
+    public readonly columns: Column[],
+    private strategy: TreeStrategy<Leaf>,
+  ) {
     this.table = new TerminalReport(columns);
   }
 
@@ -361,9 +364,9 @@ function indent(n: number) {
   return '  '.repeat(n);
 }
 
-/** 
+/**
  * @returns True if the given annotation value matches all the conditions in the given
- * grading rule 
+ * grading rule
  */
 function matchesRule(ann: anno.Annotation, rule: config.GradingThreshold): boolean {
   const conditions = Object.entries(rule);

@@ -9,8 +9,8 @@ export interface Indexable<T> {
 type BinaryPredicate<T, T2 = T> = (a: T, b: T2) => boolean;
 
 export function lessThan(a: number | string, b: number | string) {
-  return a < b
-};
+  return a < b;
+}
 
 /** @return true if @param a is a typed array */
 export function isTypedArray(a: any): boolean {
@@ -19,19 +19,25 @@ export function isTypedArray(a: any): boolean {
 
 /** Sets all values in an array to the given value */
 export function fill<T>(arr: Indexable<T>, val: T): void {
-  for (let i = 0; i < arr.length; i++) { arr[i] = val; }
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = val;
+  }
 }
 
 /** Sets all values in in increments of 1 */
 export function fillAscending<T extends Indexable<number>>(arr: T, initial: number): T {
-  for (let i = 0; i < arr.length; i++) { arr[i] = initial++; }
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = initial++;
+  }
   return arr;
 }
 
 /** Copy values from src to dest */
 export function copyTo<T>(src: Indexable<T>, dest: Indexable<T>): void {
   const n = Math.min(src.length, dest.length);
-  for (let i = 0; i < n; i++) { dest[i] = src[i]; }
+  for (let i = 0; i < n; i++) {
+    dest[i] = src[i];
+  }
 }
 
 /** Collect a subset of values from src to dest */
@@ -41,7 +47,9 @@ export function copySubsetTo<T>(
   dest: Indexable<T>,
 ): void {
   const n = Math.min(indices.length, dest.length);
-  for (let i = 0; i < n; i++) { dest[i] = src[indices[i]]; }
+  for (let i = 0; i < n; i++) {
+    dest[i] = src[indices[i]];
+  }
 }
 
 /** Push a subset of src to dest */
@@ -57,10 +65,7 @@ export function subsetOf<T, P extends { push(val: T): any }>(
   return dest;
 }
 
-export function removeAtIndices(
-  arr: Indexable<any>,
-  indices: Indexable<number>
-): number {
+export function removeAtIndices(arr: Indexable<any>, indices: Indexable<number>): number {
   let off = 0;
   const len = arr.length;
 
@@ -114,9 +119,12 @@ export function sort<T extends number>(xs: Indexable<T>) {
  * @param arr A sorted array with respect to @param cmp
  */
 export function lowerBound<T, T2 = T>(
-    arr: Indexable<T>, value: T2, cmp: BinaryPredicate<T, T2>,
-    first = 0, count = arr.length - first): number
-{
+  arr: Indexable<T>,
+  value: T2,
+  cmp: BinaryPredicate<T, T2>,
+  first = 0,
+  count = arr.length - first,
+): number {
   assert.le(first + count, arr.length);
 
   let it: number;
@@ -147,17 +155,21 @@ export function lowerBound<T, T2 = T>(
  * @param {Number} hi High index.
  * @return Returns n-th smallest element.
  */
-export function quickselect<T>(
-    arr: Indexable<T>, n: number, lo = 0, hi = arr.length - 1): number {
-  if (arr.length <= n) { return -1; }
+export function quickselect<T>(arr: Indexable<T>, n: number, lo = 0, hi = arr.length - 1): number {
+  if (arr.length <= n) {
+    return -1;
+  }
 
-  if (lo === hi) { return lo; }
+  if (lo === hi) {
+    return lo;
+  }
 
   while (hi >= lo) {
-    const pivotIdx = partition(arr, lo, hi,
-        lo + Math.floor(Math.random() * (hi - lo + 1)));
+    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(Math.random() * (hi - lo + 1)));
 
-    if (n === pivotIdx) { return pivotIdx; }
+    if (n === pivotIdx) {
+      return pivotIdx;
+    }
     if (n < pivotIdx) {
       hi = pivotIdx - 1;
     } else {
@@ -168,8 +180,7 @@ export function quickselect<T>(
 }
 
 /** Lomuto partitioning scheme */
-export function partition<T>(
-    arr: Indexable<T>, lo: number, hi: number, pivotIdx: number): number {
+export function partition<T>(arr: Indexable<T>, lo: number, hi: number, pivotIdx: number): number {
   const pivot = arr[pivotIdx];
   swap(arr, pivotIdx, hi);
 
@@ -193,16 +204,17 @@ export function partition<T>(
  * @param value Value to partition on
  * @param lo First index
  * @param hi Last index
- * @returns The index of first element of value or -1 if the 
- * input doesn't contain value. 
+ * @returns The index of first element of value or -1 if the
+ * input doesn't contain value.
  */
-export function partitionEqual<T>(
-    arr: Indexable<T>, value: T, lo: number, hi: number): number {
+export function partitionEqual<T>(arr: Indexable<T>, value: T, lo: number, hi: number): number {
   assert.bounds(arr, lo);
   assert.bounds(arr, hi);
 
   while (lo < hi) {
-    if (arr[lo] === value) { break; }
+    if (arr[lo] === value) {
+      break;
+    }
     lo++;
   }
 

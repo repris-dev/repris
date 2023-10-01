@@ -84,7 +84,7 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
   }
 
   private fromJsonBenchmark(benchmark: wt.Benchmark): f.AggregatedBenchmark<duration.Duration> {
-    const fx = f.DefaultBenchmark.fromJSON(benchmark)
+    const fx = f.DefaultBenchmark.fromJSON(benchmark);
     if (Status.isErr(fx)) {
       throw new Error(Status.get(fx));
     }
@@ -128,6 +128,6 @@ export class Snapshot implements json.Serializable<wt.Snapshot> {
 /** Join the benchmarks across two snapshots */
 export function joinSnapshotBenchmarks(a: Snapshot, b: Snapshot) {
   return iterator.outerJoin(a.allBenchmarks(), b.allBenchmarks(), f =>
-    cacheKey(f.name.title, f.name.nth)
+    cacheKey(f.name.title, f.name.nth),
   );
 }

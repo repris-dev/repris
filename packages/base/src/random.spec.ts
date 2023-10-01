@@ -103,8 +103,7 @@ describe('newUuid', () => {
     expect(random.newUuid(entropy2)).toBe('6bd05bf4-4e7e-45b3-89db-1c4d87eb52de');
     expect(random.newUuid(entropy2)).toBe('e884c14a-96a3-43a4-bb2c-7045d172a34f');
   });
-  
-  
+
   test('unseeded', () => {
     const set = new Set<uuid>();
 
@@ -114,4 +113,4 @@ describe('newUuid', () => {
       set.add(uuid);
     }
   });
-})
+});

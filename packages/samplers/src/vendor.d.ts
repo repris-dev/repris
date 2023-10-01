@@ -1,7 +1,5 @@
 declare module 'gaussian-mixture' {
-  class GMM {
+  class GMM {}
 
-  }
-    
   export = any;
 }

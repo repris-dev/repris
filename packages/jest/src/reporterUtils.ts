@@ -8,7 +8,7 @@ export function gradedColumns(
   request: AnnotationRequestTree,
   ctx?: Ctx[],
   displayCondition?: string,
-  columns: Column[] = []
+  columns: Column[] = [],
 ): Column[] {
   // one column for each visible annotation
   for (const ann of request) {
@@ -32,7 +32,7 @@ function convertToColumn(
   ann: AnnotationRequest,
   ctx: Ctx[] | undefined,
   columns: Column[],
-  displayCondition?: string
+  displayCondition?: string,
 ) {
   const [type, a] = normalize.simpleOpt(ann, {});
 

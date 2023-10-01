@@ -31,7 +31,7 @@ const cache = new Map<string, SnapshotResolver>();
 
 export const buildSnapshotResolver = async (
   config: Config.ProjectConfig,
-  localRequire: Promise<LocalRequire> | LocalRequire = createTranspilingRequire(config)
+  localRequire: Promise<LocalRequire> | LocalRequire = createTranspilingRequire(config),
 ): Promise<SnapshotResolver> => {
   const key = config.rootDir;
 
@@ -45,7 +45,7 @@ export const buildSnapshotResolver = async (
 
 async function createSnapshotResolver(
   localRequire: LocalRequire,
-  snapshotResolverPath?: string | null
+  snapshotResolverPath?: string | null,
 ): Promise<SnapshotResolver> {
   return typeof snapshotResolverPath === 'string'
     ? createCustomSnapshotResolver(snapshotResolverPath, localRequire)
@@ -57,7 +57,7 @@ function createDefaultSnapshotResolver(): SnapshotResolver {
     resolveSnapshotPath: (testPath: string) =>
       path.join(
         path.join(path.dirname(testPath), '__snapshots__'),
-        path.basename(testPath) + DOT_EXTENSION
+        path.basename(testPath) + DOT_EXTENSION,
       ),
 
     resolveTestPath: (snapshotPath: string) =>
@@ -66,17 +66,17 @@ function createDefaultSnapshotResolver(): SnapshotResolver {
     testPathForConsistencyCheck: path.posix.join(
       'consistency_check',
       '__tests__',
-      'example.test.js'
+      'example.test.js',
     ),
   };
 }
 
 async function createCustomSnapshotResolver(
   snapshotResolverPath: string,
-  localRequire: LocalRequire
+  localRequire: LocalRequire,
 ): Promise<SnapshotResolver> {
   const custom: SnapshotResolver = interopRequireDefault(
-    await localRequire(snapshotResolverPath)
+    await localRequire(snapshotResolverPath),
   ).default;
 
   const keys: Array<[keyof SnapshotResolver, string]> = [
@@ -103,7 +103,7 @@ async function createCustomSnapshotResolver(
 
 function mustImplement(propName: string, requiredType: string) {
   return `${chalk.bold(
-    `Custom snapshot resolver must implement a \`${propName}\` as a ${requiredType}.`
+    `Custom snapshot resolver must implement a \`${propName}\` as a ${requiredType}.`,
   )}\nDocumentation: https://jestjs.io/docs/configuration#snapshotresolver-string`;
 }
 
@@ -114,8 +114,8 @@ function verifyConsistentTransformations(custom: SnapshotResolver) {
   if (resolvedTestPath !== custom.testPathForConsistencyCheck) {
     throw new Error(
       chalk.bold(
-        `Custom snapshot resolver functions must transform paths consistently, i.e. expects resolveTestPath(resolveSnapshotPath('${custom.testPathForConsistencyCheck}')) === ${resolvedTestPath}`
-      )
+        `Custom snapshot resolver functions must transform paths consistently, i.e. expects resolveTestPath(resolveSnapshotPath('${custom.testPathForConsistencyCheck}')) === ${resolvedTestPath}`,
+      ),
     );
   }
 }

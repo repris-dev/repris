@@ -13,7 +13,7 @@ const DigestAnnotations = Object.freeze({
   meanCI: {
     id: 'digest:mean:ci' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
-  }
+  },
 });
 
 const HypothesisAnnotations = Object.freeze({
@@ -43,7 +43,7 @@ ann.register('@annotator:digest:mean', {
 
   annotate(
     digest: digests.Digest<Sample<unknown>>,
-    request: Map<typeid, {}>
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     const result = new Map<typeid, ann.Annotation>();
     const xs = digest.samplingDistribution?.();
@@ -58,7 +58,7 @@ ann.register('@annotator:digest:mean', {
           ...DigestAnnotations.meanCI.opts,
           ...request.get(DigestAnnotations.meanCI.id),
         };
-      
+
         const smoothing = stats.kde.silvermansRule(os.std(), xs.length) * opts.smoothing;
         const ci = stats.bootstrap.confidenceInterval(
           xs,
@@ -67,7 +67,7 @@ ann.register('@annotator:digest:mean', {
           opts.resamples,
           smoothing,
         );
-  
+
         result.set(DigestAnnotations.meanCI.id, stats.rme(ci, os.mean()));
       }
     }
@@ -83,7 +83,7 @@ ann.register('@annotator:hypothesis:mean', {
 
   annotate(
     hypot: hypothesis.DefaultHypothesis<digests.Digest<Sample<unknown>>>,
-    request: Map<typeid, {}>
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!hypothesis.DefaultHypothesis.is(hypot)) {
       return Status.value(void 0);
@@ -121,7 +121,7 @@ ann.register('@annotator:hypothesis:mean', {
         (x0, x1) => mean(x0) - mean(x1),
         opts.level,
         opts.resamples,
-        opts.secondaryResamples
+        opts.secondaryResamples,
       );
 
       result.set(HypothesisAnnotations.differenceCI.id, ci);

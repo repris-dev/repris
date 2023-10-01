@@ -6,10 +6,7 @@ const resolve = createRequire(import.meta.url).resolve;
 
 /** @type {import('jest').Config} */
 export default {
-  reporters: [
-    resolve('@repris/jest/reporter'),
-    resolve('@repris/jest/summaryReporter'),
-  ],
+  reporters: [resolve('@repris/jest/reporter'), resolve('@repris/jest/summaryReporter')],
   setupFilesAfterEnv: [resolve('@repris/jest/stopwatch-env')],
   testRunner: resolve('@repris/jest/runner'),
   maxWorkers: 1,

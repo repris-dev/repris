@@ -15,8 +15,8 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: (id) => id.startsWith('node:')
-        || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep))
+      external: id =>
+        id.startsWith('node:') || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep)),
     },
     outDir: './lib',
   },

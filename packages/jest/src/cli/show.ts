@@ -51,7 +51,7 @@ async function showSnapshotDetail(
   reprisCfg: reprisConfig.ReprisConfig,
   testFiles: jReporters.Test[],
   index: snapshotManager.SnapshotFileManager,
-  baseline: snapshotManager.SnapshotFileManager
+  baseline: snapshotManager.SnapshotFileManager,
 ) {
   const annotationTree = reprisCfg.commands.show?.annotations ?? [];
   const annotationReq = reprisConfig.parseAnnotations(annotationTree);
@@ -62,7 +62,7 @@ async function showSnapshotDetail(
       annotate: entry => entry.annotations,
       pathOf: entry => entry.name.title.slice(0, -1),
       render: entry => chalk.dim(entry.name.title.at(-1)),
-    }
+    },
   );
 
   for (const t of testFiles) {
@@ -77,7 +77,7 @@ async function showSnapshotDetail(
 
     const annotations = iterator.map(
       snapshots.joinSnapshotBenchmarks(snapIndex!, snapBaseline!),
-      ([index, base]) => annotateTest(annotationReq, index, base)
+      ([index, base]) => annotateTest(annotationReq, index, base),
     );
 
     testRenderer.render(annotations, process.stderr);
@@ -87,7 +87,7 @@ async function showSnapshotDetail(
 function annotateTest(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
   index?: b.AggregatedBenchmark<any>,
-  base?: b.AggregatedBenchmark<any>
+  base?: b.AggregatedBenchmark<any>,
 ): PairedBenchmarks {
   const annotations = annotators.DefaultBag.from([]);
 
@@ -104,7 +104,7 @@ function annotateBenchmark(
   annotationRequests: (context?: reprisConfig.Ctx) => Map<typeid, any>,
   bench: b.AggregatedBenchmark<any>,
   annotations: annotators.DefaultBag,
-  ctx: reprisConfig.Ctx
+  ctx: reprisConfig.Ctx,
 ) {
   const req = annotationRequests(ctx);
   const digest = bench.digest();
@@ -121,7 +121,7 @@ function annotateBenchmark(
 function loadOrReannotate<T extends annotators.Annotatable>(
   annotatable: T,
   annotationRequest: Map<typeid, any>,
-  annotations: wt.AnnotationBag = {}
+  annotations: wt.AnnotationBag = {},
 ) {
   // Use existing annotations from the index
   const deserializedBag = annotators.DefaultBag.fromJson(annotations);

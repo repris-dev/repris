@@ -14,7 +14,6 @@ import { duration, Sample } from './samples.js';
  */
 export interface AggregatedBenchmark<S extends Sample<any>>
   extends json.Serializable<wt.Benchmark> {
-
   readonly [typeid]: typeid;
 
   readonly [uuid]: uuid;
@@ -55,7 +54,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
         sampleMap.set(sample[uuid], sample);
       } else {
         return Status.err(
-          `Failed to load sample of type: ${ws.sample['@type']}\nReason: ${s[1].message}`
+          `Failed to load sample of type: ${ws.sample['@type']}\nReason: ${s[1].message}`,
         );
       }
     }
@@ -108,7 +107,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
     public readonly name: wt.BenchmarkName,
     samples: Iterable<{ sample: duration.Duration; run: number }>,
     digest?: digests.Digest<duration.Duration>,
-    totalRuns = 0
+    totalRuns = 0,
   ) {
     this._samples = new Map(iterator.map(samples, s => [s.sample, s]));
     this._digest = digest;
@@ -119,7 +118,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
         if (status !== 'rejected' && !index.has(sample[uuid])) {
           throw new Error(
             `Benchmark failed validation. The benchmark doesn't contain\n` +
-              `sample ${sample[uuid]} (status: ${status}) which the digest references.`
+              `sample ${sample[uuid]} (status: ${status}) which the digest references.`,
           );
         }
       }
@@ -190,13 +189,13 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
         iterator.map(this.samples(), ({ sample, run }) => ({
           sample: sample.toJson(),
           run,
-        }))
+        })),
       ),
       digest: this.digest()?.toJson(),
       annotations: iterator.reduce(
         this.annotations().entries(),
         (acc, [uuid, bag]) => ((acc[uuid as string] = bag), acc),
-        {} as Record<string, wt.AnnotationBag>
+        {} as Record<string, wt.AnnotationBag>,
       ),
       totalRuns: this._totalruns,
     };
@@ -226,7 +225,7 @@ ann.register('@benchmark:annotator' as typeid, {
 
   annotate(
     fixt: DefaultBenchmark,
-    _request: Map<typeid, {}>
+    _request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!DefaultBenchmark.is(fixt)) return Status.value(void 0);
 

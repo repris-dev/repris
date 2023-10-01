@@ -28,7 +28,10 @@ export class DefaultHypothesis<T extends Digest<any>> implements PooledHypothesi
   readonly [typeid] = DefaultHypothesis[typeid];
   readonly [uuid] = random.newUuid();
 
-  constructor(private a: T, private b: T) {}
+  constructor(
+    private a: T,
+    private b: T,
+  ) {}
 
   operands(): [lhs: T, rhs: T] {
     return [this.a, this.b];
@@ -38,7 +41,7 @@ export class DefaultHypothesis<T extends Digest<any>> implements PooledHypothesi
 export function compare<C extends Digest<any>>(
   a: C,
   b: C,
-  annotations: Map<typeid, any>
+  annotations: Map<typeid, any>,
 ): Status<BenchmarkComparison<C>> {
   if (!a.ready() || !b.ready()) {
     return Status.err('Digests(s) are not ready for comparison');

@@ -35,21 +35,33 @@ export class Gaussian implements OnlineStat<number> {
   #M3 = 0;
   #M4 = 0;
 
-  N() { return this.#n; }
+  N() {
+    return this.#n;
+  }
 
-  mean() { return this.#n === 0 ? NaN : this.#M1; }
+  mean() {
+    return this.#n === 0 ? NaN : this.#M1;
+  }
 
-  mode() { return this.mean(); }
+  mode() {
+    return this.mean();
+  }
 
-  std(ddof = 0) { return Math.sqrt(this.#M2 / (this.#n - ddof)); }
+  std(ddof = 0) {
+    return Math.sqrt(this.#M2 / (this.#n - ddof));
+  }
 
-  var(ddof = 0) { return this.#M2 / (this.#n - ddof); }
+  var(ddof = 0) {
+    return this.#M2 / (this.#n - ddof);
+  }
 
-  cov(ddof?: number) { return this.std(ddof) / this.mean(); }
+  cov(ddof?: number) {
+    return this.std(ddof) / this.mean();
+  }
 
   skewness(ddof = 0) {
     if (this.#M2 === 0) return 0;
-    return Math.sqrt(this.#n - ddof) * this.#M3 / (this.#M2 ** 1.5);
+    return (Math.sqrt(this.#n - ddof) * this.#M3) / this.#M2 ** 1.5;
   }
 
   /** Excess kurtosis. The standard normal distribution has an excess kurtosis of zero */
@@ -58,14 +70,16 @@ export class Gaussian implements OnlineStat<number> {
     return ((this.#n - ddof) * this.#M4) / (this.#M2 * this.#M2) - 3;
   }
 
-  range(): [number, number] { return [this.#min, this.#max]; }
+  range(): [number, number] {
+    return [this.#min, this.#max];
+  }
 
   push(x: number) {
     const n1 = this.#n;
     const n = ++this.#n;
 
-    this.#min = Math.min(this.#min, x)
-    this.#max = Math.max(this.#max, x)
+    this.#min = Math.min(this.#min, x);
+    this.#max = Math.max(this.#max, x);
 
     const delta = x - this.#M1;
     const delta_n = delta / n;
@@ -73,7 +87,8 @@ export class Gaussian implements OnlineStat<number> {
     const term1 = delta * delta_n * n1;
 
     this.#M1 += delta_n;
-    this.#M4 += term1 * delta_n2 * (n * n - 3 * n + 3) + 6 * delta_n2 * this.#M2 - 4 * delta_n * this.#M3;
+    this.#M4 +=
+      term1 * delta_n2 * (n * n - 3 * n + 3) + 6 * delta_n2 * this.#M2 - 4 * delta_n * this.#M3;
     this.#M3 += term1 * delta_n * (n - 2) - 3 * delta_n * this.#M2;
     this.#M2 += term1;
 
@@ -83,11 +98,19 @@ export class Gaussian implements OnlineStat<number> {
   reset() {
     this.#n = this.#M1 = this.#M2 = this.#M3 = this.#M4 = 0;
     this.#min = Infinity;
-    this.#max = -Infinity
+    this.#max = -Infinity;
   }
 
   toJson() {
-    return { n: this.#n, m1: this.#M1, m2: this.#M2, m3: this.#M3, m4: this.#M4, min: this.#min, max: this.#max };
+    return {
+      n: this.#n,
+      m1: this.#M1,
+      m2: this.#M2,
+      m3: this.#M3,
+      m4: this.#M4,
+      min: this.#min,
+      max: this.#max,
+    };
   }
 
   static fromJson(v: ReturnType<Gaussian['toJson']>) {
@@ -119,10 +142,12 @@ export class Gaussian implements OnlineStat<number> {
 export class Lognormal implements SimpleSummary<number> {
   s = new Gaussian();
 
-  N(): number { return this.s.N(); }
+  N(): number {
+    return this.s.N();
+  }
 
   mean(): number {
-    return Math.exp(this.s.mean() + (this.s.var() / 2));
+    return Math.exp(this.s.mean() + this.s.var() / 2);
   }
 
   var(ddof?: number): number {

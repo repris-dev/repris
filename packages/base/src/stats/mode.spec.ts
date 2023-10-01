@@ -3,8 +3,7 @@ import * as modes from './mode.js';
 import * as bootstrap from './bootstrap.js';
 import { allPairs, mad, median, online } from '../stats.js';
 
-
-describe('modalSearch', () => {  
+describe('modalSearch', () => {
   test('creates a correctly sized window (2)', () => {
     const r = modes.modalSearch([1, 5, 6], 2, 0, 3);
 
@@ -83,7 +82,7 @@ describe('hsm', () => {
       expect(r.bound).toEqual([1, 2]);
     }
   });
-  
+
   test('shallow peak', () => {
     const sample = [1, 3, 4, 5, 6, 7, 8, 10];
     const r = modes.hsm(sample);

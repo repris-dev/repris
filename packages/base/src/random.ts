@@ -55,7 +55,10 @@ export function PRNGi32(seed = mathRand()): Generator {
  * integer i is defined as w_i/S, that is the weight of the ith integer divided by the sum
  * of all n weights.
  */
-export function discreteDistribution(weights: Indexable<number>, entropy: Generator = mathRand): Generator {
+export function discreteDistribution(
+  weights: Indexable<number>,
+  entropy: Generator = mathRand,
+): Generator {
   const N = weights.length;
   let sum = 0;
 
@@ -154,6 +157,6 @@ export function newUuid(opt?: Crypto | Generator) {
   const generator = opt as Generator;
   // Inspired by https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid
   return (<any>[1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
-    (c ^ (generator() % 256 & (15 >> (c / 4)))).toString(16)
+    (c ^ (generator() % 256 & (15 >> (c / 4)))).toString(16),
   );
 }

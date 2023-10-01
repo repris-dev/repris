@@ -55,7 +55,7 @@ const sampleAnnotator: ann.Annotator = {
 
   annotate(
     sample: Sample<unknown>,
-    request: Map<typeid, {}>
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!duration.Duration.is(sample)) {
       return Status.value(void 0);
@@ -97,20 +97,21 @@ const sampleAnnotator: ann.Annotator = {
           ...SampleAnnotations.hsmCIRel.opts,
           ...request.get(SampleAnnotations.hsmCIRel.id),
         };
-        
+
         array.sort(xs);
 
         const smoothing = hsmBootstrapSmoothing(xs, opts.smoothing);
-        const hsmCI = stats.bootstrap.confidenceInterval(xs,
+        const hsmCI = stats.bootstrap.confidenceInterval(
+          xs,
           xs => stats.mode.hsm(xs).mode,
           opts.level,
           opts.resamples,
-          smoothing
+          smoothing,
         );
 
         result.set(
           SampleAnnotations.hsmCIRel.id,
-          quantity.create('percent', stats.rme(hsmCI, hsm.mode))
+          quantity.create('percent', stats.rme(hsmCI, hsm.mode)),
         );
       }
     }
@@ -126,7 +127,7 @@ const digestAnnotator: ann.Annotator = {
 
   annotate(
     digest: digests.Digest<Sample<unknown>>,
-    request: Map<typeid, {}>
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!digest.ready()) {
       return Status.value(void 0);
@@ -139,10 +140,7 @@ const digestAnnotator: ann.Annotator = {
       const result = new Map<typeid, ann.Annotation>();
 
       // HSM statistics on the sampling distribution
-      if (
-        request.has(DigestAnnotations.hsmMode) ||
-        request.has(DigestAnnotations.hsmCIRel.id)
-      ) {
+      if (request.has(DigestAnnotations.hsmMode) || request.has(DigestAnnotations.hsmCIRel.id)) {
         const opts = {
           ...DigestAnnotations.hsmCIRel.opts,
           ...request.get(DigestAnnotations.hsmCIRel.id),
@@ -155,11 +153,12 @@ const digestAnnotator: ann.Annotator = {
 
         if (request.has(DigestAnnotations.hsmCIRel.id)) {
           const smoothing = hsmBootstrapSmoothing(samplingDist, opts.smoothing);
-          const hsmCI = stats.bootstrap.confidenceInterval(samplingDist,
+          const hsmCI = stats.bootstrap.confidenceInterval(
+            samplingDist,
             xs => stats.mode.hsm(xs).mode,
             opts.level,
             opts.resamples,
-            smoothing
+            smoothing,
           );
 
           result.set(DigestAnnotations.hsmCIRel.id, stats.rme(hsmCI, hsm.mode));
@@ -186,7 +185,7 @@ ann.register('@annotator:samples:modal-interval', sampleAnnotator);
 function hsmBootstrapSmoothing(xs: Indexable<number>, level: number) {
   if (level <= 0) return 0;
   // Estimate standard deviation from a proportion of the sample
-  const std = stats.mode.estimateStdDev(xs, .66);
+  const std = stats.mode.estimateStdDev(xs, 0.66);
   // Use Scott's estimate
   return stats.kde.silvermansRule(std, xs.length);
 }

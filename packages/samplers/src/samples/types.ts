@@ -5,8 +5,7 @@ import type * as wt from '../wireTypes.js';
  * A representation of a single random variable
  * @template V The Value type of the sample
  */
-export interface Sample<V> extends json.Serializable<wt.Sample>
-{
+export interface Sample<V> extends json.Serializable<wt.Sample> {
   /** The kind of sample */
   readonly [typeid]: typeid;
 
@@ -18,7 +17,7 @@ export interface Sample<V> extends json.Serializable<wt.Sample>
 
   /**
    * @return The total number of observations.
-   * 
+   *
    * Not all observations necessarily contribute to the sample and
    * so this number could be greater than the sample size.
    */
@@ -43,8 +42,7 @@ export interface Sample<V> extends json.Serializable<wt.Sample>
  * @template O The input Observation type
  * @template V The value type of the sample
  */
-export interface MutableSample<O, V = O> extends Sample<V>
-{
+export interface MutableSample<O, V = O> extends Sample<V> {
   /**
    * Commit an observation to the sample, which creates one or more
    * sample values

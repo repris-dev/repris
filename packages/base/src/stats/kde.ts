@@ -7,7 +7,7 @@ const PI_SQRT = Math.sqrt(Math.PI);
 const INV_2PI = 1 / Math.sqrt(2 * Math.PI);
 const INV_4PI = 1 / Math.sqrt(4 * Math.PI);
 
-export type Kernel = (x: number) => number
+export type Kernel = (x: number) => number;
 
 /** Gaussian kernel, mean = 0, variance = 1 */
 export function gaussian(x: number) {
@@ -21,7 +21,7 @@ export function gaussianHat(x: number) {
 
 /** Epanechnikov kernel */
 export function epanechnikov(x: number) {
-  return Math.max(0, 0.75 * (1 - (x * x)));
+  return Math.max(0, 0.75 * (1 - x * x));
 }
 
 /**
@@ -32,8 +32,8 @@ export function epanechnikov(x: number) {
 export function silvermansRule(std: number, n: number, iqr?: [lo: number, hi: number]) {
   const k = n ** (-1 / 5);
 
-  return iqr ?
-      // The lower of std and iqr
+  return iqr
+    ? // The lower of std and iqr
       1.06 * Math.min(std, (iqr[1] - iqr[0]) / 1.34) * k
     : 1.06 * std * k;
 }
@@ -43,35 +43,30 @@ export function silvermansRule(std: number, n: number, iqr?: [lo: number, hi: nu
  *   Robust and efficient estimation of the mode of continuous
  *   data: the mode as a viable measure of central tendency
  *     - D. Bickel
- * 
+ *
  * Like Silverman's rule of thumb, but more robust to outliers
  */
 export function silvermanBickelRule(std: number, n: number, mad: MADResult) {
   const k = n ** (-1 / 5);
-  return 0.9 * Math.min(std, mad.normMad) * k
+  return 0.9 * Math.min(std, mad.normMad) * k;
 }
 
 /**
  * Finds an optimized kernel bandwidth for the given sample using cross-validation.
  * Assumes a gaussian kernel.
  */
-export function cvBandwidth(
-  sample: Indexable<number>,
-  std: number,
-) {
+export function cvBandwidth(sample: Indexable<number>, std: number) {
   // initial bandwidth estimate
   const h1 = silvermansRule(std, sample.length);
 
   // Min/eps
   // TODO - review
-  const min = 1e-7 + (h1 / 1000);
+  const min = 1e-7 + h1 / 1000;
 
   // Optimized bandwidth which minimizes the MISE
   // Assumes the initial guess overestimates the optimum
-  // bandwidth, which is very typical. 
-  const hRange = math.gss(
-    h => mise(sample, h), min, h1 / 2, min, 100
-  );
+  // bandwidth, which is very typical.
+  const hRange = math.gss(h => mise(sample, h), min, h1 / 2, min, 100);
 
   return (hRange[0] + hRange[1]) / 2;
 }
@@ -83,12 +78,7 @@ export function cvBandwidth(
  * @returns The kernel density estimation of the given
  * sample at the given location, x.
  */
-export function estimate(
-  kernel: Kernel,
-  sample: Indexable<number>,
-  h: number,
-  x: number
-) {
+export function estimate(kernel: Kernel, sample: Indexable<number>, h: number, x: number) {
   const n = sample.length;
   const hNorm = 1 / h;
   const kNorm = 1 / (n * h);
@@ -160,11 +150,14 @@ export function mlcv(kernel: Kernel, sample: Indexable<number>, h: number) {
  * @param h Kernel smoothing parameter (bandwidth)
  */
 export function findMaxima(
-  kernel: Kernel, sample: Indexable<number>, h: number, eps = Number.EPSILON
+  kernel: Kernel,
+  sample: Indexable<number>,
+  h: number,
+  eps = Number.EPSILON,
 ): [index: number, density: number, ties: number] {
   let maxD = -Infinity,
-      maxi = -1,
-      ties = 0; 
+    maxi = -1,
+    ties = 0;
 
   for (let i = 0; i < sample.length; i++) {
     const d = estimate(kernel, sample, h, sample[i]);
@@ -180,7 +173,7 @@ export function findMaxima(
 
       if (sample[maxi] > sample[i]) {
         // select the lower x
-        maxi = i;        
+        maxi = i;
       }
     }
   }
@@ -191,29 +184,29 @@ export function findMaxima(
 /**
  * Performs a simple conflation of several samples with their associated
  * kernel bandwidth.
- * 
+ *
  * See: An Optimal Method to Combine Results from Different Experiments
  *  - Theodore P. Hill and Jack Miller
- * 
+ *
  * https://arxiv.org/ftp/arxiv/papers/0901/0901.4957.pdf
  *
- * @returns The location of observation with the maximum probability density 
+ * @returns The location of observation with the maximum probability density
  */
 export function findConflationMaxima(
   kernel: Kernel,
   samples: [raw: Indexable<number>, h: number][],
-  eps = 0
+  eps = 0,
 ): [x: number, density: number, ties: number] {
   let maxD = -Infinity,
-      maxX = -1,
-      ties = 0; 
+    maxX = -1,
+    ties = 0;
 
   for (const [s] of samples) {
     // For each x in each sample, calculate the conflation at that point
     for (let i = 0; i < s.length; i++) {
       const x = s[i];
       let xConv = 0;
-      
+
       for (let j = 0; j < samples.length; j++) {
         const [s2, h2] = samples[j];
         const d = estimate(kernel, s2, h2, x) * s2.length;
@@ -229,10 +222,10 @@ export function findConflationMaxima(
       } else if (maxD - xConv <= eps) {
         // tie
         ties++;
-  
+
         if (maxX > x) {
           // select the lower x
-          maxX = x;        
+          maxX = x;
         }
       }
     }
@@ -248,12 +241,7 @@ export function findConflationMaxima(
  * @param expectedValue The local/global maximum
  * @param h Kernel smoothing parameter (bandwidth)
  */
-export function fwhm(
-  kernel: Kernel,
-  sample: Indexable<number>,
-  expectedValue: number,
-  h: number,
-) {
+export function fwhm(kernel: Kernel, sample: Indexable<number>, expectedValue: number, h: number) {
   // sort by value
   sort(sample);
 
@@ -266,17 +254,21 @@ export function fwhm(
   }
 
   const density = (x: number) => estimate(kernel, sample, h, x);
-  const pHalf = .5 * density(sample[midIdx]);
+  const pHalf = 0.5 * density(sample[midIdx]);
 
   let lo = midIdx,
-      hi = midIdx;
+    hi = midIdx;
 
   while (lo > 0) {
-    if (density(sample[--lo]) <= pHalf) { break; }
+    if (density(sample[--lo]) <= pHalf) {
+      break;
+    }
   }
 
   while (hi < sample.length - 1) {
-    if (density(sample[++hi]) <= pHalf) { break; }
+    if (density(sample[++hi]) <= pHalf) {
+      break;
+    }
   }
 
   return {
@@ -290,6 +282,6 @@ export function fwhm(
      * The standard deviation in the interval,
      * assuming it is a normal distribution
      */
-    std: (sample[hi] - sample[lo]) / 2.355
+    std: (sample[hi] - sample[lo]) / 2.355,
   };
 }

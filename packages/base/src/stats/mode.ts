@@ -102,7 +102,7 @@ export function hsm(sample: Indexable<number>, minInterval?: number): REM {
 /**
  * A robust estimation of the standard deviation of a sample
  * at the mode.
- * 
+ *
  * @param std Controls the proportion of the sample about the mode to
  * take in to account
  */
@@ -123,7 +123,8 @@ export function estimateStdDev(xs: Indexable<number>, std = 1) {
 function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
   assert.gte(minInterval, 2);
 
-  let lo = 0, hi = sample.length - 1;
+  let lo = 0,
+    hi = sample.length - 1;
   let variation1 = 0;
 
   while (hi - lo + 1 > minInterval) {
@@ -213,7 +214,7 @@ export function lms(sample: Indexable<number>, alpha = 0.5): REM {
 export function shorth(
   sample: Indexable<number>,
   alpha = 0.5,
-  dist: stats.online.OnlineStat<number> = new stats.online.Gaussian()
+  dist: stats.online.OnlineStat<number> = new stats.online.Gaussian(),
 ): REM {
   assert.gt(sample.length, 0);
   assert.gt(alpha, 0);

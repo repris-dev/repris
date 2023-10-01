@@ -16,7 +16,7 @@ export function cdf(x: number, dof: number) {
  * This function is tested against gammainc(x, a)'s 'reginc' output from the
  * 'pracma' library for R. Note that R and jStat switch the order of operators
  * for this function.
- * 
+ *
  * Reference: [jStat](https://jstat.github.io/index.html)
  */
 export function lowRegGamma(a: number, x: number) {
@@ -32,12 +32,12 @@ export function lowRegGamma(a: number, x: number) {
   let i = 1;
 
   // calculate maximum number of iterations required for a
-  const ITMAX = -~(Math.log(a >= 1 ? a : 1 / a) * 8.5 + a * 0.4 + 17);  
+  const ITMAX = -~(Math.log(a >= 1 ? a : 1 / a) * 8.5 + a * 0.4 + 17);
 
   if (x < 0 || a <= 0) {
     return NaN;
   }
-  
+
   if (x < a + 1) {
     for (; i <= ITMAX; i++) {
       sum += del *= x / ++ap;
@@ -62,12 +62,8 @@ export function lowRegGamma(a: number, x: number) {
 /** Returns the Log-Gamma function evaluated at x. */
 function gammaln(x: number) {
   const cof = [
-     76.18009172947146,
-    -86.50532032941677,
-     24.01409824083091,
-    -1.231739572450155,
-     0.1208650973866179e-2,
-    -0.5395239384953e-5,
+    76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155,
+    0.1208650973866179e-2, -0.5395239384953e-5,
   ];
 
   let ser = 1.000000000190015;

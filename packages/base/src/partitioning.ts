@@ -8,7 +8,7 @@ export class DisjointSet<T extends number> {
   private constructor(
     private tourStart: Indexable<T>,
     private tours: Indexable<T>,
-    private nTours: number
+    private nTours: number,
   ) {
     this.size = tours.length;
   }

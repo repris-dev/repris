@@ -41,11 +41,12 @@ export type DigestedSampleStatus =
 /** A function to summarize a set of samples */
 export type DigestMethod<T extends Sample<any>> = (
   samples: readonly T[],
-  opts: DigestOptions
+  opts: DigestOptions,
 ) => Digest<T>;
 
 /** Represents the consolidation of several independent samples of the same quantity */
-export interface Digest<T extends Sample<V>, V = any> extends json.Serializable<wt.BenchmarkDigest> {
+export interface Digest<T extends Sample<V>, V = any>
+  extends json.Serializable<wt.BenchmarkDigest> {
   /** The kind of digest */
   readonly [typeid]: typeid;
 

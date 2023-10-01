@@ -1,7 +1,6 @@
 import { json, typeid, uuid } from '@repris/base';
 
-export type Parameter =
-    number | string | boolean | { label: string, value: json.Value };
+export type Parameter = number | string | boolean | { label: string; value: json.Value };
 
 export type Sample = json.Value & {
   '@type': string;
@@ -33,7 +32,7 @@ export type BenchmarkDigest = {
 export type SamplerInfo = json.Value & {
   '@type': string;
 
-  parameter?: Parameter[]
+  parameter?: Parameter[];
 };
 
 export type Sampler = {

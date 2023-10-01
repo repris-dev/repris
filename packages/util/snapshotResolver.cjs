@@ -13,9 +13,7 @@ module.exports = {
   // Resolves from snapshot to test path
   // e.g. src/xxx.snap.ts => .tsc/xxx.spec.ts
   resolveTestPath(snapshotFilePath, snapshotExtension) {
-    return snapshotFilePath
-      .replace(snapshotExtension, '.spec')
-      .replace(/\/src\//, '/.tsc/');
+    return snapshotFilePath.replace(snapshotExtension, '.spec').replace(/\/src\//, '/.tsc/');
   },
 
   // Example test path, used for preflight consistency check of the

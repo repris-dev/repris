@@ -16,7 +16,10 @@ const assignDeepImpl = (target: any, source: any) => {
   }
 };
 
-export const assignDeep = <T extends Record<string, any>>(target: Partial<T>, ...sources: T[]): T => {
+export const assignDeep = <T extends Record<string, any>>(
+  target: Partial<T>,
+  ...sources: T[]
+): T => {
   for (const object of sources) {
     assignDeepImpl(target, object);
   }

@@ -12,5 +12,5 @@ export default {
   testEnvironmentOptions: { customExportConditions: ['development'] },
   globals: defaults(pkg),
   cacheDirectory: '<rootDir>/.jestcache/',
-  transform: {}
+  transform: {},
 };

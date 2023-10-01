@@ -3,13 +3,14 @@
 //
 
 export type RecursivePartial<T> = {
-  [P in keyof T]?:
-    T[P] extends (infer U)[] ? RecursivePartial<U>[] :
-    T[P] extends object ? RecursivePartial<T[P]> :
-    T[P];
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? RecursivePartial<U>[]
+    : T[P] extends object
+    ? RecursivePartial<T[P]>
+    : T[P];
 };
 
-export type Indexable<T> = { [i: number]: T; readonly length: number; }
+export type Indexable<T> = { [i: number]: T; readonly length: number };
 
 //
 // Error codes, status, results
@@ -22,9 +23,7 @@ export namespace Status {
 
   /** Create an error */
   export function err<T = any>(msg: string | Error): Status<T> {
-    return typeof msg === 'string'
-        ? [null, new Error(msg)]
-        : [null, msg];
+    return typeof msg === 'string' ? [null, new Error(msg)] : [null, msg];
   }
 
   /** Check the given status is an error */
@@ -38,16 +37,19 @@ export namespace Status {
 
   /** Get the status value or throw an exception */
   export function get<T>(s: Status<T>): T {
-    if (isErr(s)) { throw s[1]; }
+    if (isErr(s)) {
+      throw s[1];
+    }
     return s[0];
   }
 
   export function getOr<T>(s: Status<T>, defaultValue: T): T {
-    if (isErr(s)) { return defaultValue; }
+    if (isErr(s)) {
+      return defaultValue;
+    }
     return s[0];
   }
 }
-
 
 //
 // Opaque and runtime type information
@@ -81,7 +83,7 @@ export function lazy<T>(init: () => T): () => T {
   return () => {
     if (val === void 0) val = init();
     return val;
-  }
+  };
 }
 
 //

@@ -7,7 +7,7 @@ import {
   uuid,
   random,
   array,
-  quantity as q
+  quantity as q,
 } from '@repris/base';
 import * as ann from '../annotators.js';
 import * as wt from '../wireTypes.js';
@@ -18,7 +18,7 @@ export type Options = {
    * The maximum size of the collected sample, using reservoir sampling.
    * A value < 0 disables reservoir sampling and the returned sample
    * will contain all observations.
-   * 
+   *
    * See: https://en.wikipedia.org/wiki/Reservoir_sampling
    */
   maxCapacity: number;
@@ -29,7 +29,7 @@ export type Options = {
    * sufficiently concentrated at the mode.
    */
   significanceThreshold: number;
-}
+};
 
 /** Json representation of a duration sample */
 type WireType = wt.Sample & {
@@ -50,7 +50,7 @@ function isDurationSampleWT(x: unknown): x is WireType {
   );
 }
 
-const UNIT: q.UnitsOf<'time'> = 'microsecond'; 
+const UNIT: q.UnitsOf<'time'> = 'microsecond';
 
 /** A sample of durations in microseconds */
 export class Duration implements MutableSample<timer.HrTime, number> {
@@ -66,7 +66,9 @@ export class Duration implements MutableSample<timer.HrTime, number> {
     }
 
     if (x.units !== UNIT) {
-      return Status.err(`Sample values are not in expected units. Got ${ x.units } but expected ${ UNIT }`);
+      return Status.err(
+        `Sample values are not in expected units. Got ${x.units} but expected ${UNIT}`,
+      );
     }
 
     const sample = new Duration(x.opts ?? {});
@@ -83,9 +85,9 @@ export class Duration implements MutableSample<timer.HrTime, number> {
   readonly [typeid] = Duration[typeid];
 
   get [uuid]() {
-    return this.uuid ??= random.newUuid();
+    return (this.uuid ??= random.newUuid());
   }
-  
+
   private times: stats.ReservoirSample<number>;
   private onlineStats: stats.online.Lognormal;
   private uuid: uuid | undefined;
@@ -153,7 +155,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
       summary: this.onlineStats.toJson(),
       units: UNIT,
       values: this.times.values,
-      opts: this.opts
+      opts: this.opts,
     };
   }
 }
@@ -203,7 +205,7 @@ ann.register('@sample:duration-annotator' as typeid, {
 
   annotate(
     sample: Sample<unknown>,
-    _request: Map<typeid, {}>
+    _request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!Duration.is(sample)) {
       return Status.value(void 0);

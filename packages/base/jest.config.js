@@ -6,9 +6,6 @@ export default {
   roots: ['<rootDir>/.tsc/'],
   testMatch: ['**/*.spec.[tj]s'],
   snapshotResolver: '@repris/util/snapshotResolver.cjs',
-  setupFilesAfterEnv: [
-    '@repris/util/matchers.cjs',
-    '@repris/util/cryptoSetup.cjs'
-  ],
+  setupFilesAfterEnv: ['@repris/util/matchers.cjs', '@repris/util/cryptoSetup.cjs'],
   globals: defaults(pkg),
 };

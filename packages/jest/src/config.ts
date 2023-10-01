@@ -27,20 +27,20 @@ export interface ReprisConfig {
        * The annotations to compute for each digest. In a digest,
        * 3 items are annotatable and the annotations for each can be configured
        * separately based on the corresponding context:
-       * 
+       *
        *  1. '@index' - The annotations for the digest stored in the index
        *  2. '@baseline' - The annotations for the baseline digest
-       *  3. '@test' - The annotations for the hypothesis test 
+       *  3. '@test' - The annotations for the hypothesis test
        */
-      annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>
-    },
+      annotations: AnnotationRequestTree<'@index' | '@baseline' | '@test'>;
+    };
     show?: {
-      annotations: AnnotationRequestTree<'@index' | '@baseline'>
-    },
+      annotations: AnnotationRequestTree<'@index' | '@baseline'>;
+    };
     test?: {
-      annotations: AnnotationRequest[]
-    }
-  }
+      annotations: AnnotationRequest[];
+    };
+  };
 }
 
 export interface GradingThreshold {
@@ -51,7 +51,7 @@ export interface GradingThreshold {
   '<'?: number;
 
   apply: (str: string) => string;
-};
+}
 
 export type Ctx = `@${string}`;
 
@@ -90,18 +90,19 @@ export interface AnnotationConfig {
 }
 
 /** A request for an annotation as either a typeid or a (typeid, config) tuple */
-export type AnnotationRequest =
-  string | [type: string, config: AnnotationConfig];
+export type AnnotationRequest = string | [type: string, config: AnnotationConfig];
 
 /** A tree of annotation requests where leaves are annotations and branches are context names */
-export type AnnotationRequestTree<T extends `@${string}` = `@${string}`> =
-  (AnnotationRequest | Record<T, AnnotationRequestTree>)[];
+export type AnnotationRequestTree<T extends `@${string}` = `@${string}`> = (
+  | AnnotationRequest
+  | Record<T, AnnotationRequestTree>
+)[];
 
 export const normalize = {
   simpleOpt<T>(opt: string | [id: string, opt: T], defaultOpt: T): [id: string, opt: T] {
     return typeof opt === 'string' ? [opt, defaultOpt] : opt;
-  }
-}
+  },
+};
 
 const loadEsm = async (filepath: string) => {
   try {
@@ -133,7 +134,7 @@ const defaultConfig = lazy(() =>
     .catch(e => {
       dbg(`Failed to load default Config file (%s): %s`, DEFAULT_CONFIG_PATH, e);
       return {} as ReprisConfig;
-    })
+    }),
 );
 
 /** Map of rootDir to config */
@@ -163,8 +164,8 @@ export async function load(rootDir: string): Promise<ReprisConfig> {
  */
 export function* iterateAnnotationTree(
   tree: AnnotationRequestTree,
-  ctx?: Ctx[]
-): IterableIterator<{ type: typeid, ctx?: Ctx[], if?: string[], options?: any }> {
+  ctx?: Ctx[],
+): IterableIterator<{ type: typeid; ctx?: Ctx[]; if?: string[]; options?: any }> {
   for (const branch of tree) {
     if (Array.isArray(branch) || typeof branch === 'string') {
       // leaf (annotation)
@@ -174,7 +175,7 @@ export function* iterateAnnotationTree(
         options: cfg.options,
         ctx,
       };
-  
+
       if (cfg.grading) {
         const grading = cfg.grading;
         const [gType, gCfg] = Array.isArray(grading) ? grading : [type, grading];
@@ -183,7 +184,7 @@ export function* iterateAnnotationTree(
           type: gType as typeid,
           options: gCfg.options,
           ctx: gCfg.ctx ? [gCfg.ctx] : void 0,
-        };    
+        };
       }
     } else {
       // branch (array of annotations within a context)
@@ -209,7 +210,7 @@ export function parseAnnotations(
   return (context?: Ctx) => {
     assert.eq(Array.isArray(context), false, 'Nested Contexts not supported');
     const result = new Map<typeid, any>();
-    
+
     requests.forEach(r => {
       if ((r.ctx === void 0 && context === void 0) || context === r.ctx?.[0]) {
         if (result.has(r.type) && result.get(r.type) !== r.options) {
@@ -221,5 +222,5 @@ export function parseAnnotations(
     });
 
     return result;
-  }
+  };
 }
