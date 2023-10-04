@@ -1,6 +1,6 @@
 # Repris
 
-Consistent and robust benchmarking for Jest.
+_Reproducible benchmarking for Jest_
 
 ## Quickstart
 
