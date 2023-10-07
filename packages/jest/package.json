@@ -42,7 +42,10 @@
     "./stopwatch-env": {
       "types": "./env/stopwatch-env.d.ts",
       "development": "./.tsc/setupStopwatch.js",
-      "default": "./lib/setupStopwatch.js"
+      "default": {
+        "import": "./lib/setupStopwatch.js",
+        "require": "./lib/setupStopwatch.cjs"
+      }
     },
     "./cli": {
       "development": "./.tsc/cli.js",

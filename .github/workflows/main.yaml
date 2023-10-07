@@ -48,5 +48,13 @@ jobs:
       - name: Build and Test
         run: |
           pnpm build:tsc
-          export NODE_OPTIONS='--experimental-vm-modules -C development'
           pnpm test -- --no-color
+
+      - name: Demo benchmarks
+        run: |
+          pnpm build:vite
+
+          # - The demos are compiled to esm, so we enable ESM VM modules for jest
+          export NODE_OPTIONS='--experimental-vm-modules'
+
+          pnpm -F '@repris/jest-demo' bench:production
