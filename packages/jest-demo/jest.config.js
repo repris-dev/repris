@@ -5,8 +5,7 @@ import pkg from './package.json' assert { type: 'json' };
 Object.assign(globalThis, defaults(pkg));
 
 // Simulate production repris (requires a full distribution build)
-const customExportConditions =
-  process.env.NODE_ENV === 'production' ? [] : ['development'];
+const customExportConditions = process.env.NODE_ENV === 'production' ? [] : ['development'];
 
 export default {
   preset: '@repris/jest',
