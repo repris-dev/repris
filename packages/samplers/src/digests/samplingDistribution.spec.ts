@@ -1,7 +1,7 @@
 import { timer, random, iterator, quantity as q, typeid, Status, asTuple } from '@repris/base';
 import * as duration from '../samples/duration.js';
 import * as defaults from '../defaults.js';
-import { Digest, process, createOutlierSelection } from './samplingDistribution.js';
+import { Digest, processSamples, createOutlierSelection } from './samplingDistribution.js';
 import { DigestedSampleStatus } from './types.js';
 import { annotate } from '../annotators.js';
 
@@ -54,7 +54,7 @@ describe('process()', () => {
 
     const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
 
-    const digest = process(annotated, {
+    const digest = processSamples(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
       maxUncertainty: 0.1,
       minSize: 2,
@@ -80,7 +80,7 @@ describe('process()', () => {
       // High threshold of uncertainty
       const a = postProcess(
         Status.get(
-          process(annotated, {
+          processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
             maxUncertainty: Infinity,
             minSize: 2,
@@ -97,7 +97,7 @@ describe('process()', () => {
       // Low threshold of uncertainty
       const a = postProcess(
         Status.get(
-          process(annotated, {
+          processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
             maxUncertainty: 0.1,
             minSize: 2,
@@ -120,7 +120,7 @@ describe('process()', () => {
 
     const a = postProcess(
       Status.get(
-        process(
+        processSamples(
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
@@ -147,7 +147,7 @@ describe('process()', () => {
 
     const a = postProcess(
       Status.get(
-        process(
+        processSamples(
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,

@@ -81,7 +81,7 @@ export interface AnnotationConfig {
 
   /**
    * A grading can be configured to annotate the 'quality' of an annotation.
-   * The grading of an annotation is used by reporters to color the statistic.
+   * The grading is used by reporters to color the statistic.
    *
    * For example, the mean value of a sample could be graded using
    * the coefficient of variance as a proxy for the 'noisiness' of the sample.

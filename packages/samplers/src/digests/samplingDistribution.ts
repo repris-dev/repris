@@ -27,7 +27,7 @@ type DistributionDigestWT = wt.BenchmarkDigest & {
 };
 
 /** Create a digest from the given samples */
-export function process(
+export function processSamples(
   samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
   opts: Options,
   entropy?: random.Generator,
@@ -35,11 +35,11 @@ export function process(
   const points = [] as [number, duration.Duration][];
   for (const [sample, bag] of samples) {
     if (bag !== void 0 && bag[opts.locationEstimationType]) {
-      const anno = annotators.fromJson(bag[opts.locationEstimationType]);
-      const val = quantity.isQuantity(anno) ? anno.scalar : Number(anno);
+      const locationStat = annotators.fromJson(bag[opts.locationEstimationType]);
+      const val = quantity.isQuantity(locationStat) ? locationStat.scalar : Number(locationStat);
       points.push([Number(val), sample]);
     } else {
-      // todo: annotate the sample
+      // todo: annotate the sample here
       return Status.err(
         `Sample could not be digested. Annotation '${opts.locationEstimationType}' is missing`,
       );
