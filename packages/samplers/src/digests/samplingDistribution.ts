@@ -26,6 +26,19 @@ type DistributionDigestWT = wt.BenchmarkDigest & {
   statistic: number[];
 };
 
+export type SamplingAggregation<T> = {
+  /** Status/classification of each sample */
+  stat: { sample: T; status: types.DigestedSampleStatus }[];
+
+  /** Sampling distribution of the consistent subset, if any */
+  samplingDistribution: number[];
+
+  /** The Coefficient of variation of the consistent subset */
+  relativeSpread: number;
+};
+
+export const NoisySample = 'sample:noisy' as typeid;
+
 /** Create a digest from the given samples */
 export function processSamples(
   samples: Iterable<[duration.Duration, wt.AnnotationBag | undefined]>,
@@ -33,8 +46,14 @@ export function processSamples(
   entropy?: random.Generator,
 ): Status<Digest> {
   const points = [] as [number, duration.Duration][];
+  const noisySamples = [] as duration.Duration[];
+
   for (const [sample, bag] of samples) {
-    if (bag !== void 0 && bag[opts.locationEstimationType]) {
+    if (bag !== void 0 && bag[NoisySample]) {
+      // filter out samples branded as noisy
+      noisySamples.push(sample);
+    } else if (bag !== void 0 && bag[opts.locationEstimationType]) {
+      // get the location estimate to analyze
       const locationStat = annotators.fromJson(bag[opts.locationEstimationType]);
       const val = quantity.isQuantity(locationStat) ? locationStat.scalar : Number(locationStat);
       points.push([Number(val), sample]);
@@ -47,6 +66,8 @@ export function processSamples(
   }
 
   const aggregation = aggregateAndFilter(points, opts, entropy);
+  noisySamples.forEach(sample => aggregation.stat.push({ sample, status: 'rejected' }));
+
   const summary = summarize(aggregation.stat);
   const isReady = summary.consistent >= opts.minSize;
 
@@ -164,17 +185,6 @@ function summarize(stat: { status: types.DigestedSampleStatus }[]) {
   for (const s of stat) result[s.status]++;
   return result;
 }
-
-export type SamplingAggregation<T> = {
-  /** Status/classification of each sample */
-  stat: { sample: T; status: types.DigestedSampleStatus }[];
-
-  /** Sampling distribution of the consistent subset, if any */
-  samplingDistribution: number[];
-
-  /** The Coefficient of variation of the consistent subset */
-  relativeSpread: number;
-};
 
 /**
  * Creates a digest of samples based on analysis of their sampling

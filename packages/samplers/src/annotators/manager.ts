@@ -1,19 +1,23 @@
 import { assert, isObject, json, Status, typeid, quantity as q, iterator } from '@repris/base';
 import * as wt from '../wireTypes.js';
-import type { Annotator, AnnotationBag, Annotation, Annotatable, Value } from './types.js';
+import type {
+  Annotator,
+  AnnotationBag,
+  Annotation,
+  Condition,
+  Annotatable,
+  Value,
+} from './types.js';
 
-const annotators = new Map<string, Annotator>();
-const annotatorMap = new Map<typeid, string>();
+const annotators = new Map<string, [a: Annotator, priority: number]>();
 
 /** Register a global annotator */
-export function register(name: string, annotator: Annotator): Status {
+export function register(name: string, annotator: Annotator, priority = 0): Status {
   if (annotators.has(name)) {
     return Status.err(`Annotator '${name}' already registered`);
   }
 
-  annotators.set(name, annotator);
-  annotator.annotations().forEach(a => annotatorMap.set(a, name));
-
+  annotators.set(name, [annotator, priority]);
   return Status.ok;
 }
 
@@ -117,9 +121,15 @@ export class DefaultBag implements AnnotationBag {
 }
 
 export function supports(annotation: typeid) {
-  return annotatorMap.has(annotation);
+  for (const [_, [a]] of annotators) {
+    for (const typeid of a.annotations()) {
+      if (annotation === typeid) return true;
+    }
+  }
+  return false;
 }
 
+/** Compute the given annotations for the given item */
 export function annotate(
   item: Annotatable,
   request: Map<
@@ -130,24 +140,23 @@ export function annotate(
   >,
 ): Status<AnnotationBag> {
   const result = new Map<typeid, Annotation>();
-  const annotatorSubset = new Set<Annotator>();
+  const annotatorSubset = new Map<Annotator, number>();
 
-  for (const [typeid] of request) {
-    if (annotatorMap.has(typeid)) {
-      annotatorSubset.add(annotators.get(annotatorMap.get(typeid)!)!);
-    } else {
-      return Status.err(`Unknown annotation "${typeid}"`);
+  for (const [_, [a, priority]] of annotators) {
+    for (const typeid of a.annotations()) {
+      if (request.has(typeid)) {
+        annotatorSubset.set(a, priority);
+        break;
+      }
     }
   }
 
-  // Union the results of each annotator in to one AnnotationBag
-  for (const annotator of annotatorSubset) {
-    const canAnnotate = annotator.annotations().find(a => request.has(a)) !== void 0;
-    if (!canAnnotate) {
-      continue;
-    }
+  // sort by priority
+  const prioritySubset = iterator.collect(annotatorSubset.entries()).sort((a, b) => b[1] - a[1]);
 
-    const r = annotator.annotate(item, request);
+  // Union the results of each annotator in to one AnnotationBag
+  for (const [annotator] of prioritySubset) {
+    const r = annotator.annotate(item, request, result);
     if (Status.isErr(r)) {
       return r;
     }
@@ -164,6 +173,7 @@ export function annotate(
   return Status.value(DefaultBag.from(result));
 }
 
+/** Compute the given annotations for @param item which are missing from the given AnnotationBag */
 export function annotateMissing<A extends Annotatable>(
   bag: AnnotationBag,
   request: Map<typeid, any>,
@@ -185,4 +195,32 @@ export function annotateMissing<A extends Annotatable>(
   }
 
   return Status.ok;
+}
+
+/** @returns True if the given annotation value matches all the conditions in the given rule */
+export function meetsCondition(ann: Annotation, rule: Condition): boolean {
+  const conditions = Object.entries(rule);
+  const value = q.isQuantity(ann) ? ann.scalar : ann;
+
+  for (const [op, x] of conditions) {
+    switch (op) {
+      case '>':
+        if (!(value > x)) return false;
+        break;
+      case '>=':
+        if (!(value >= x)) return false;
+        break;
+      case '==':
+        if (!(value == x)) return false;
+        break;
+      case '<=':
+        if (!(value <= x)) return false;
+        break;
+      case '<':
+        if (!(value < x)) return false;
+        break;
+    }
+  }
+
+  return true;
 }

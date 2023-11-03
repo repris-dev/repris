@@ -321,7 +321,7 @@ async function tryCommitToBaseline(
   const snapFile = await s.loadOrCreate(testPath);
 
   if (Status.isErr(snapFile)) {
-    throw new Error(`Failed to load snapshot for test file:\n${snapFile[1]}`);
+    throw new Error(`Failed to load snapshot for test file:\n ${snapFile[1]}`);
   }
 
   const snapshot = snapFile[0];
@@ -361,7 +361,7 @@ function annotate(
 ): annotators.AnnotationBag {
   const [bag, err] = annotators.annotate(newSample, request);
   if (err) {
-    dbg('Failed to annotate sample %s', err.message);
+    dbg('Failed to annotate sample:\n %s', err.message);
     return annotators.DefaultBag.from([]);
   } else {
     return bag!;
@@ -384,7 +384,7 @@ function redigestBenchmark(
   const [newDigest, err0] = digests.duration.processSamples(allSamples, opts);
 
   if (err0) {
-    dbg('Failed to create digest %s', err0.message);
+    dbg('Failed to create digest:\n %s', err0.message);
     // return the original benchmark
     return bench;
   }
@@ -402,7 +402,7 @@ function redigestBenchmark(
   const digestBag = annotators.annotate(newDigest!, annotationRequest);
 
   if (Status.isErr(digestBag)) {
-    dbg('Failed to annotate digest %s', digestBag[1].message);
+    dbg('Failed to annotate digest:\n %s', digestBag[1].message);
   } else {
     newBench.annotations().set(newDigest![uuid], Status.get(digestBag).toJson());
   }
@@ -411,7 +411,7 @@ function redigestBenchmark(
   const benchmarkBag = annotators.annotate(newBench, annotationRequest);
 
   if (Status.isErr(benchmarkBag)) {
-    dbg('Failed to annotate benchmark %s', benchmarkBag[1].message);
+    dbg('Failed to annotate benchmark:\n %s', benchmarkBag[1].message);
   } else {
     newBench.annotations().set(newBench[uuid], Status.get(benchmarkBag).toJson());
   }

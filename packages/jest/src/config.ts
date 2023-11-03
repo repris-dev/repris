@@ -1,6 +1,7 @@
 import { debug } from 'node:util';
 import { lilconfig } from 'lilconfig';
-import { assert, assignDeep, iterator, lazy, typeid } from '@repris/base';
+import { assert, assignDeep, iterator, lazy, typeid, quantity as q } from '@repris/base';
+import { annotators } from '@repris/samplers';
 
 const dbg = debug('repris:config');
 const DEFAULT_CONFIG_PATH = '../.reprisrc.defaults.js';
@@ -43,17 +44,11 @@ export interface ReprisConfig {
   };
 }
 
-export interface GradingThreshold {
-  '>'?: number;
-  '>='?: number;
-  '=='?: number | string | boolean;
-  '<='?: number;
-  '<'?: number;
+export type Ctx = `@${string}`;
 
+export interface GradingThreshold extends annotators.Condition {
   apply: (str: string) => string;
 }
-
-export type Ctx = `@${string}`;
 
 export interface GradingConfig {
   /** Annotation configuration */
@@ -67,6 +62,11 @@ export interface GradingConfig {
    * value in to a three-level grading.
    */
   rules?: GradingThreshold[];
+}
+
+export interface BrandingConfig {
+  with: typeid;
+  when: annotators.Condition;
 }
 
 export interface AnnotationConfig {
@@ -87,6 +87,8 @@ export interface AnnotationConfig {
    * the coefficient of variance as a proxy for the 'noisiness' of the sample.
    */
   grading?: [id: string, config: GradingConfig] | GradingConfig;
+
+  brand?: BrandingConfig;
 }
 
 /** A request for an annotation as either a typeid or a (typeid, config) tuple */
@@ -170,6 +172,7 @@ export function* iterateAnnotationTree(
     if (Array.isArray(branch) || typeof branch === 'string') {
       // leaf (annotation)
       const [type, cfg] = normalize.simpleOpt(branch, {});
+
       yield {
         type: type as typeid,
         options: cfg.options,
@@ -185,6 +188,19 @@ export function* iterateAnnotationTree(
           options: gCfg.options,
           ctx: gCfg.ctx ? [gCfg.ctx] : void 0,
         };
+      }
+
+      if (cfg.brand) {
+        const brand = cfg.brand;
+        const [, e] = annotators.registerBranding(brand.with, type as typeid, brand.when);
+
+        if (e) {
+          dbg(`Branding could not be registered. "%s"`, e);
+        } else {
+          yield {
+            type: brand.with,
+          };
+        }
       }
     } else {
       // branch (array of annotations within a context)

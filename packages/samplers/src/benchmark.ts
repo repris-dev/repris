@@ -143,10 +143,11 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   addRun(digest: digests.Digest<duration.Duration>): DefaultBenchmark {
     const nextRun = this.totalRuns() + 1;
 
-    // Create a new benchmark
+    // Create a new benchmark, filter rejected samples
     const samples: { sample: duration.Duration; run: number }[] = [];
     for (const { status, sample } of digest.stat()) {
       if (status !== 'rejected') {
+        // The run this sample appears in
         const run = this._samples.get(sample)?.run ?? nextRun;
         samples.push({ sample, run });
       }

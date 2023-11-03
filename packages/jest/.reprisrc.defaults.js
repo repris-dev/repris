@@ -4,8 +4,8 @@ import { defaults } from '@repris/samplers';
 
 /**
  * @param {string} displayName
- * @param {import('./src/config').Ctx | undefined} ctx
- * @returns {import('./src/config').AnnotationRequest}
+ * @param {import('./src/config.js').Ctx | undefined} ctx
+ * @returns {import('./src/config.js').AnnotationRequest}
  */
 function benchmarkSummary(displayName, ctx = undefined) {
   return [
@@ -23,7 +23,7 @@ function benchmarkSummary(displayName, ctx = undefined) {
   ];
 }
 
-/** @type {import("./src/config").ReprisConfig} */
+/** @type {import("./src/config.js").ReprisConfig} */
 export default {
   sample: {
     options: defaults.samples.duration,
@@ -50,6 +50,10 @@ export default {
                 { '>=': 0.05, apply: chalk.yellow },
                 { '>=': 0.2, apply: chalk.red },
               ],
+            },
+            brand: {
+              with: 'sample:noisy',
+              when: { '>=': 0.2 },
             },
           },
         ],
