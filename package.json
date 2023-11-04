@@ -14,8 +14,8 @@
   },
   "scripts": {
     "build:tsc": "tsc -b .",
-    "build:vite": "pnpm -r run --if-present --stream build:vite",
-    "test": "pnpm -r run --if-present --stream test",
+    "build:vite": "pnpm -r run --if-present --workspace-concurrency=1 build:vite",
+    "test": "pnpm -r run --if-present --workspace-concurrency=1 test",
     "format": "prettier --write ."
   }
 }
