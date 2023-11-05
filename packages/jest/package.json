@@ -23,6 +23,7 @@
     "node": ">=18.0.0"
   },
   "type": "module",
+  "types": "./env/stopwatch-env.d.ts",
   "bin": {
     "repris": "./script/cli.mjs"
   },

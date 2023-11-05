@@ -14,6 +14,7 @@
     "lib"
   ],
   "type": "module",
+  "types": "./.tsc/index.d.ts",
   "exports": {
     ".": {
       "types": "./.tsc/index.d.ts",
