@@ -291,6 +291,9 @@ export function createOutlierSelection<T>(
       for (let i = 0; i < N; i++) {
         sigmas[i] = Math.abs(xs[i] - mean) / std;
       }
+    } else {
+      // equal weights
+      array.fill(sigmas, 1 / N);
     }
   }
 

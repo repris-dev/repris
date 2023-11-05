@@ -168,9 +168,8 @@ describe('process()', () => {
 });
 
 describe('outlierSelection', () => {
-  const xs = [5.5, 5.4, 5.3, 3.4, 3, 2.2, 2.1, 2, 1.2, 1, 1.1, 1.3, 0.2, 0.1, 0];
-
   test('Rejects values once', () => {
+    const xs = [5.5, 5.4, 5.3, 3.4, 3, 2.2, 2.1, 2, 1.2, 1, 1.1, 1.3, 0.2, 0.1, 0];
     const fn = createOutlierSelection<number>(xs, x => x);
     const seen = new Set<number>();
 
@@ -180,6 +179,18 @@ describe('outlierSelection', () => {
       expect(seen.has(x!)).toEqual(false);
 
       seen.add(x!);
+    }
+
+    expect(fn()).toEqual(undefined);
+  });
+
+  test('Rejects equal values', () => {
+    const xs = [5, 5, 5, 5, 5, 5, 5];
+    const fn = createOutlierSelection<number>(xs, x => x);
+
+    for (let i = 0; i < xs.length; i++) {
+      const x = fn();
+      expect(x).toEqual(5);
     }
 
     expect(fn()).toEqual(undefined);
