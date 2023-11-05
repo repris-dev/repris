@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 import { assert, Status } from '@repris/base';
 
@@ -36,7 +37,7 @@ export class SnapshotFileManager {
 
     if (await pathExists(cachePath)) {
       // load an existing cache file
-      const cacheFile = await this.loadCacheFile(cachePath, testPath);
+      const cacheFile = await this.loadCacheFile(cachePath);
 
       if (Status.isErr(cacheFile)) {
         return cacheFile;
@@ -66,16 +67,23 @@ export class SnapshotFileManager {
       return Status.err('Unknown Snapshot. Load the snapshot first.');
     }
 
-    if (!snapshot.isEmpty()) {
-      const cache: SnapshotFileWT = {
-        suiteFilePath: meta.testPath,
-        snapshot: snapshot.toJson(),
-      };
+    try {
+      if (!snapshot.isEmpty()) {
+        const cache: SnapshotFileWT = {
+          suiteFilePath: meta.testPath,
+          snapshot: snapshot.toJson(),
+        };
+  
+        const dir = path.dirname(meta.cachePath);
 
-      await fs.writeFile(meta.cachePath, JSON.stringify(cache));
-    } else if (await pathExists(meta.cachePath)) {
-      // delete any existing snapshot instead of writing an 'empty' snapshot
-      await fs.unlink(meta.cachePath);
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(meta.cachePath, JSON.stringify(cache));
+      } else if (await pathExists(meta.cachePath)) {
+        // delete any existing snapshot instead of writing an 'empty' snapshot
+        await fs.unlink(meta.cachePath);
+      }
+    } catch (e) {
+      return Status.err(e as string);
     }
 
     return Status.ok;
@@ -87,7 +95,7 @@ export class SnapshotFileManager {
     await fs.unlink(cachePath);
   }
 
-  private async loadCacheFile(cachePath: string, testFilePath: string) {
+  private async loadCacheFile(cachePath: string) {
     let cache: SnapshotFileWT;
 
     try {
