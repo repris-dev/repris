@@ -183,7 +183,9 @@ class Time {
       if (us === void 0) return 'ERR';
 
       // Special treatment
-      if (Math.abs(us) === 0 || !Number.isFinite(us)) return f.format(us);
+      if (Math.abs(us) < 1 || !Number.isFinite(us)) {
+        return f.format(us) + (us === 0 ? '' : Taxonomy.time.microsecond[0]);
+      }
 
       // Format negative durations as '-1m 3s' instead of '-1m -3s'
       let result = us < 0 ? '-' : '';

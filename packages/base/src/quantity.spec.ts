@@ -28,6 +28,12 @@ describe('time', () => {
       expect(fmt.format(us(1.5)))
         .toBe('1.5µs');
 
+      expect(fmt.format(us(0.341)))
+        .toBe('0.34µs');
+
+      expect(fmt.format(us(-0.341)))
+        .toBe('-0.34µs');
+
       expect(fmt.format(us(0)))
         .toBe('0');
 
