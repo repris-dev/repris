@@ -220,7 +220,7 @@ export default async function testRunner(
           augmentedResult.repris = { sample: sampleBagJson };
 
           if (indexedSnapshot) {
-            // load the previous samples of this benchmark from the cache
+            // load the previous samples of this benchmark from the cache, or create a new one
             const indexedBenchmark =
               indexedSnapshot.getBenchmark(title, nth) ?? f.DefaultBenchmark.empty({ title, nth });
 
@@ -321,7 +321,7 @@ async function tryCommitToBaseline(
   const snapFile = await s.loadOrCreate(testPath);
 
   if (Status.isErr(snapFile)) {
-    throw new Error(`Failed to load snapshot for test file:\n${snapFile[1]}`);
+    throw new Error(`Failed to load snapshot for test file:\n ${snapFile[1]}`);
   }
 
   const snapshot = snapFile[0];
@@ -361,7 +361,7 @@ function annotate(
 ): annotators.AnnotationBag {
   const [bag, err] = annotators.annotate(newSample, request);
   if (err) {
-    dbg('Failed to annotate sample %s', err.message);
+    dbg('Failed to annotate sample:\n %s', err.message);
     return annotators.DefaultBag.from([]);
   } else {
     return bag!;
@@ -381,42 +381,42 @@ function redigestBenchmark(
   allSamples.push([newEntry.sample, newEntry.annotations]);
 
   // digest the new and previous samples together
-  const newDigest = digests.duration.process(allSamples, opts);
+  const [newDigest, err0] = digests.duration.processSamples(allSamples, opts);
 
-  if (Status.isErr(newDigest)) {
-    dbg('Failed to create digest %s', newDigest[1].message);
+  if (err0) {
+    dbg('Failed to create digest:\n %s', err0.message);
     // return the original benchmark
     return bench;
   }
 
   // Update the aggregated benchmark, discarding sample(s)
   // rejected during the digest analysis.
-  const result = bench.addRun(newDigest[0]);
+  const newBench = bench.addRun(newDigest!);
 
   // set sample annotation
-  for (const { sample: s } of result.samples()) {
-    if (s === newEntry.sample) result.annotations().set(s[uuid], newEntry.annotations);
+  for (const { sample: s } of newBench.samples()) {
+    if (s === newEntry.sample) newBench.annotations().set(s[uuid], newEntry.annotations);
   }
 
   // Annotate this digest
-  const digestBag = annotators.annotate(newDigest[0], annotationRequest);
+  const digestBag = annotators.annotate(newDigest!, annotationRequest);
 
   if (Status.isErr(digestBag)) {
-    dbg('Failed to annotate digest %s', digestBag[1].message);
+    dbg('Failed to annotate digest:\n %s', digestBag[1].message);
   } else {
-    result.annotations().set(newDigest[0][uuid], Status.get(digestBag).toJson());
+    newBench.annotations().set(newDigest![uuid], Status.get(digestBag).toJson());
   }
 
   // Annotate the benchmark and store these annotations in the benchmark itself
-  const benchmarkBag = annotators.annotate(result, annotationRequest);
+  const benchmarkBag = annotators.annotate(newBench, annotationRequest);
 
   if (Status.isErr(benchmarkBag)) {
-    dbg('Failed to annotate benchmark %s', benchmarkBag[1].message);
+    dbg('Failed to annotate benchmark:\n %s', benchmarkBag[1].message);
   } else {
-    result.annotations().set(result[uuid], Status.get(benchmarkBag).toJson());
+    newBench.annotations().set(newBench[uuid], Status.get(benchmarkBag).toJson());
   }
 
-  return result;
+  return newBench;
 }
 
 // Return a string that identifies the test (concat of parent describe block

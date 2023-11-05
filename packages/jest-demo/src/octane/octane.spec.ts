@@ -1,3 +1,6 @@
+import { jest } from '@jest/globals'
+import { random } from '@repris/base';
+
 import { encrypt, decrypt } from './crypto.js';
 import { setupNavierStokes, runNavierStokes, tearDownNavierStokes } from './navierStokes.js';
 import { renderScene } from './raytrace.js';
@@ -6,6 +9,18 @@ import { runRichards } from './richards.js';
 import { SplaySetup, SplayRun, SplayTearDown } from './splay.js';
 import { deltaBlue } from './deltaBlue.js';
 import { runEarlyBoyer } from './earlyBoyer.js';
+
+let mockMathRand: jest.SpiedFunction<typeof Math.random>;
+
+beforeEach(() => {
+  mockMathRand = jest.spyOn(globalThis.Math, 'random').mockImplementation(
+    random.uniform(0, 1, random.PRNGi32(41))
+  );
+});
+
+afterEach(() => {
+  mockMathRand.mockRestore();
+})
 
 bench('Delta blue', s => {
   for (const _ of s) deltaBlue();

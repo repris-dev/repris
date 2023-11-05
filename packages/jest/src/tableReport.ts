@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { assert, typeid, quantity as q } from '@repris/base';
-import { annotators as anno } from '@repris/samplers';
-import type * as config from './config.js';
+import { annotators as anno, annotators } from '@repris/samplers';
+import * as config from './config.js';
 import * as cli from './cli.js';
 
 export interface ColumnGrading {
@@ -113,14 +113,14 @@ export class TerminalReport<Id> {
    * @param config Configuration of the quality annotation
    * @param bag A bag of annotations containing the quality annotation
    */
-  private _colorizeByQuality(cell: Cell, config: ColumnGrading, bag: anno.AnnotationBag): Cell {
-    const ann = bag.annotations.get(config.type, config.ctx);
+  private _colorizeByQuality(cell: Cell, cfg: ColumnGrading, bag: anno.AnnotationBag): Cell {
+    const ann = bag.annotations.get(cfg.type, cfg.ctx);
 
-    if (ann !== void 0 && Array.isArray(config.rules)) {
+    if (ann !== void 0 && Array.isArray(cfg.rules)) {
       let matchingRule: config.GradingThreshold | undefined;
 
-      for (let t of config.rules) {
-        if (matchesRule(ann, t)) matchingRule = t;
+      for (let t of cfg.rules) {
+        if (annotators.meetsCondition(ann, t)) matchingRule = t;
       }
 
       if (matchingRule !== void 0) {
@@ -362,35 +362,4 @@ export class TableTreeReporter<Leaf> {
 
 function indent(n: number) {
   return '  '.repeat(n);
-}
-
-/**
- * @returns True if the given annotation value matches all the conditions in the given
- * grading rule
- */
-function matchesRule(ann: anno.Annotation, rule: config.GradingThreshold): boolean {
-  const conditions = Object.entries(rule);
-  const value = q.isQuantity(ann) ? ann.scalar : ann;
-
-  for (const [op, x] of conditions) {
-    switch (op) {
-      case '>':
-        if (!(value > x)) return false;
-        break;
-      case '>=':
-        if (!(value >= x)) return false;
-        break;
-      case '==':
-        if (!(value == x)) return false;
-        break;
-      case '<=':
-        if (!(value <= x)) return false;
-        break;
-      case '<':
-        if (!(value < x)) return false;
-        break;
-    }
-  }
-
-  return true;
 }

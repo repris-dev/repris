@@ -6,11 +6,7 @@ import * as digests from './digests.js';
 import { duration, Sample } from './samples.js';
 
 /**
- * A test run produces a report. The report contains a number of benchmarks,
- * and each benchmark contains a sample and its annotations.
- *
- * When multiple reports are combined together it produces a set of aggregated
- * benchmarks summarized by a digest.
+ * A collection of Samples, summarized as a Digest.
  */
 export interface AggregatedBenchmark<S extends Sample<any>>
   extends json.Serializable<wt.Benchmark> {
@@ -147,23 +143,24 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   addRun(digest: digests.Digest<duration.Duration>): DefaultBenchmark {
     const nextRun = this.totalRuns() + 1;
 
-    // Create a new benchmark
+    // Create a new benchmark, filter rejected samples
     const samples: { sample: duration.Duration; run: number }[] = [];
     for (const { status, sample } of digest.stat()) {
       if (status !== 'rejected') {
+        // The run this sample appears in
         const run = this._samples.get(sample)?.run ?? nextRun;
         samples.push({ sample, run });
       }
     }
 
-    const newFixt = new DefaultBenchmark(this.name, samples, digest, nextRun);
-    newFixt._uuid = this[uuid];
+    const newBench = new DefaultBenchmark(this.name, samples, digest, nextRun);
+    newBench._uuid = this[uuid];
 
     // copy sample annotations
     // Note: the digest annotation isn't copied since
     // a benchmark can only contain one digest at a time.
     const src = this.annotations();
-    const dst = newFixt.annotations();
+    const dst = newBench.annotations();
 
     for (const { sample } of samples) {
       const sId = sample[uuid];
@@ -177,7 +174,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
       dst.set(this[uuid], src.get(this[uuid])!);
     }
 
-    return newFixt;
+    return newBench;
   }
 
   toJson(): wt.Benchmark {
@@ -206,15 +203,17 @@ export const annotations = {
   /**
    * A summary of the cache status. Legend:
    *
-   *   <active subset>/<total samples> (<Kruskal-Wallis effect-size>)
+   *   <uncertainty> (<total stored>/<total runs>)
    *
    */
   summaryText: 'benchmark:summary-text' as typeid,
 
+  /** Total number of runs stored by the benchmark */
   runs: 'benchmark:runs' as typeid,
 
   uncertainty: 'benchmark:uncertainty' as typeid,
 
+  /** Indicates whether the benchmark is ready to be snapshotted/tested */
   stable: 'benchmark:stable' as typeid,
 } as const;
 

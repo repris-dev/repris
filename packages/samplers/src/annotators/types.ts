@@ -10,6 +10,14 @@ export type Annotation = Value | q.Quantity;
 /** An object which can be annotated */
 export type Annotatable = { readonly [typeid]: typeid };
 
+export interface Condition {
+  '>'?: number;
+  '>='?: number;
+  '=='?: number | string | boolean;
+  '<='?: number;
+  '<'?: number;
+}
+
 /** Annotations associated with a sample from an annotator */
 export interface AnnotationBag extends json.Serializable<wt.AnnotationBag> {
   annotations: {
@@ -36,5 +44,6 @@ export interface Annotator {
         /* Options */
       }
     >,
+    current?: Map<typeid, Annotation>,
   ): Status<AnnotationBag | undefined>;
 }
