@@ -24,7 +24,7 @@ A trove contains samples collected from multiple runs of a benchmark. The trove 
 
 ### Digests
 
-A digest is a summary of the samples in a trove. The digest process repeatedly selects the best and rejects the worst samples, and over many runs this generates an accurate picture of the performance of a benchmark. Repris then takes two digests and compares them to identify changes in performance.
+A digest is a summary of the samples in a trove. The digest process repeatedly selects the best and rejects the worst samples, and over many runs this generates an accurate picture of the performance of a trove. Later, Repris can take two digests and compare them to identify changes in performance.
 
 ### Annotations
 
