@@ -1,5 +1,7 @@
+<br>
+
 <p align="center">
-  <img src="./docs/logo-256.png">
+  <img src="./docs/img/logo.svg" width="200">
 </p>
 <p align="center">
   <i>Reproducible benchmarking for <a href="jestjs.io">Jest</a></i>
@@ -12,10 +14,7 @@
 <BR>
 
 <p align="center">
-  <picture width="503">
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/octane-dark.svg">
-    <img src="./docs/img/octane-light.svg">
-  </picture>  
+  <img width="503" src="./docs/img/octane-dark.svg">
 </p>
 
 - Collect performance snapshots across many runs

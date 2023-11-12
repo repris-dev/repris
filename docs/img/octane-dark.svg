@@ -4,7 +4,7 @@
    height="168"
    version="1.1"
    id="svg58"
-   sodipodi:docname="out.svg"
+   sodipodi:docname="octane-dark.svg"
    inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -22,8 +22,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="3.6894216"
-     inkscape:cx="209.51794"
-     inkscape:cy="80.093856"
+     inkscape:cx="231.33707"
+     inkscape:cy="80.635946"
      inkscape:window-width="2496"
      inkscape:window-height="1601"
      inkscape:window-x="-8"
@@ -44,7 +44,9 @@
          width="503"
          height="168"
          id="rect60"
-         style="stroke:none;fill:#1b1b1e;fill-opacity:1" />
+         style="fill:#1b1b1e;fill-opacity:1;stroke:none"
+         rx="9"
+         ry="9" />
       <rect
          fill="none"
          stroke="#000000"
@@ -110,7 +112,7 @@
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="433.76117"
+         x="432.91937"
          y="-256.72882"
          id="text68-4"><tspan
            style="text-align:end;text-anchor:end"
@@ -118,9 +120,11 @@
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="500.04346"
+         x="535.60199"
          y="-256.72882"
-         id="text68-4-0">Index</text>
+         id="text68-4-0"><tspan
+           style="text-align:end;text-anchor:end"
+           id="tspan2">Index</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"

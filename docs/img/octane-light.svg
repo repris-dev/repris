@@ -8,70 +8,18 @@
    inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
      id="defs1">
     <linearGradient
-       id="swatch11"
-       inkscape:swatch="solid">
-      <stop
-         style="stop-color:#8b8c8f;stop-opacity:1;"
-         offset="0"
-         id="stop11" />
-    </linearGradient>
-    <linearGradient
        id="swatch10"
        inkscape:swatch="solid">
       <stop
-         style="stop-color:#a2a3a5;stop-opacity:1;"
+         style="stop-color:#999999;stop-opacity:1;"
          offset="0"
          id="stop10" />
     </linearGradient>
-    <linearGradient
-       id="swatch9"
-       inkscape:swatch="solid">
-      <stop
-         style="stop-color:#6e6f72;stop-opacity:1;"
-         offset="0"
-         id="stop9" />
-    </linearGradient>
-    <linearGradient
-       id="swatch8"
-       inkscape:swatch="solid">
-      <stop
-         style="stop-color:#6e6f72;stop-opacity:1;"
-         offset="0"
-         id="stop8" />
-    </linearGradient>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#swatch9"
-       id="linearGradient9"
-       x1="92.388626"
-       y1="-229.89311"
-       x2="169.10268"
-       y2="-229.89311"
-       gradientUnits="userSpaceOnUse" />
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#swatch10"
-       id="linearGradient10"
-       x1="91.804642"
-       y1="-246.1563"
-       x2="161.83833"
-       y2="-246.1563"
-       gradientUnits="userSpaceOnUse" />
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#swatch11"
-       id="linearGradient11"
-       x1="91.817337"
-       y1="-214.89311"
-       x2="126.38667"
-       y2="-214.89311"
-       gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
      id="namedview58"
@@ -83,8 +31,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="2.608815"
-     inkscape:cx="233.63098"
-     inkscape:cy="118.25292"
+     inkscape:cx="257.39656"
+     inkscape:cy="76.471501"
      inkscape:window-width="2496"
      inkscape:window-height="1601"
      inkscape:window-x="-8"
@@ -105,7 +53,9 @@
          width="503"
          height="168"
          id="rect60"
-         style="stroke:none;fill:#f5f5f5;fill-opacity:1" />
+         style="fill:#f9f9f9;fill-opacity:1;stroke:none;stroke-opacity:1"
+         ry="9"
+         rx="9" />
       <rect
          fill="none"
          stroke="#000000"
@@ -123,7 +73,8 @@
          y="-283.72882"
          width="47"
          height="15"
-         id="rect62" />
+         id="rect62"
+         style="fill:#1cc380;fill-opacity:1" />
       <text
          fill="#212329"
          font-size="13px"
@@ -146,10 +97,10 @@
            style="fill:#919295;fill-opacity:1"
            id="tspan11">.tsc/octane/</tspan><tspan
            id="tspan7"
-           style="fill:#1b1b1b;fill-opacity:1">octane.spec.js (</tspan><tspan
+           style="fill:#17171f;fill-opacity:1">octane.spec.js (</tspan><tspan
            id="tspan8"
            style="fill:#ff5555">27.209s</tspan><tspan
-           style="fill:#222222;fill-opacity:1"
+           style="fill:#141a30;fill-opacity:1"
            id="tspan3">)</tspan></text>
       <text
          fill="#dcdfe4"
@@ -163,8 +114,8 @@
          x="371.16229"
          y="-256.72882"
          id="text68"
-         style="fill:#353b45;fill-opacity:1"><tspan
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+         style="fill:#21252b;fill-opacity:1"><tspan
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="tspan18">Mode</tspan></text>
       <text
          fill="#dcdfe4"
@@ -172,25 +123,27 @@
          x="302.29822"
          y="-256.72882"
          id="text68-3"
-         style="fill:#353b45;fill-opacity:1"><tspan
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+         style="fill:#21252b;fill-opacity:1"><tspan
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="tspan17">Iter.</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="433.76117"
+         x="432.91937"
          y="-256.72882"
          id="text68-4"
-         style="fill:#353b45;fill-opacity:1"><tspan
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+         style="fill:#21252b;fill-opacity:1"><tspan
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="tspan19">95% CI</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="500.04346"
+         x="534.30176"
          y="-256.72882"
          id="text68-4-0"
-         style="fill:#353b45;fill-opacity:1">Index</text>
+         style="fill:#21252b;fill-opacity:1"><tspan
+           style="text-align:end;text-anchor:end"
+           id="tspan2">Index</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -202,7 +155,8 @@
          font-size="13px"
          x="75.456497"
          y="-241.72881"
-         id="text70">✓</text>
+         id="text70"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -216,14 +170,14 @@
          x="404.20648"
          y="-241.72881"
          id="text73"
-         style="fill:#85c657;fill-opacity:1">0.2%</text>
+         style="fill:#1cc380;fill-opacity:1">0.2%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.17529"
          y="-241.72881"
          id="text74"
-         style="fill:#353b45;fill-opacity:1">0.01 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.01 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -235,7 +189,8 @@
          font-size="13px"
          x="75.456497"
          y="-226.72881"
-         id="text76">✓</text>
+         id="text76"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -248,14 +203,15 @@
          font-size="13px"
          x="388.53461"
          y="-226.72881"
-         id="text79">12.45%</text>
+         id="text79"
+         style="fill:#f1c267;fill-opacity:1">12.45%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.15967"
          y="-226.72881"
          id="text80"
-         style="fill:#353b45;fill-opacity:1">0.01 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.01 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -267,7 +223,8 @@
          font-size="13px"
          x="75.456497"
          y="-211.72881"
-         id="text82">✓</text>
+         id="text82"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -280,7 +237,8 @@
          font-size="13px"
          x="396.36273"
          y="-211.72881"
-         id="text85">5.41%</text>
+         id="text85"
+         style="fill:#f1c267;fill-opacity:1">5.41%</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -299,7 +257,8 @@
          font-size="13px"
          x="75.456497"
          y="-196.72881"
-         id="text88">✓</text>
+         id="text88"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -313,14 +272,14 @@
          x="396.37836"
          y="-196.72881"
          id="text91"
-         style="fill:#85c657;fill-opacity:1">0.11%</text>
+         style="fill:#1cc380;fill-opacity:1">0.11%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.17529"
          y="-196.72881"
          id="text92"
-         style="fill:#353b45;fill-opacity:1">0.02 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.02 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -332,7 +291,8 @@
          font-size="13px"
          x="75.456497"
          y="-181.72881"
-         id="text94">✓</text>
+         id="text94"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -346,14 +306,14 @@
          x="396.36273"
          y="-181.72881"
          id="text97"
-         style="fill:#85c657;fill-opacity:1">0.17%</text>
+         style="fill:#1cc380;fill-opacity:1">0.17%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.15967"
          y="-181.72881"
          id="text98"
-         style="fill:#353b45;fill-opacity:1">0.01 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.01 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -365,7 +325,8 @@
          font-size="13px"
          x="75.456497"
          y="-166.72881"
-         id="text100">✓</text>
+         id="text100"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -379,14 +340,14 @@
          x="396.36273"
          y="-166.72881"
          id="text103"
-         style="fill:#85c657;fill-opacity:1">0.04%</text>
+         style="fill:#1cc380;fill-opacity:1">0.04%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.15967"
          y="-166.72881"
          id="text104"
-         style="fill:#353b45;fill-opacity:1">0.00 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.00 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -398,7 +359,8 @@
          font-size="13px"
          x="75.456497"
          y="-151.72881"
-         id="text106">✓</text>
+         id="text106"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -412,14 +374,14 @@
          x="404.19086"
          y="-151.72881"
          id="text109"
-         style="fill:#85c657;fill-opacity:1">0.2%</text>
+         style="fill:#1cc380;fill-opacity:1">0.2%</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
          x="451.15967"
          y="-151.72881"
          id="text110"
-         style="fill:#353b45;fill-opacity:1">0.02 (20/20)</text>
+         style="fill:#21252b;fill-opacity:1">0.02 (20/20)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -431,7 +393,8 @@
          font-size="13px"
          x="75.456497"
          y="-136.72881"
-         id="text112">✓</text>
+         id="text112"
+         style="fill:#1cc380;fill-opacity:1">✓</text>
       <text
          fill="#6e6f72"
          font-size="13px"
@@ -442,13 +405,13 @@
       <g
          id="g116"
          transform="translate(-636.65218,-300.72881)"
-         style="fill:#353b45;fill-opacity:1">
+         style="fill:#21252b;fill-opacity:1">
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="59"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text72">436.94µs</text>
         <text
            fill="#dcdfe4"
@@ -456,115 +419,115 @@
            x="1008.1509"
            y="74"
            id="text78"
-           style="fill:#353b45;fill-opacity:1"><tspan
-             style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="fill:#21252b;fill-opacity:1"><tspan
+             style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
              id="tspan1">10.89ms</tspan></text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="89"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text84">628.77µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="104"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text90">159.47µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="119"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text96">5.4ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="134"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text102">5.21ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="149"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text108">5.66ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="164"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text114">20.46ms</text>
       </g>
       <g
          id="g116-1"
          transform="translate(-686.65462,-300.72881)"
-         style="fill:#353b45;fill-opacity:1">
+         style="fill:#21252b;fill-opacity:1">
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.17554"
            y="59"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text72-9">2,237</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.1311"
            y="74"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text78-4">1,022</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="986.94067"
            y="89"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text84-4">10,000</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.28979"
            y="104"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text90-1">6,173</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.20093"
            y="119"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text96-1">181</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.1311"
            y="134"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text102-4">192</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="987.1311"
            y="149"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text108-9">172</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="986.71851"
            y="164"
-           style="text-align:end;text-anchor:end;fill:#353b45;fill-opacity:1"
+           style="text-align:end;text-anchor:end;fill:#21252b;fill-opacity:1"
            id="text114-8">104</text>
         <text
            xml:space="preserve"
-           style="font-size:53.3333px;text-align:end;text-anchor:end;fill:#353b45;stroke-width:7.46667;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
+           style="font-size:53.3333px;text-align:end;text-anchor:end;fill:#21252b;stroke-width:7.46667;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
            x="992.24359"
            y="198.29872"
            id="text118"><tspan
@@ -579,7 +542,7 @@
          x="396.36273"
          y="-136.72881"
          id="text115"
-         style="fill:#85c657;fill-opacity:1">2.59%</text>
+         style="fill:#1cc380;fill-opacity:1">2.59%</text>
       <text
          fill="#6e6f72"
          font-size="13px"
