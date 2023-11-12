@@ -11,13 +11,12 @@
 
 <BR>
 
-
-<picture align="center" width="503">
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/octane-dark.svg">
-  <img src="./docs/img/octane-light.svg">
-</picture>
-
-
+<p align="center">
+  <picture width="503">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/octane-dark.svg">
+    <img src="./docs/img/octane-light.svg">
+  </picture>  
+</p>
 
 - Collect performance snapshots across many runs
 - Reject poor quality samples automatically
