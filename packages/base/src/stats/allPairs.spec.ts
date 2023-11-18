@@ -1,6 +1,6 @@
 import * as iter from '../iterator.js';
 import * as random from '../random.js';
-import { Indexable } from '../util.js';
+import { ArrayView } from '../array.js';
 import * as allPairs from './allPairs.js';
 
 // qn: 0.2
@@ -40,7 +40,7 @@ const goodSample = [
   4.482e7, 4.483e7, 4.483e7, 4.483e7, 4.489e7, 4.52e7, 4.529e7, 4.582e7, 4.587e7, 4.725e7, 5.017e7,
 ];
 
-function simpleSuite(analyse: (sample: Indexable<number>) => allPairs.RobustScale) {
+function simpleSuite(analyse: (sample: ArrayView<number>) => allPairs.RobustScale) {
   test('3 observations', () => {
     const sample = [-2, -2, -2];
     const sn = analyse(sample);

@@ -1,6 +1,5 @@
 import * as math from '../math.js';
-import { lowerBound, sort } from '../array.js';
-import { Indexable } from '../util.js';
+import { lowerBound, sort, ArrayView } from '../array.js';
 import { MADResult } from './util.js';
 
 const PI_SQRT = Math.sqrt(Math.PI);
@@ -55,7 +54,7 @@ export function silvermanBickelRule(std: number, n: number, mad: MADResult) {
  * Finds an optimized kernel bandwidth for the given sample using cross-validation.
  * Assumes a gaussian kernel.
  */
-export function cvBandwidth(sample: Indexable<number>, std: number) {
+export function cvBandwidth(sample: ArrayView<number>, std: number) {
   // initial bandwidth estimate
   const h1 = silvermansRule(std, sample.length);
 
@@ -78,7 +77,7 @@ export function cvBandwidth(sample: Indexable<number>, std: number) {
  * @returns The kernel density estimation of the given
  * sample at the given location, x.
  */
-export function estimate(kernel: Kernel, sample: Indexable<number>, h: number, x: number) {
+export function estimate(kernel: Kernel, sample: ArrayView<number>, h: number, x: number) {
   const n = sample.length;
   const hNorm = 1 / h;
   const kNorm = 1 / (n * h);
@@ -99,7 +98,7 @@ export function estimate(kernel: Kernel, sample: Indexable<number>, h: number, x
  * @returns The mean integrated squared error (MISE) of the resulting
  * density es­timate of the given sample and bandwidth, h.
  */
-export function mise(sample: Indexable<number>, h: number): number {
+export function mise(sample: ArrayView<number>, h: number): number {
   const hNorm = 1 / h;
   const n = sample.length;
 
@@ -120,7 +119,7 @@ export function mise(sample: Indexable<number>, h: number): number {
  * A cost function for Maximum likelihood cross-validation
  * of a density estimate
  */
-export function mlcv(kernel: Kernel, sample: Indexable<number>, h: number) {
+export function mlcv(kernel: Kernel, sample: ArrayView<number>, h: number) {
   const n = sample.length;
   const hNorm = 1 / h;
 
@@ -151,7 +150,7 @@ export function mlcv(kernel: Kernel, sample: Indexable<number>, h: number) {
  */
 export function findMaxima(
   kernel: Kernel,
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   h: number,
   eps = Number.EPSILON,
 ): [index: number, density: number, ties: number] {
@@ -194,7 +193,7 @@ export function findMaxima(
  */
 export function findConflationMaxima(
   kernel: Kernel,
-  samples: [raw: Indexable<number>, h: number][],
+  samples: [raw: ArrayView<number>, h: number][],
   eps = 0,
 ): [x: number, density: number, ties: number] {
   let maxD = -Infinity,
@@ -241,7 +240,7 @@ export function findConflationMaxima(
  * @param expectedValue The local/global maximum
  * @param h Kernel smoothing parameter (bandwidth)
  */
-export function fwhm(kernel: Kernel, sample: Indexable<number>, expectedValue: number, h: number) {
+export function fwhm(kernel: Kernel, sample: ArrayView<number>, expectedValue: number, h: number) {
   // sort by value
   sort(sample);
 

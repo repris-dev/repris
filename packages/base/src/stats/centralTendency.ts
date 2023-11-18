@@ -1,7 +1,7 @@
 import { assert } from '../index.js';
-import { Indexable } from '../util.js';
+import type { ArrayView } from '../array.js';
 
-export function mean(xs: Indexable<number>) {
+export function mean(xs: ArrayView<number>) {
   const norm = 1 / xs.length;
 
   let sum = 0;
@@ -12,7 +12,7 @@ export function mean(xs: Indexable<number>) {
   return sum;
 }
 
-export function geometricMean(xs: Indexable<number>) {
+export function geometricMean(xs: ArrayView<number>) {
   const norm = 1 / xs.length;
 
   let sum = 0;
@@ -24,7 +24,7 @@ export function geometricMean(xs: Indexable<number>) {
   return Math.exp(sum);
 }
 
-export function harmonicMean(xs: Indexable<number>) {
+export function harmonicMean(xs: ArrayView<number>) {
   let sum = 0;
   for (let i = 0; i < xs.length; i++) {
     assert.gte(xs[i], Number.EPSILON);

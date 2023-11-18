@@ -1,4 +1,4 @@
-import { array, Indexable, quantity, stats, Status, typeid } from '@repris/base';
+import { array, quantity, stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
@@ -182,7 +182,7 @@ ann.register('@annotator:samples:modal-interval', sampleAnnotator);
  * However, an optimal smoothing parameter is hard to calculate. Instead
  * it is estimated here.
  */
-function hsmBootstrapSmoothing(xs: Indexable<number>, level: number) {
+function hsmBootstrapSmoothing(xs: array.ArrayView<number>, level: number) {
   if (level <= 0) return 0;
   // Estimate standard deviation from a proportion of the sample
   const std = stats.mode.estimateStdDev(xs, 0.66);

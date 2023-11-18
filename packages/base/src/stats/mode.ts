@@ -1,5 +1,5 @@
-import { sort } from '../array.js';
-import { assert, Indexable, stats } from '../index.js';
+import { sort, ArrayView } from '../array.js';
+import { assert, stats } from '../index.js';
 import { qcd } from './util.js';
 
 /** A Robust Estimation of the Mode */
@@ -27,7 +27,7 @@ export type REM = {
  * Find the shortest interval in the given sample containing the
  * specified number of observations (k)
  */
-export function modalSearch(sample: Indexable<number>, k: number, i = 0, len = sample.length) {
+export function modalSearch(sample: ArrayView<number>, k: number, i = 0, len = sample.length) {
   assert.le(k, len);
   assert.gte(len, 2);
   assert.bounds(sample, i);
@@ -69,7 +69,7 @@ export function modalSearch(sample: Indexable<number>, k: number, i = 0, len = s
   };
 }
 
-function oneSampleRME(sample: Indexable<number>): REM {
+function oneSampleRME(sample: ArrayView<number>): REM {
   assert.eq(sample.length, 1);
 
   return {
@@ -90,7 +90,7 @@ function oneSampleRME(sample: Indexable<number>): REM {
  * On a fast, robust estimator of The mode - David R. Bickel
  * https://arxiv.org/ftp/math/papers/0505/0505419.pdf
  */
-export function hsm(sample: Indexable<number>, minInterval?: number): REM {
+export function hsm(sample: ArrayView<number>, minInterval?: number): REM {
   assert.gt(sample.length, 0);
 
   if (sample.length === 1) return oneSampleRME(sample);
@@ -106,7 +106,7 @@ export function hsm(sample: Indexable<number>, minInterval?: number): REM {
  * @param std Controls the proportion of the sample about the mode to
  * take in to account
  */
-export function estimateStdDev(xs: Indexable<number>, std = 1) {
+export function estimateStdDev(xs: ArrayView<number>, std = 1) {
   // The proportion of the sample (window size) to find which would correspond
   // to std (standard deviations). e.g. 1 s.d. = .682
   const m = 1 - (1 - stats.normal.cdf(std)) * 2;
@@ -120,7 +120,7 @@ export function estimateStdDev(xs: Indexable<number>, std = 1) {
 }
 
 /** Note: Assumes the given sample is sorted */
-function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
+function hsmImpl(sample: ArrayView<number>, minInterval = 2): REM {
   assert.gte(minInterval, 2);
 
   let lo = 0,
@@ -169,7 +169,7 @@ function hsmImpl(sample: Indexable<number>, minInterval = 2): REM {
  *
  * TODO: correct implementation for small samples (N=1-3)
  */
-export function lms(sample: Indexable<number>, alpha = 0.5): REM {
+export function lms(sample: ArrayView<number>, alpha = 0.5): REM {
   assert.gt(sample.length, 0);
   assert.gt(alpha, 0);
   assert.le(alpha, 1);
@@ -212,7 +212,7 @@ export function lms(sample: Indexable<number>, alpha = 0.5): REM {
  * (i.e. half the sample) produces the 'shorth'.
  */
 export function shorth(
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   alpha = 0.5,
   dist: stats.online.OnlineStat<number> = new stats.online.Gaussian(),
 ): REM {

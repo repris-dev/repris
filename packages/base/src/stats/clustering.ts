@@ -1,5 +1,4 @@
-import { copyTo } from '../array.js';
-import { Indexable } from '../util.js';
+import { copyTo, ArrayView } from '../array.js';
 import { Kernel } from './kde.js';
 
 function distanceSq(a: number, b: number) {
@@ -11,7 +10,7 @@ function distance(a: number, b: number) {
   return Math.sqrt(distanceSq(a, b));
 }
 
-function shiftPoint(kernel: Kernel, h: number, point: number, points: Indexable<number>) {
+function shiftPoint(kernel: Kernel, h: number, point: number, points: ArrayView<number>) {
   const hInv = 1 / h;
 
   let shiftedPoint = 0;
@@ -30,7 +29,7 @@ function shiftPoint(kernel: Kernel, h: number, point: number, points: Indexable<
   return shiftedPoint / totalWeight;
 }
 
-function meanShiftImpl(points: Indexable<number>, kernel: Kernel, h: number, EPSILON: number) {
+function meanShiftImpl(points: ArrayView<number>, kernel: Kernel, h: number, EPSILON: number) {
   const EPSILON_SQR = EPSILON * EPSILON;
 
   const stopMoving = new Int8Array(points.length);
@@ -63,7 +62,7 @@ function meanShiftImpl(points: Indexable<number>, kernel: Kernel, h: number, EPS
   return shiftedPoints;
 }
 
-function cluster(shiftedPoints: Indexable<number>, eps: number) {
+function cluster(shiftedPoints: ArrayView<number>, eps: number) {
   const clusters: number[] = [shiftedPoints[0]];
 
   for (let i = 1; i < shiftedPoints.length; i++) {
@@ -93,12 +92,12 @@ function cluster(shiftedPoints: Indexable<number>, eps: number) {
  * @returns The locations of the clusters
  */
 export function meanShift(
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   kernel: Kernel,
   h: number,
   eps = 1e-6,
   clusterEps = eps * 10,
-): Indexable<number> {
+): ArrayView<number> {
   const shiftedPoints = meanShiftImpl(sample, kernel, h, eps);
   return cluster(shiftedPoints, clusterEps);
 }

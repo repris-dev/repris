@@ -6,7 +6,6 @@ import {
   quantity as q,
   assert,
   quantity,
-  Indexable,
   stats,
   lazy,
   array,
@@ -267,7 +266,7 @@ function aggregateAndFilter<T>(
 }
 
 export function createOutlierSelection<T>(
-  keys: Indexable<T>,
+  keys: array.ArrayView<T>,
   toScalar: (k: T) => number,
   entropy = random.PRNGi32(),
 ): () => T | undefined {
@@ -299,7 +298,7 @@ export function createOutlierSelection<T>(
 
   // A lazy list of index-pointers constructing a tour of all items,
   // ordered by centrality
-  const tour: () => Indexable<number> = lazy(() => {
+  const tour: () => array.ArrayView<number> = lazy(() => {
     // sorting of keys by weight descending
     const order = array.fillAscending(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
 

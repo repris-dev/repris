@@ -1,4 +1,4 @@
-import { Indexable, stats, Status, typeid } from '@repris/base';
+import { array, stats, Status, typeid } from '@repris/base';
 
 import * as ann from '../annotators.js';
 import { duration, Sample } from '../samples.js';
@@ -60,7 +60,7 @@ interface KDEAnalysis {
 }
 
 function kdeMode(
-  sample: Indexable<number>,
+  sample: array.ArrayView<number>,
   summary: stats.online.SimpleSummary<number>,
 ): KDEAnalysis {
   // MISE-optimized bandwidth

@@ -1,7 +1,5 @@
-import { fillAscending } from '../array.js';
-import * as iterator from '../iterator.js';
+import { fillAscending, ArrayView } from '../array.js';
 import * as assert from '../assert.js';
-import { Indexable } from '../util.js';
 import * as chiSq from './chiSq.js';
 import { sidak, stbPhi } from './util.js';
 
@@ -19,7 +17,7 @@ export type MWUResult = {
 /**
  * Mann–Whitney U test
  */
-export function mwu(as: Indexable<number>, bs: Indexable<number>): MWUResult {
+export function mwu(as: ArrayView<number>, bs: ArrayView<number>): MWUResult {
   const N = as.length + bs.length;
   // first index of sample b
   const midIdx = as.length;
@@ -87,7 +85,7 @@ export type KruskalWallisResult<T> = {
   effectSize: number;
 
   /** Average rank of each sample */
-  ranks: Indexable<number>;
+  ranks: ArrayView<number>;
 
   pValue(): number;
 
@@ -102,7 +100,7 @@ export type KruskalWallisResult<T> = {
  * Kruskal–Wallis one-way analysis of variance and post-hoc Dunn's test
  * Reference: Voshol, G.P. (2022). STB: A simple Statistics Tool Box (Version 1.23).
  */
-export function kruskalWallis<T extends Indexable<number>>(samples: T[]): KruskalWallisResult<T> {
+export function kruskalWallis<T extends ArrayView<number>>(samples: T[]): KruskalWallisResult<T> {
   assert.gt(samples.length, 1, 'There must be at least two samples');
 
   const G = samples.length;

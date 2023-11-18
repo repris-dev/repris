@@ -1,12 +1,12 @@
-import { quickselect } from '../array.js';
-import { assert, Indexable } from '../index.js';
+import { quickselect, ArrayView } from '../array.js';
+import { assert } from '../index.js';
 
 export type RobustScale = {
   spread: number;
   correctedSpread: number;
 };
 
-function oneObservation(sample: Indexable<number>) {
+function oneObservation(sample: ArrayView<number>) {
   assert.eq(sample.length, 1);
   return {
     spread: 0,
@@ -38,7 +38,7 @@ export function crouxCorrectionFactorQn(n: number) {
  * See: Alternatives to the Median Absolute Deviation - Rousseeuw and Croux (1993)
  */
 export function crouxQn(
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   start = 0,
   len = sample.length - start,
 ): RobustScale {
@@ -93,7 +93,7 @@ export function crouxCorrectionFactorSn(n: number) {
  * See: Alternatives to the Median Absolute Deviation - Rousseeuw and Croux (1993)
  */
 export function crouxSn(
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   start = 0,
   len = sample.length - start,
 ): RobustScale {
