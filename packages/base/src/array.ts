@@ -1,6 +1,6 @@
 import * as assert from './assert.js';
 
-/* A mutable equivalent of ArrayLike<T> */
+/* A mutable view over an array */
 export interface ArrayView<T> {
   readonly length: number;
   [n: number]: T;
@@ -10,11 +10,6 @@ type BinaryPredicate<T, T2 = T> = (a: T, b: T2) => boolean;
 
 export function lessThan(a: number | string, b: number | string) {
   return a < b;
-}
-
-/** @return true if @param a is a typed array */
-export function isTypedArray(a: any): boolean {
-  return a.buffer && a.buffer instanceof ArrayBuffer;
 }
 
 /** Sets all values in an array to the given value */
@@ -89,23 +84,6 @@ export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   const tmp = arr[adx];
   arr[adx] = arr[bdx];
   arr[bdx] = tmp;
-}
-
-export function concat<T>(arrs: ArrayView<ArrayView<T>>, dest: T[] = []): T[] {
-  for (let i = 0; i < arrs.length; i++) {
-    const arr = arrs[i];
-    for (let j = 0; j < arr.length; j++) {
-      dest.push(arr[j]);
-    }
-  }
-  return dest;
-}
-
-export function push<T>(dest: T[], src: ArrayView<T>): T[] {
-  for (let i = 0; i < src.length; i++) {
-    dest.push(src[i]);
-  }
-  return dest;
 }
 
 export function sort<T extends number>(xs: ArrayView<T>) {
