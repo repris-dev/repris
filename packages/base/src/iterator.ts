@@ -1,4 +1,4 @@
-import { Indexable } from './array.js';
+import { ArrayView } from './array.js';
 import { assert } from './index.js';
 
 export const empty = (function* (): IterableIterator<any> {})();
@@ -12,8 +12,8 @@ export function returnWith<T>(value: T): Iterator<T, T> {
 }
 
 export function* cartesianProduct<T>(
-  elems: Indexable<Indexable<T>>,
-): IterableIterator<Indexable<T>> {
+  elems: ArrayView<ArrayView<T>>,
+): IterableIterator<ArrayView<T>> {
   let i = 0;
   while (true) {
     const result = [] as T[];
@@ -112,7 +112,7 @@ export function* range(from: number, n: number): IterableIterator<number> {
  * Iterate a subspan of values
  */
 export function* subSpan<T>(
-  xs: Indexable<T>,
+  xs: ArrayView<T>,
   fromIdx: number,
   n = xs.length - fromIdx,
 ): Iterable<T> {

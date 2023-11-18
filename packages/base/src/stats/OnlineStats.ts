@@ -1,4 +1,4 @@
-import { Indexable } from '../array.js';
+import { ArrayView } from '../array.js';
 import { gte } from '../assert.js';
 import { logNormal95 } from './intervals.js';
 

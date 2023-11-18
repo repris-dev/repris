@@ -1,4 +1,4 @@
-import { Indexable, quickselect } from '../array.js';
+import { ArrayView, quickselect } from '../array.js';
 import { gt } from '../assert.js';
 import { assert } from '../index.js';
 import { lerp } from '../math.js';
@@ -13,20 +13,20 @@ export type MADResult = {
   normMad: number;
 };
 
-export function iqr(sample: Indexable<number>): [number, number] {
+export function iqr(sample: ArrayView<number>): [number, number] {
   gt(sample.length, 0);
 
   return [quantile(sample, 0.25), quantile(sample, 0.75)];
 }
 
 /** Median of the given sample */
-export function median(sample: Indexable<number>): number {
+export function median(sample: ArrayView<number>): number {
   gt(sample.length, 0);
   return quantile(sample, 0.5);
 }
 
 /** median absolute deviation of the given sample */
-export function mad(sample: Indexable<number>, x: number = median(sample), p = 0.5): MADResult {
+export function mad(sample: ArrayView<number>, x: number = median(sample), p = 0.5): MADResult {
   const devs = new Float64Array(sample.length);
 
   for (let i = 0; i < devs.length; i++) {
@@ -56,7 +56,7 @@ export function qcd(iqr: [number, number]) {
   return (iqr[1] - iqr[0]) / (iqr[1] + iqr[0]);
 }
 
-export function quantile(sample: Indexable<number>, q: number) {
+export function quantile(sample: ArrayView<number>, q: number) {
   assert.inRange(q, 0, 1);
 
   let index = q * (sample.length - 1);

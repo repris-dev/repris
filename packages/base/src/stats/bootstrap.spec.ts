@@ -1,4 +1,4 @@
-import { Indexable } from '../array.js';
+import { ArrayView } from '../array.js';
 import * as rand from '../random.js';
 import * as os from './OnlineStats.js';
 import * as boot from './bootstrap.js';
@@ -96,7 +96,7 @@ describe('studentizedResampler', () => {
 
   /** https://stats.stackexchange.com/questions/252780/which-bootstrap-method-is-most-preferred */
   test('Confidence intervals of a right-skewed sample', () => {
-    const estimator = (xs: Indexable<number>) => {
+    const estimator = (xs: ArrayView<number>) => {
       const g = new online.Gaussian();
       for (let i = 0; i < xs.length; i++) g.push(xs[i]);
       return g.skewness();
@@ -142,7 +142,7 @@ describe('studentizedResampler', () => {
     178245172,
   ];
 
-  function stretchSample(sample: Indexable<number>, centre: number, stretch: number) {
+  function stretchSample(sample: ArrayView<number>, centre: number, stretch: number) {
     const newSample = new Float64Array(sample.length);
 
     for (let i = 0; i < sample.length; i++) {

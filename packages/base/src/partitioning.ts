@@ -1,13 +1,13 @@
 import * as assert from './assert.js';
-import { fillAscending, Indexable } from './array.js';
+import { fillAscending, ArrayView } from './array.js';
 
 /** Encodes a partitioning as a set of vertex tours */
 export class DisjointSet<T extends number> {
   readonly size: number;
 
   private constructor(
-    private tourStart: Indexable<T>,
-    private tours: Indexable<T>,
+    private tourStart: ArrayView<T>,
+    private tours: ArrayView<T>,
     private nTours: number,
   ) {
     this.size = tours.length;
@@ -63,10 +63,10 @@ export class DisjointSet<T extends number> {
     return n;
   }
 
-  static build<T extends number>(parents: Indexable<T>): DisjointSet<T> {
+  static build<T extends number>(parents: ArrayView<T>): DisjointSet<T> {
     const n = parents.length;
     // ordered vertex tours that end at the last element in the group
-    const tours = new Int32Array(n) as any as Indexable<T>;
+    const tours = new Int32Array(n) as any as ArrayView<T>;
     // current end of the vertex tour; avoids O(N^2) when constructing tours
     const tourEnd = new Int32Array(n);
     // number of groups
@@ -93,7 +93,7 @@ export class DisjointSet<T extends number> {
 }
 
 /** Union two sets */
-export function union<T extends number>(parents: Indexable<T>, a: T, b: T) {
+export function union<T extends number>(parents: ArrayView<T>, a: T, b: T) {
   const idx1 = find(parents, a, true);
   const idx2 = find(parents, b, true);
 
@@ -105,7 +105,7 @@ export function union<T extends number>(parents: Indexable<T>, a: T, b: T) {
 }
 
 /** Find set representative, with optional tree compression */
-export function find<T extends number>(parents: Indexable<T>, item: T, compress: boolean): T {
+export function find<T extends number>(parents: ArrayView<T>, item: T, compress: boolean): T {
   assert.inRange(item, 0, parents.length);
 
   // representative
@@ -129,7 +129,7 @@ export function find<T extends number>(parents: Indexable<T>, item: T, compress:
 }
 
 export function from<T extends number>(pairs: Iterable<[T, T]>, V: number): DisjointSet<T> {
-  const parents = new Int32Array(V) as any as Indexable<T>;
+  const parents = new Int32Array(V) as any as ArrayView<T>;
   fillAscending(parents, 0);
 
   for (const [from, to] of pairs) {

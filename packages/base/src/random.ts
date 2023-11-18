@@ -1,4 +1,4 @@
-import { Indexable } from './array.js';
+import { ArrayView } from './array.js';
 import * as assert from './assert.js';
 import { uuid } from './util.js';
 
@@ -56,7 +56,7 @@ export function PRNGi32(seed = mathRand()): Generator {
  * of all n weights.
  */
 export function discreteDistribution(
-  weights: Indexable<number>,
+  weights: ArrayView<number>,
   entropy: Generator = mathRand,
 ): Generator {
   const N = weights.length;

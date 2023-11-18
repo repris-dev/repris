@@ -1,4 +1,4 @@
-import { Indexable, copyTo } from '../array.js';
+import { ArrayView, copyTo } from '../array.js';
 import { assert } from '../index.js';
 import * as random from '../random.js';
 import { online, quantile } from '../stats.js';
@@ -8,7 +8,7 @@ import { online, quantile } from '../stats.js';
  * with observations in the order they appear in the given sample.
  */
 export function resampler(
-  sample: Indexable<number>,
+  sample: ArrayView<number>,
   entropy = random.PRNGi32(),
   smoothing = 0,
 ): () => Float64Array {
@@ -37,7 +37,7 @@ export function resampler(
 
 export type StudentizedResample = {
   /** Bootstrap for this iteration */
-  replicate: Indexable<number>;
+  replicate: ArrayView<number>;
   /** Statistic for this iteration */
   estimate: number;
   /** */
@@ -50,8 +50,8 @@ export type StudentizedResample = {
  * @reference https://stats.stackexchange.com/questions/252780/which-bootstrap-method-is-most-preferred
  */
 export function studentizedResampler(
-  sample: Indexable<number>,
-  estimator: (xs: Indexable<number>) => number,
+  sample: ArrayView<number>,
+  estimator: (xs: ArrayView<number>) => number,
   secondResampleSize = 50,
   entropy = random.PRNGi32(),
 ): () => StudentizedResample {
@@ -87,9 +87,9 @@ export function studentizedResampler(
 }
 
 export function pairedStudentizedResampler(
-  sample0: Indexable<number>,
-  sample1: Indexable<number>,
-  estimator: (xs0: Indexable<number>, xs1: Indexable<number>) => number,
+  sample0: ArrayView<number>,
+  sample1: ArrayView<number>,
+  estimator: (xs0: ArrayView<number>, xs1: ArrayView<number>) => number,
   innerResampleSize = 50,
   entropy = random.PRNGi32(),
 ): () => StudentizedResample {
@@ -141,11 +141,11 @@ export function pairedStudentizedResampler(
  */
 export function differenceTest(
   /** First sample (x0) */
-  x0: Indexable<number>,
+  x0: ArrayView<number>,
   /** Second sample (x1) */
-  x1: Indexable<number>,
+  x1: ArrayView<number>,
   /** Function to estimate the difference between two resamples */
-  estimator: (x0: Indexable<number>) => number,
+  estimator: (x0: ArrayView<number>) => number,
   /** The confidence level */
   level: number,
   /** The number of resamples */
@@ -182,11 +182,11 @@ export function differenceTest(
  */
 export function studentizedDifferenceTest(
   /** First sample (x0) */
-  x0: Indexable<number>,
+  x0: ArrayView<number>,
   /** Second sample (x1) */
-  x1: Indexable<number>,
+  x1: ArrayView<number>,
   /** Function to estimate the difference between two resamples */
-  estimator: (x0: Indexable<number>, x1: Indexable<number>) => number,
+  estimator: (x0: ArrayView<number>, x1: ArrayView<number>) => number,
   /** The confidence level */
   level: number,
   /** Number of primary resamples */
@@ -224,9 +224,9 @@ export function studentizedDifferenceTest(
 /** Calculate the percentile confidence interval of a statistic for a given sample */
 export function confidenceInterval(
   /** The sample */
-  xs: Indexable<number>,
+  xs: ArrayView<number>,
   /** Function to estimate a statistic */
-  estimator: (xi: Indexable<number>) => number,
+  estimator: (xi: ArrayView<number>) => number,
   /** Confidence level */
   level: number,
   /** Number of bootstrap resamples */

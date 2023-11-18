@@ -1,7 +1,7 @@
 import * as assert from './assert.js';
 
 /* A mutable equivalent of ArrayLike<T> */
-export interface Indexable<T> {
+export interface ArrayView<T> {
   readonly length: number;
   [n: number]: T;
 }
@@ -18,14 +18,14 @@ export function isTypedArray(a: any): boolean {
 }
 
 /** Sets all values in an array to the given value */
-export function fill<T>(arr: Indexable<T>, val: T): void {
+export function fill<T>(arr: ArrayView<T>, val: T): void {
   for (let i = 0; i < arr.length; i++) {
     arr[i] = val;
   }
 }
 
 /** Sets all values in in increments of 1 */
-export function fillAscending<T extends Indexable<number>>(arr: T, initial: number): T {
+export function fillAscending<T extends ArrayView<number>>(arr: T, initial: number): T {
   for (let i = 0; i < arr.length; i++) {
     arr[i] = initial++;
   }
@@ -33,7 +33,7 @@ export function fillAscending<T extends Indexable<number>>(arr: T, initial: numb
 }
 
 /** Copy values from src to dest */
-export function copyTo<T>(src: Indexable<T>, dest: Indexable<T>): void {
+export function copyTo<T>(src: ArrayView<T>, dest: ArrayView<T>): void {
   const n = Math.min(src.length, dest.length);
   for (let i = 0; i < n; i++) {
     dest[i] = src[i];
@@ -42,9 +42,9 @@ export function copyTo<T>(src: Indexable<T>, dest: Indexable<T>): void {
 
 /** Collect a subset of values from src to dest */
 export function copySubsetTo<T>(
-  src: Indexable<T>,
-  indices: Indexable<number>,
-  dest: Indexable<T>,
+  src: ArrayView<T>,
+  indices: ArrayView<number>,
+  dest: ArrayView<T>,
 ): void {
   const n = Math.min(indices.length, dest.length);
   for (let i = 0; i < n; i++) {
@@ -54,8 +54,8 @@ export function copySubsetTo<T>(
 
 /** Push a subset of src to dest */
 export function subsetOf<T, P extends { push(val: T): any }>(
-  src: Indexable<T>,
-  indices: Indexable<number>,
+  src: ArrayView<T>,
+  indices: ArrayView<number>,
   dest: P,
 ): P {
   const n = indices.length;
@@ -65,7 +65,7 @@ export function subsetOf<T, P extends { push(val: T): any }>(
   return dest;
 }
 
-export function removeAtIndices(arr: Indexable<any>, indices: Indexable<number>): number {
+export function removeAtIndices(arr: ArrayView<any>, indices: ArrayView<number>): number {
   let off = 0;
   const len = arr.length;
 
@@ -83,7 +83,7 @@ export function removeAtIndices(arr: Indexable<any>, indices: Indexable<number>)
   return len - off;
 }
 
-export function swap<T>(arr: Indexable<T>, adx: number, bdx: number) {
+export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   assert.is(adx >= 0 && adx < arr.length && bdx >= 0 && bdx < arr.length);
 
   const tmp = arr[adx];
@@ -91,7 +91,7 @@ export function swap<T>(arr: Indexable<T>, adx: number, bdx: number) {
   arr[bdx] = tmp;
 }
 
-export function concat<T>(arrs: Indexable<Indexable<T>>, dest: T[] = []): T[] {
+export function concat<T>(arrs: ArrayView<ArrayView<T>>, dest: T[] = []): T[] {
   for (let i = 0; i < arrs.length; i++) {
     const arr = arrs[i];
     for (let j = 0; j < arr.length; j++) {
@@ -101,14 +101,14 @@ export function concat<T>(arrs: Indexable<Indexable<T>>, dest: T[] = []): T[] {
   return dest;
 }
 
-export function push<T>(dest: T[], src: Indexable<T>): T[] {
+export function push<T>(dest: T[], src: ArrayView<T>): T[] {
   for (let i = 0; i < src.length; i++) {
     dest.push(src[i]);
   }
   return dest;
 }
 
-export function sort<T extends number>(xs: Indexable<T>) {
+export function sort<T extends number>(xs: ArrayView<T>) {
   Array.prototype.sort.call(xs, (a, b) => a - b);
 }
 
@@ -119,7 +119,7 @@ export function sort<T extends number>(xs: Indexable<T>) {
  * @param arr A sorted array with respect to @param cmp
  */
 export function lowerBound<T, T2 = T>(
-  arr: Indexable<T>,
+  arr: ArrayView<T>,
   value: T2,
   cmp: BinaryPredicate<T, T2>,
   first = 0,
@@ -155,7 +155,7 @@ export function lowerBound<T, T2 = T>(
  * @param {Number} hi High index.
  * @return Returns n-th smallest element.
  */
-export function quickselect<T>(arr: Indexable<T>, n: number, lo = 0, hi = arr.length - 1): number {
+export function quickselect<T>(arr: ArrayView<T>, n: number, lo = 0, hi = arr.length - 1): number {
   if (arr.length <= n) {
     return -1;
   }
@@ -180,7 +180,7 @@ export function quickselect<T>(arr: Indexable<T>, n: number, lo = 0, hi = arr.le
 }
 
 /** Lomuto partitioning scheme */
-export function partition<T>(arr: Indexable<T>, lo: number, hi: number, pivotIdx: number): number {
+export function partition<T>(arr: ArrayView<T>, lo: number, hi: number, pivotIdx: number): number {
   const pivot = arr[pivotIdx];
   swap(arr, pivotIdx, hi);
 
@@ -207,7 +207,7 @@ export function partition<T>(arr: Indexable<T>, lo: number, hi: number, pivotIdx
  * @returns The index of first element of value or -1 if the
  * input doesn't contain value.
  */
-export function partitionEqual<T>(arr: Indexable<T>, value: T, lo: number, hi: number): number {
+export function partitionEqual<T>(arr: ArrayView<T>, value: T, lo: number, hi: number): number {
   assert.bounds(arr, lo);
   assert.bounds(arr, hi);
 
