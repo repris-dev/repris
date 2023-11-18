@@ -16,9 +16,7 @@ export type Distribution = {
   rng: Generator;
 };
 
-/**
- * A pseudo random number engine based on Math.random()
- */
+/** A pseudo random number engine based on Math.random() */
 export const mathRand: Generator = () => Math.round(Math.random() * randMax);
 
 /**
@@ -121,10 +119,11 @@ export function gaussian(mean = 0, stdDev = 1, generator = mathRand): Distributi
   const uni = uniform(-1, 1, generator);
 
   const fn = () => {
-    let u, v, s;
+    let u, s;
+
     do {
       u = uni();
-      v = uni();
+      const v = uni();
       s = u * u + v * v;
     } while (s >= 1 || s === 0);
 
