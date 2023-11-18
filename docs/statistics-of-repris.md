@@ -34,6 +34,8 @@ Non-parametric statistics are unrestricted by assumptions concerning distributio
 
 ### Confidence intervals
 
+A confidence interval is a range of values that describes the uncertainty surrounding an estimate.
+
 By default, Repris computes [bootstrapped confidence intervals](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Deriving_confidence_intervals_from_the_bootstrap_distribution) when running tests to report the sample quality.
 
 When comparing samples, a [studentized bootstrap](https://olebo.github.io/textbook/ch/18/hyp_studentized.html) paired difference test is used determine whether a change in performance is statistically significant.

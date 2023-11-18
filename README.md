@@ -17,6 +17,8 @@
   <img width="503" src="./docs/img/octane-dark.svg">
 </p>
 
+<BR>
+
 - Collect performance snapshots across many runs
 - Reject poor quality samples automatically
 - Run benchmarks in CI runners and other poorly controlled environments
