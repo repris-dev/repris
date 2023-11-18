@@ -1,4 +1,4 @@
-import { fillAscending, ArrayView } from '../array.js';
+import { iota, ArrayView } from '../array.js';
 import * as assert from '../assert.js';
 import * as chiSq from './chiSq.js';
 import { sidak, stbPhi } from './util.js';
@@ -24,10 +24,7 @@ export function mwu(as: ArrayView<number>, bs: ArrayView<number>): MWUResult {
   const get = (i: number) => (i >= midIdx ? bs[i - midIdx] : as[i]);
 
   // sorted indices
-  const idxs = new Int32Array(N);
-  fillAscending(idxs, 0);
-
-  idxs.sort((adx, bdx) => get(adx) - get(bdx));
+  const idxs = iota(new Int32Array(N), 0).sort((adx, bdx) => get(adx) - get(bdx));
 
   // sum the ranks of sample-a
   let r1 = 0;
@@ -126,8 +123,7 @@ export function kruskalWallis<T extends ArrayView<number>>(samples: T[]): Kruska
 
   assert.eq(N, sample.length);
 
-  fillAscending(idxs, 0);
-  idxs.sort((adx, bdx) => sample[adx] - sample[bdx]);
+  iota(idxs, 0).sort((adx, bdx) => sample[adx] - sample[bdx]);
 
   // rank initialization
   const ranks = new Float64Array(N);

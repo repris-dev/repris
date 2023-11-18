@@ -300,7 +300,7 @@ export function createOutlierSelection<T>(
   // ordered by centrality
   const tour: () => array.ArrayView<number> = lazy(() => {
     // sorting of keys by weight descending
-    const order = array.fillAscending(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
+    const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
 
     const tour = new Int32Array(N);
     let prev = order[0];

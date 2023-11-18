@@ -1,4 +1,4 @@
-import { fillAscending } from '../array.js';
+import { iota } from '../array.js';
 import { kruskalWallis, mwu } from './mwu.js';
 
 describe('mwu', () => {
@@ -173,7 +173,7 @@ describe('kruskalWallis', () => {
       [7, 21, 18],
     ]);
 
-    const order = fillAscending(new Array(3), 0).sort((a, b) => result.ranks[a] - result.ranks[b]);
+    const order = iota(new Array(3), 0).sort((a, b) => result.ranks[a] - result.ranks[b]);
     expect(order).toEqual([1, 0, 2]);
   });
 });

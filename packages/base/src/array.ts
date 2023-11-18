@@ -19,8 +19,11 @@ export function fill<T>(arr: ArrayView<T>, val: T): void {
   }
 }
 
-/** Sets all values in in increments of 1 */
-export function fillAscending<T extends ArrayView<number>>(arr: T, initial: number): T {
+/**
+ * Sets all values in arr in increments of 1.
+ * See also: c++ std::iota
+ */
+export function iota<T extends ArrayView<number>>(arr: T, initial: number): T {
   for (let i = 0; i < arr.length; i++) {
     arr[i] = initial++;
   }
@@ -120,6 +123,7 @@ export function lowerBound<T, T2 = T>(
       count = step;
     }
   }
+
   return first;
 }
 
@@ -127,6 +131,7 @@ export function lowerBound<T, T2 = T>(
  * Returns the index of the n-th smallest element of list within
  * lo..hi inclusive (i.e. lo <= n <= hi).
  * Time complexity: O(N).
+ *
  * @param {Array} arr Input array.
  * @param {Number} n A number of an element.
  * @param {Number} lo Low index.
@@ -134,26 +139,21 @@ export function lowerBound<T, T2 = T>(
  * @return Returns n-th smallest element.
  */
 export function quickselect<T>(arr: ArrayView<T>, n: number, lo = 0, hi = arr.length - 1): number {
-  if (arr.length <= n) {
-    return -1;
-  }
-
-  if (lo === hi) {
-    return lo;
-  }
+  if (arr.length <= n) return -1;
+  if (lo === hi) return lo;
 
   while (hi >= lo) {
     const pivotIdx = partition(arr, lo, hi, lo + Math.floor(Math.random() * (hi - lo + 1)));
 
-    if (n === pivotIdx) {
-      return pivotIdx;
-    }
+    if (n === pivotIdx) return pivotIdx;
+
     if (n < pivotIdx) {
       hi = pivotIdx - 1;
     } else {
       lo = pivotIdx + 1;
     }
   }
+
   return -1;
 }
 
@@ -190,9 +190,7 @@ export function partitionEqual<T>(arr: ArrayView<T>, value: T, lo: number, hi: n
   assert.bounds(arr, hi);
 
   while (lo < hi) {
-    if (arr[lo] === value) {
-      break;
-    }
+    if (arr[lo] === value) break;
     lo++;
   }
 
