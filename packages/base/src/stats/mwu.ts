@@ -126,10 +126,7 @@ export function kruskalWallis<T extends ArrayView<number>>(samples: T[]): Kruska
   iota(idxs, 0).sort((adx, bdx) => sample[adx] - sample[bdx]);
 
   // rank initialization
-  const ranks = new Float64Array(N);
-  for (let i = 0; i < N; i++) {
-    ranks[i] = i + 1;
-  }
+  const ranks = iota(new Float64Array(N), 1);
 
   // resolve tied ranks and tally total ties for later correction
   let ties = 0;
