@@ -23,8 +23,7 @@ export interface DigestOptions {
 
 export type DigestedSampleStatus =
   /**
-   * A sample rejected due to limits on the maximum cache size. These
-   * will be the 'worst' samples depending on the method used.
+   * A sample rejected due to limits on the maximum digest size.
    */
   | 'rejected'
   /**
