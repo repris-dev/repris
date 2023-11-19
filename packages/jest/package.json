@@ -1,6 +1,6 @@
 {
   "name": "@repris/jest",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "author": {
     "name": "Ray Glover",
     "email": "ray@repris.dev"
@@ -87,7 +87,8 @@
     "build:tsc": "tsc --build tsconfig.json tsconfig.spec.json",
     "build:vite": "MODE=production vite build",
     "build": "run-s -l build:tsc build:vite",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "prepublishOnly": "./script/prepublish.sh"
   },
   "license": "Apache-2.0"
 }
