@@ -69,4 +69,5 @@ jobs:
           //registry.npmjs.org/:_authToken=${NPM_TOKEN}
           EOF
 
-          pnpm publish -r --access public
+          # --no-git-checks because prepublish scripts may write files
+          pnpm publish -r --access public --no-git-checks
