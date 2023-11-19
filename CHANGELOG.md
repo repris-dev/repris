@@ -1,3 +1,7 @@
+## 0.8.2
+
+- `@repris/jest` package description
+
 ## 0.8.1
 
 - `@repris/jest` package readme
