@@ -3,7 +3,7 @@
 Install Repris on your Jest project with your favorite package manager:
 
 ```
-npm install --save-dev @repris/jest
+npm install --save-dev jest @repris/jest
 ```
 
 ## Write a test
@@ -158,7 +158,7 @@ Notice that the trove uncertainty has dropped to 0 and become highlighted. This 
 The process of updating snapshots is the same as in Jest:
 
 ```bash
-npm test --updateSnapshot
+npm test -- --updateSnapshot
 ```
 
 Repris will report that the snapshot was saved and the index was cleared:
