@@ -1,3 +1,7 @@
+## 0.8.4
+
+- `@repris/jest` config fix
+
 ## 0.8.3
 
 - `@repris/jest` preset fix

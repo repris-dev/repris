@@ -1,6 +1,6 @@
 {
   "name": "@repris/jest",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "author": {
     "name": "Ray Glover",
     "email": "ray@repris.dev"
@@ -14,7 +14,8 @@
     "package.json",
     "lib",
     "script",
-    "preset.js"
+    "preset.js",
+    ".reprisrc.defaults.js"
   ],
   "description": "Reproducible benchmarking for Jest",
   "keywords": [
