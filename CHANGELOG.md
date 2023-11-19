@@ -1,3 +1,7 @@
+## 0.8.3
+
+- `@repris/jest` preset fix
+
 ## 0.8.2
 
 - `@repris/jest` package description
