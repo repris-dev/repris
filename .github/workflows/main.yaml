@@ -70,4 +70,5 @@ jobs:
           EOF
 
           # --no-git-checks because prepublish scripts may write files
-          pnpm publish -r --access public --no-git-checks
+          # --force because this step only runs on version tags
+          pnpm publish -r --access public --no-git-checks --force
