@@ -5,6 +5,7 @@
     "name": "Ray Glover",
     "email": "ray@repris.dev"
   },
+  "homepage": "https://repris.dev",
   "repository": {
     "url": "https://github.com/repris-dev/repris",
     "type": "git"

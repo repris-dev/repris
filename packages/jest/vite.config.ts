@@ -6,6 +6,8 @@ const define = globals.defaults(pkg);
 console.table(define);
 
 const __dirname = new URL('.', import.meta.url).pathname;
+const dependencies = Object.keys(pkg.dependencies);
+const peerDependencies = Object.keys(pkg.peerDependencies);
 
 console.info('__dirname', __dirname);
 export default defineConfig({
@@ -25,7 +27,9 @@ export default defineConfig({
     },
     rollupOptions: {
       external: id =>
-        id.startsWith('node:') || Object.keys(pkg.dependencies).some(dep => id.startsWith(dep)),
+        id.startsWith('node:') ||
+        dependencies.some(dep => id.startsWith(dep)) ||
+        peerDependencies.some(dep => id.startsWith(dep)),
     },
     outDir: './lib',
   },
