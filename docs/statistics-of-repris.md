@@ -2,17 +2,17 @@
 
 ## Overcoming measurement bias
 
-A typical benchmark runs software before and after modification in order to see whether its performance has changed. Then, the two sets of measurements, or samples, collected during this process are compared in a statistical [hypothesis test](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing). In an ideal world this two-sample method would be sufficient and statistically sound approach to monitoring performance.
+A typical benchmark runs software before and after modification to see whether its performance has changed. Then, the pair of measurements (usually averages) are compared in a [hypothesis test](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing). In an ideal world this two-sample method would be statistically sound and robust approach to performance testing.
 
-However, you might've noticed that if you run the same benchmark a number of times, perhaps one in five or more of those runs will produce results that diverge significantly from the others. There are several reasons this can happen.
+However, you might've noticed that if you run the same benchmark a number of times and under the same conditions, perhaps 20% or more those runs produce results that diverge significantly from the others. This makes automated performance monitoring far more challenging and there are several reasons it can happen.
 
-Just-In-Time (JIT) compiled and garbage collected languages, such as JavaScript, are especially sensitive to factors external to the benchmark itself. One factor in particular is the use of dynamic profiling information which, due to small timing fluctuations, can alter the JIT compilation of the same piece of code. These small changes to code can cascade and lead to these changes to runtime performance from run to run [1, 4].
+Just-In-Time (JIT) compiled and garbage collected languages, such as JavaScript, are especially sensitive to factors external to the benchmark itself. One factor in particular is the use of dynamic profiling information which, due to small timing fluctuations, can alter the JIT compilation of the same piece of code. These small changes to code can cascade and lead to changes to runtime performance from run to run [1, 4].
 
-More generally these factors amount to a _measurement bias_ which, if unaccounted for, make it difficult or impossible to make claims about performance due to code modification, rather than other incidental factors. It also means benchmarks often can't be reproduced, even under identical conditions.
+More generally these factors amount to a _measurement bias_ which, if unaccounted for, make it difficult (or impossible) to make claims about performance due to code modification, rather than other incidental factors. It also means benchmark results seemingly can't be reproduced, even under identical conditions.
 
 To mitigate this bias, Repris collects samples across multiple runs. Each run effectively samples from the space of possible JIT compilations of the same piece of code, introducing a kind of randomization to the experimental setup (a more explicit version of this technique is used by [stabilizer](https://github.com/ccurtsinger/stabilizer)).
 
-Ultimately, 20-30 runs are usually sufficient to accurately detect a ~1% change in runtime performance.
+Ultimately, 20-30 runs are usually sufficient to accurately detect a ~1% change in runtime performance, and also makes it easier to detect unreliable benchmarks before they are added to your test suite.
 
 ## Non-parametric statistics
 
@@ -24,9 +24,9 @@ It's well known that benchmarks generally don't follow a normal distribution; th
   <img src="./distributions.svg" style="background-color: white">
 </p>
 
-Non-parametric statistics are unrestricted by assumptions concerning distributions, and Repris uses them where sensible for several reasons. A few are:
+Non-parametric statistics are not restricted by assumptions concerning distributions, and Repris uses them where sensible for several reasons. A few are:
 
-- There is no one distribution which can be applied to and work well across all benchmarks. Even when one distribution seems appropriate to a particular benchmark, it tends to describe a 'happy' state which fails to hold in challenging environments.
+- There is not one distribution which can be applied to and work well across all benchmarks. Even when one distribution seems appropriate to a particular benchmark, it tends to describe a 'happy' state which fails to hold in challenging environments.
 
 - Non-parametric statistics tend to be more robust in the presence of a large proportion of outliers (which we'll come to next.)
 
@@ -48,9 +48,9 @@ Repris uses robust statistics to help ensure the reliability and validity of ben
 
 ### Point estimates
 
-Benchmark tools typically report samples by their mean, median, minimum, percentiles and so on. Each summary statistic has its own advantages and drawbacks.
+Benchmark tools typically report samples by their mean, median, minimum, percentiles and so on. Each summary statistic has its own merits and drawbacks.
 
-By default, Repris reports an estimate of the modal value. The mode is an ideal value of central tendency since it is the most probable value in the sample. The mode is generally unaffected by the shape of the distribution, especially its skew, making it naturally robust to extreme outliers.
+By default, Repris reports an estimate of the modal value. The mode is an ideal value of central tendency since it's the most probable value in the sample. The mode is generally unaffected by the shape of the distribution, especially its skew, making it naturally robust to extreme outliers that tend to appear on one side of the distribution.
 
 In practice Repris uses the _Half-sample mode_ which has been shown to be robust to large proportion of outliers. [2, 3]
 

@@ -13,7 +13,7 @@
 
 <BR>
 
-<p align="center">
+<p>
   <img width="503" src="./docs/img/octane-dark.svg">
 </p>
 
@@ -30,7 +30,7 @@
 See [Getting started with Repris](./docs/tutorial.md).
 
 
-## Docs
+## Documentation
 
-- See [Repris concepts and methodology](./docs/concepts.md) for a tour of Repris concepts and a description of the benchmark methodology.
 - See [The statistics of Repris](./docs/statistics-of-repris.md) for more on why Repris works the way it does.
+- See [Repris concepts and methodology](./docs/concepts.md) for a tour of Repris concepts and a description of the benchmark methodology.
