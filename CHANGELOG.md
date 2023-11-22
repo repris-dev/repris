@@ -1,3 +1,8 @@
+## 0.8.5
+
+- `repris compare` - change default bootstrap resamples to 5000 from 2500
+- disable minification for easier debugging
+
 ## 0.8.4
 
 - `@repris/jest` config fix

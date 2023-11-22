@@ -9,6 +9,7 @@ export default defineConfig({
   define,
   build: {
     target: 'es2022',
+    minify: false,
     lib: {
       entry: '.tsc/index.js',
       fileName: 'index',
