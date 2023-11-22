@@ -96,6 +96,7 @@ describe('studentizedResampler', () => {
 
   /** https://stats.stackexchange.com/questions/252780/which-bootstrap-method-is-most-preferred */
   test('Confidence intervals of a right-skewed sample', () => {
+    // skewness estimator
     const estimator = (xs: ArrayView<number>) => {
       const g = new online.Gaussian();
       for (let i = 0; i < xs.length; i++) g.push(xs[i]);

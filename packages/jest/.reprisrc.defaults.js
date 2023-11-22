@@ -116,7 +116,6 @@ export default {
               'hypothesis:mean:difference-ci',
               {
                 display: false,
-                options: { level: 0.99 },
               },
             ],
           ],

@@ -29,7 +29,7 @@ const HypothesisAnnotations = Object.freeze({
   /** Confidence interval of the difference of means between the two samples */
   differenceCI: {
     id: 'hypothesis:mean:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50 },
+    opts: { level: 0.99, resamples: 5000, secondaryResamples: 50 },
   },
 
   /** A text summary of the difference */

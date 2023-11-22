@@ -9,7 +9,7 @@ import { online, quantile } from '../stats.js';
  */
 export function resampler(
   sample: ArrayView<number>,
-  entropy = random.PRNGi32(),
+  entropy = random.mathRand,
   smoothing = 0,
 ): () => Float64Array {
   const N = sample.length,
@@ -53,7 +53,7 @@ export function studentizedResampler(
   sample: ArrayView<number>,
   estimator: (xs: ArrayView<number>) => number,
   secondResampleSize = 50,
-  entropy = random.PRNGi32(),
+  entropy = random.mathRand,
 ): () => StudentizedResample {
   const N = sample.length,
     resample = resampler(sample, entropy),
@@ -90,8 +90,8 @@ export function pairedStudentizedResampler(
   sample0: ArrayView<number>,
   sample1: ArrayView<number>,
   estimator: (xs0: ArrayView<number>, xs1: ArrayView<number>) => number,
-  innerResampleSize = 50,
-  entropy = random.PRNGi32(),
+  secondaryResamples: number,
+  entropy = random.mathRand,
 ): () => StudentizedResample {
   const N0 = sample0.length;
   const N1 = sample1.length;
@@ -118,7 +118,7 @@ export function pairedStudentizedResampler(
     copyTo(replicate0, innerBuff0);
     copyTo(replicate1, innerBuff1);
 
-    for (let k = 0; k < innerResampleSize; k++) {
+    for (let k = 0; k < secondaryResamples; k++) {
       innerBootStat.push(estimator(innerBoot0(), innerBoot1()));
     }
 
@@ -213,11 +213,9 @@ export function studentizedDifferenceTest(
     estStat.push(ti.estimate);
   }
 
-  const bootStd = estStat.std();
-
   return [
-    stat - bootStd * quantile(pivotalQuantities, 0.5 + level / 2),
-    stat - bootStd * quantile(pivotalQuantities, 0.5 - level / 2),
+    stat - estStat.std() * quantile(pivotalQuantities, 0.5 + level / 2),
+    stat - estStat.std() * quantile(pivotalQuantities, 0.5 - level / 2),
   ];
 }
 
