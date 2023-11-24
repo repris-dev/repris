@@ -241,11 +241,11 @@ function aggregateAndFilter<T>(
     const xsTmp = subset.map(w => w.statistic);
     const os = stats.online.Gaussian.fromValues(xsTmp);
 
-    // Spread as the coefficient of variation
+    // Spread as the coefficient of variation with harsh penalty for skewness.
     // Use 1.5 ddof Rule of Thumb
     // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
     // The American Statistician (23) 4 p. 32 (1969)
-    relativeSpread = os.cov(1.5);
+    relativeSpread = os.cov(1.5) * ((os.skewness() ** 2) + 1);
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
