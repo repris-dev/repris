@@ -118,6 +118,12 @@ export default {
                 display: false,
               },
             ],
+            [
+              'hypothesis:mean:effect-size',
+              {
+                displayName: 'Effect',
+              },
+            ]
           ],
 
           '@baseline': [

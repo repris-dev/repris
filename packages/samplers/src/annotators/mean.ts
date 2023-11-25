@@ -32,6 +32,8 @@ const HypothesisAnnotations = Object.freeze({
     opts: { level: 0.99, resamples: 5000, secondaryResamples: 50 },
   },
 
+  effectSize: 'hypothesis:mean:effect-size' as typeid,
+
   /** A text summary of the difference */
   differenceSummary: 'hypothesis:mean:summary-text' as typeid,
 });
@@ -125,6 +127,16 @@ ann.register('@annotator:hypothesis:mean', {
       );
 
       result.set(HypothesisAnnotations.differenceCI.id, ci);
+    }
+
+    if (request.has(HypothesisAnnotations.effectSize)) {
+      const os0 = stats.online.Gaussian.fromValues(x0);
+      const os1 = stats.online.Gaussian.fromValues(x1);
+
+      const s = Math.sqrt((((os0.N() - 1) / os0.var(1.5)) + ((os1.N() - 1) / os1.var(1.5))) / (os0.N() + os1.N() - 2));
+      const d = (os0.mean() - os1.mean()) / s;
+
+      result.set(HypothesisAnnotations.effectSize, d);
     }
 
     // summary of the difference
