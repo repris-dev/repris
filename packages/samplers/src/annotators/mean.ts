@@ -132,9 +132,7 @@ ann.register('@annotator:hypothesis:mean', {
     if (request.has(HypothesisAnnotations.effectSize)) {
       const os0 = stats.online.Gaussian.fromValues(x0);
       const os1 = stats.online.Gaussian.fromValues(x1);
-
-      const s = Math.sqrt((((os0.N() - 1) / os0.var(1.5)) + ((os1.N() - 1) / os1.var(1.5))) / (os0.N() + os1.N() - 2));
-      const d = (os0.mean() - os1.mean()) / s;
+      const d = stats.cohensD(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
 
       result.set(HypothesisAnnotations.effectSize, d);
     }
