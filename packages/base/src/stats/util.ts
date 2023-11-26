@@ -102,6 +102,16 @@ export function sidak(p: number, comparisons: number) {
   return 1.0 - Math.pow(1.0 - p, comparisons);
 }
 
+/**
+ * The Jarque–Bera test is a goodness-of-fit test of whether sample data have the
+ * skewness and kurtosis matching a normal distribution.
+ *
+ * @param n Sample size
+ * @param S Skewness
+ * @param K Kurtosis
+ * @param ddof delta-degrees-of freedom
+ * @returns A non-negative number which if close to zero indicates a normal-distribution
+ */
 export function jarqueBera(n: number, S: number, K: number, ddof = 0) {
   return ((n - ddof) / 6) * (S * S + (1 / 4) * (K * K));
 }
@@ -113,4 +123,18 @@ export function jarqueBera(n: number, S: number, K: number, ddof = 0) {
  */
 export function rme(interval: [number, number], estimate: number) {
   return (interval[1] - interval[0]) / 2 / estimate;
+}
+
+/** Cohen's d effect size */
+export function cohensD(
+  n0: number,
+  mean0: number,
+  sd0: number,
+  n1: number,
+  mean1: number,
+  sd1: number,
+) {
+  // Pooled variance
+  const sSq = ((n0 - 1) * sd0 ** 2 + (n1 - 1) * sd1 ** 2) / (n0 + n1 - 2);
+  return Math.abs(mean0 - mean1) / Math.sqrt(sSq);
 }

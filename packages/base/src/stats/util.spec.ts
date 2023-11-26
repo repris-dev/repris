@@ -135,3 +135,30 @@ describe('jarqueBera', () => {
     expect(util.jarqueBera(N, stats.skewness(), stats.kurtosis())).toBeGreaterThan(50);
   });
 });
+
+describe("cohen's D", () => {
+  const N = 100;
+
+  test('identical distributions', () => {
+    const rng = random.gaussian(5, 5, random.PRNGi32());
+    const stats = new OS.Gaussian();
+
+    for (let i = 0; i < N; i++) {
+      stats.push(rng());
+    }
+
+    expect(
+      util.cohensD(stats.N(), stats.mean(), stats.var(1), stats.N(), stats.mean(), stats.var(1)),
+    ).toEqual(0);
+  });
+
+  test('1 s.d. difference', () => {
+    const sd = 2;
+    expect(util.cohensD(20, 1, sd, 20, 1 + sd, sd)).toEqual(1);
+  });
+
+  test('0.5 s.d. difference', () => {
+    const sd = 2;
+    expect(util.cohensD(20, 1, sd, 20, 1 + sd / 2, sd)).toEqual(0.5);
+  });
+});
