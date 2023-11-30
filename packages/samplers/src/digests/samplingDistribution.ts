@@ -265,6 +265,24 @@ console.info('rel', relativeSpread)
   };
 }
 
+export function allPairsDifferences(xs: array.ArrayView<number>) {
+  const N = xs.length;
+  const result = new Float64Array(N);
+
+  let tot = 0;
+  for (let i = 0; i < N; i++) tot += xs[i];
+
+  let cumSum = 0;
+  for (let i = 0; i < N; i++) {
+    const x = xs[i];
+    result[i] = (2 * i - N) * x + (tot - cumSum);
+    cumSum += x;
+    tot -= x;
+  }
+
+  return result;
+}
+
 export function createOutlierSelection<T>(
   keys: array.ArrayView<T>,
   toScalar: (k: T) => number,
@@ -272,34 +290,16 @@ export function createOutlierSelection<T>(
 ): () => T | undefined {
   const N = keys.length,
     xs = new Float64Array(N);
+
   for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
 
   // std. Devs from the mean for each sample
-  const sigmas = new Float64Array(N);
-
-  {
-    // Mean: mean of the narrowest 50% of the distribution (shorth)
-    // std dev.: median absolute deviation from the mean
-    const xsTmp = xs.slice();
-    const mean = stats.mode.shorth(xsTmp).mode,
-      std = stats.mad(xsTmp, mean).normMad;
-
-    if (std > 0) {
-      // weight by distance from the median, normalized by
-      // estimate of standard deviation
-      for (let i = 0; i < N; i++) {
-        sigmas[i] = Math.abs(xs[i] - mean) / std;
-      }
-    } else {
-      // equal weights
-      array.fill(sigmas, 1 / N);
-    }
-  }
+  const sigmas = allPairsDifferences(xs.slice().sort());
 
   // A lazy list of index-pointers constructing a tour of all items,
   // ordered by centrality
   const tour: () => array.ArrayView<number> = lazy(() => {
-    // sorting of keys by weight descending
+    // sorting of keys by weight (descending)
     const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
 
     const tour = new Int32Array(N);
