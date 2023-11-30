@@ -18,7 +18,7 @@ export interface DigestOptions {
    * 0 (maximum similarity, no uncertainty) and 1 (completely dissimilar)
    * inclusive.
    */
-  maxUncertainty: number;
+  maxEffect: number;
 }
 
 export type DigestedSampleStatus =

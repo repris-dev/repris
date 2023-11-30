@@ -56,7 +56,7 @@ describe('process()', () => {
 
     const digest = processSamples(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
-      maxUncertainty: 0.1,
+      maxEffect: 0.05,
       minSize: 2,
       maxSize: 3,
     });
@@ -72,7 +72,7 @@ describe('process()', () => {
     expect(result.order[result.order.length - 1]).toBe(sD);
   });
 
-  test('maxUncertainty', () => {
+  test('minEffect', () => {
     const samples = [sA, sF];
     const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
 
@@ -82,7 +82,7 @@ describe('process()', () => {
         Status.get(
           processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: Infinity,
+            maxEffect: Infinity,
             minSize: 2,
             maxSize: 10,
           }),
@@ -99,7 +99,7 @@ describe('process()', () => {
         Status.get(
           processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: 0.1,
+            maxEffect: 0.01,
             minSize: 2,
             maxSize: 10,
           }),
@@ -124,7 +124,7 @@ describe('process()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: 0.9,
+            maxEffect: 10,
             minSize: 2,
             maxSize: 4,
           },
@@ -151,7 +151,7 @@ describe('process()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxUncertainty: 0.2,
+            maxEffect: 0.2,
             minSize: 2,
             maxSize: 4,
           },

@@ -245,16 +245,16 @@ function aggregateAndFilter<T>(
     // Use 1.5 ddof Rule of Thumb
     // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
     // The American Statistician (23) 4 p. 32 (1969)
-    relativeSpread = os.cov(1.5) * ((os.skewness() ** 2) + 1);
+    relativeSpread = stats.normal.mde(0.99, 0.99, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
       (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()),
     );
   }
-
+console.info('rel', relativeSpread)
   // mark consistent samples
-  if (subset.length >= opts.minSize && relativeSpread <= opts.maxUncertainty) {
+  if (subset.length >= opts.minSize && relativeSpread <= opts.maxEffect) {
     subset.forEach(x => (x.status = 'consistent'));
   }
 
