@@ -17,24 +17,40 @@ const DigestAnnotations = Object.freeze({
 });
 
 const HypothesisAnnotations = Object.freeze({
-  /** The relative change between the two samples */
+  /**
+   * The relative change between the mean of two samples. This can also
+   * denote the effect-size of the difference.
+   */
   relativeDifference: 'hypothesis:mean:difference' as typeid,
 
   /**
    * Whether the difference is statistically significant.
+   * If the difference is not significant, the value of this annotation is zero,
+   * otherwise the value is equal to the relative difference.
+   *
    * Note that this annotation is dependant on 'hypothesis:mean:difference-ci'.
    */
-  significantDifference: 'hypothesis:mean:significant-difference' as typeid,
+  significantDifference: {
+    id: 'hypothesis:mean:significant-difference' as typeid,
+    opts: { minimumEffectSize: 0 },
+  },
 
   /** Confidence interval of the difference of means between the two samples */
   differenceCI: {
     id: 'hypothesis:mean:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 5000, secondaryResamples: 50 },
+    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50 },
   },
 
+  /** Cohen's d standardized effect-size of the difference between the two samples */
   effectSize: 'hypothesis:mean:effect-size' as typeid,
 
-  /** A text summary of the difference */
+  /** */
+  minimumDetectableEffect: {
+    id: 'hypothesis:mean:mde' as typeid,
+    opts: { level: 0.99, power: 0.99 }
+  },
+
+  /** A text summary of the difference of two means */
   differenceSummary: 'hypothesis:mean:summary-text' as typeid,
 });
 
@@ -102,10 +118,10 @@ ann.register('@annotator:hypothesis:mean', {
       return Status.err('Samples must have a sampling distribution');
     }
 
-    const mean0 = mean(x0);
-    const mean1 = mean(x1);
-    const relChange = (mean0 - mean1) / mean1;
-
+    const os0 = stats.online.Gaussian.fromValues(x0);
+    const os1 = stats.online.Gaussian.fromValues(x1);
+    
+    const relChange = (os0.mean() - os1.mean()) / os1.mean();
     result.set(HypothesisAnnotations.relativeDifference, relChange);
 
     let ci: [lo: number, hi: number] | undefined;
@@ -130,11 +146,21 @@ ann.register('@annotator:hypothesis:mean', {
     }
 
     if (request.has(HypothesisAnnotations.effectSize)) {
-      const os0 = stats.online.Gaussian.fromValues(x0);
-      const os1 = stats.online.Gaussian.fromValues(x1);
       const d = stats.cohensD(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
-
       result.set(HypothesisAnnotations.effectSize, d);
+    }
+
+    if (request.has(HypothesisAnnotations.minimumDetectableEffect.id)) {
+      const opts = {
+        ...HypothesisAnnotations.minimumDetectableEffect.opts,
+        ...request.get(HypothesisAnnotations.minimumDetectableEffect.id),
+      };
+
+      const mde = stats.normal.mde(
+        opts.level, opts.power, os0.N(), os0.std(1), os1.N(), os1.std(1)
+      );
+ 
+      result.set(HypothesisAnnotations.minimumDetectableEffect.id, (mde / os1.mean()) * 100);
     }
 
     // summary of the difference
@@ -143,8 +169,8 @@ ann.register('@annotator:hypothesis:mean', {
       let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
 
       if (ci) {
-        const lo = ci[0] / mean1;
-        const hi = ci[1] / mean1;
+        const lo = ci[0] / os1.mean();
+        const hi = ci[1] / os1.mean();
 
         summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
       }
@@ -152,12 +178,20 @@ ann.register('@annotator:hypothesis:mean', {
       result.set(HypothesisAnnotations.differenceSummary, summary);
     }
 
-    if (request.has(HypothesisAnnotations.significantDifference)) {
+    if (request.has(HypothesisAnnotations.significantDifference.id)) {
       if (ci) {
+        const opts = {
+          ...HypothesisAnnotations.significantDifference.opts,
+          ...request.get(HypothesisAnnotations.significantDifference.id),
+        };
+
         // Accept the null hypothesis (no difference) if the interval
         // includes 0, otherwise reject
-        const reject = (relChange > 0 && ci[0] > 0) || (relChange < 0 && ci[1] < 0);
-        result.set(HypothesisAnnotations.significantDifference, reject ? relChange : 0);
+        const reject =
+          (relChange > opts.minimumEffectSize && ci[0] > 0) ||
+          (relChange < -opts.minimumEffectSize && ci[1] < 0);
+
+        result.set(HypothesisAnnotations.significantDifference.id, reject ? relChange : 0);
       }
     }
 

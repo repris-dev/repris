@@ -123,6 +123,12 @@ export default {
               {
                 displayName: 'Effect',
               },
+            ],
+            [
+              'hypothesis:mean:mde',
+              {
+                displayName: 'MDE (%)',
+              },
             ]
           ],
 
