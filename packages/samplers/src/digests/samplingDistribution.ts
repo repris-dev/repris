@@ -300,7 +300,7 @@ export function createOutlierSelection<T>(
   for (const x of sigmas) min = Math.min(min, x);
 
   for (let i = 0; i < sigmas.length; i++) {
-    sigmas[i] = (sigmas[i] - min) / sigmas.length;
+    sigmas[i] = ((sigmas[i] - min) / sigmas.length) ** 2;
   }
 
   // A lazy list of index-pointers constructing a tour of all items,
