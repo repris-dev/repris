@@ -296,6 +296,13 @@ export function createOutlierSelection<T>(
   // std. Devs from the mean for each sample
   const sigmas = allPairsDifferences(xs.slice().sort());
 
+  let min = Infinity;
+  for (const x of sigmas) min = Math.min(min, x);
+
+  for (let i = 0; i < sigmas.length; i++) {
+    sigmas[i] = (sigmas[i] - min) / sigmas.length;
+  }
+
   // A lazy list of index-pointers constructing a tour of all items,
   // ordered by centrality
   const tour: () => array.ArrayView<number> = lazy(() => {
