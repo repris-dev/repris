@@ -9,6 +9,7 @@ import {
   stats,
   lazy,
   array,
+  iterator,
 } from '@repris/base';
 
 import { duration } from '../samples.js';
@@ -241,6 +242,8 @@ function aggregateAndFilter<T>(
     const xsTmp = subset.map(w => w.statistic);
     const os = stats.online.Gaussian.fromValues(xsTmp);
 
+    console.info(xsTmp)
+
     // Spread as the coefficient of variation with harsh penalty for skewness.
     // Use 1.5 ddof Rule of Thumb
     // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
@@ -283,6 +286,84 @@ export function allPairsDifferences(xs: array.ArrayView<number>) {
   return result;
 }
 
+//export function createOutlierSelection<T>(
+//  keys: array.ArrayView<T>,
+//  toScalar: (k: T) => number,
+//  entropy = random.PRNGi32(),
+//): () => T | undefined {
+//  const N = keys.length, xs = new Float64Array(N);
+//
+//  for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
+//
+//  const xsStats = stats.online.Gaussian.fromValues(xs);
+//
+//  // sort keys by their scalar values
+//  const sortedKeys = array.iota(new Int32Array(N), 0).sort((a, b) => xs[a] - xs[b]);
+//
+//  // sorted xs
+//  const xsSorted = new Float64Array(N);
+//  for (let i = 0; i < N; i++) xsSorted[i] = xs[sortedKeys[i]];
+//
+//  // weights (sorted by scalars)
+//  const sigmasTmp = allPairsDifferences(xsSorted);
+//
+//  // weights
+//  const sigmas = sigmasTmp.slice();
+//  for (let i = 0; i < N; i++) sigmas[sortedKeys[i]] = sigmasTmp[i];
+//
+//  { // normalize
+//    let min = Infinity;
+//    for (const x of sigmas) {
+//      min = Math.min(min, x);
+//    }
+//  
+//    for (let i = 0; i < N; i++) {
+//      sigmas[i] = (sigmas[i] - min) / N;
+//    }
+//  }
+//
+//  // A lazy list of index-pointers constructing a tour of all items,
+//  // ordered by centrality
+//  const tour: () => array.ArrayView<number> = lazy(() => {
+//    // sorting of keys by weight (descending)
+//    const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
+//
+//    const tour = new Int32Array(N);
+//    let prev = order[0];
+//
+//    for (let i = 1; i < N; i++) {
+//      const ith = order[i];
+//      tour[prev] = ith;
+//      prev = ith;
+//    }
+//
+//    tour[prev] = order[0];
+//    return tour;
+//  });
+//
+//  const dist = random.discreteDistribution(sigmas, entropy);
+//  const seen = new Int32Array(N);
+//
+//  let totSeen = 0;
+//
+//  return () => {
+//    // filtered everything?
+//    if (totSeen >= N) return void 0;
+//
+//    let idx = dist();
+//
+//    // ensure we're not returning duplicates
+//    while (seen[idx] > 0) {
+//      idx = tour()[idx];
+//    }
+//
+//    totSeen++;
+//    seen[idx]++;
+//
+//    return keys[idx];
+//  };
+//}
+
 export function createOutlierSelection<T>(
   keys: array.ArrayView<T>,
   toScalar: (k: T) => number,
@@ -290,23 +371,51 @@ export function createOutlierSelection<T>(
 ): () => T | undefined {
   const N = keys.length,
     xs = new Float64Array(N);
-
   for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
 
   // std. Devs from the mean for each sample
-  const sigmas = allPairsDifferences(xs.slice().sort());
+  const sigmas = new Float64Array(N);
 
-  let min = Infinity;
-  for (const x of sigmas) min = Math.min(min, x);
+  {
+    // Mean: mean of the narrowest 50% of the distribution (shorth)
+    // std dev.: median absolute deviation from the mean
+    const xsTmp = xs.slice();
+    
+    const xsStat = stats.online.Gaussian.fromValues(xsTmp);
+    const mean = xsStat.mean();
+    const std = stats.mad(xsTmp, mean).normMad;
 
-  for (let i = 0; i < sigmas.length; i++) {
-    sigmas[i] = ((sigmas[i] - min) / sigmas.length) ** 2;
+    //{
+    //  let k = 0
+    //  for (let i = 0; i < N; i++) {
+    //    if (Math.abs(xs[i] - mean) / std < 1) k++
+    //  }
+    //  console.info('>>', k / N);
+    //}
+
+    if (std > 0) {
+      // weight by distance from the median, normalized by
+      // estimate of standard deviation
+      let k = 0;
+
+      for (let i = 0; i < N; i++) {
+        const s = Math.abs(xs[i] - mean) / std;
+        sigmas[i] = Math.max(2, s);//s <= 2 ? 2 : s;
+
+        if (s>2) k++
+      }
+
+      console.info('k', k/N, xsStat.kurtosis())
+    } else {
+      // equal weights
+      array.fill(sigmas, 1 / N);
+    }
   }
 
   // A lazy list of index-pointers constructing a tour of all items,
   // ordered by centrality
   const tour: () => array.ArrayView<number> = lazy(() => {
-    // sorting of keys by weight (descending)
+    // sorting of keys by weight descending
     const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
 
     const tour = new Int32Array(N);
@@ -343,4 +452,13 @@ export function createOutlierSelection<T>(
 
     return keys[idx];
   };
+}
+
+function lerp(x0: number, x1: number, t: number) {
+  return x0 + t * (x1 - x0);
+}
+
+function cdf(x: number, std = 1) {
+  const e = Math.exp(-(1.65451 * x) / std)
+  return 1 / (1 + e);
 }
