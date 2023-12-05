@@ -255,7 +255,7 @@ function aggregateAndFilter<T>(
       (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()),
     );
   }
-console.info('rel', relativeSpread)
+
   // mark consistent samples
   if (subset.length >= opts.minSize && relativeSpread <= opts.maxEffect) {
     subset.forEach(x => (x.status = 'consistent'));
@@ -267,102 +267,6 @@ console.info('rel', relativeSpread)
     samplingDistribution,
   };
 }
-
-export function allPairsDifferences(xs: array.ArrayView<number>) {
-  const N = xs.length;
-  const result = new Float64Array(N);
-
-  let tot = 0;
-  for (let i = 0; i < N; i++) tot += xs[i];
-
-  let cumSum = 0;
-  for (let i = 0; i < N; i++) {
-    const x = xs[i];
-    result[i] = (2 * i - N) * x + (tot - cumSum);
-    cumSum += x;
-    tot -= x;
-  }
-
-  return result;
-}
-
-//export function createOutlierSelection<T>(
-//  keys: array.ArrayView<T>,
-//  toScalar: (k: T) => number,
-//  entropy = random.PRNGi32(),
-//): () => T | undefined {
-//  const N = keys.length, xs = new Float64Array(N);
-//
-//  for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
-//
-//  const xsStats = stats.online.Gaussian.fromValues(xs);
-//
-//  // sort keys by their scalar values
-//  const sortedKeys = array.iota(new Int32Array(N), 0).sort((a, b) => xs[a] - xs[b]);
-//
-//  // sorted xs
-//  const xsSorted = new Float64Array(N);
-//  for (let i = 0; i < N; i++) xsSorted[i] = xs[sortedKeys[i]];
-//
-//  // weights (sorted by scalars)
-//  const sigmasTmp = allPairsDifferences(xsSorted);
-//
-//  // weights
-//  const sigmas = sigmasTmp.slice();
-//  for (let i = 0; i < N; i++) sigmas[sortedKeys[i]] = sigmasTmp[i];
-//
-//  { // normalize
-//    let min = Infinity;
-//    for (const x of sigmas) {
-//      min = Math.min(min, x);
-//    }
-//  
-//    for (let i = 0; i < N; i++) {
-//      sigmas[i] = (sigmas[i] - min) / N;
-//    }
-//  }
-//
-//  // A lazy list of index-pointers constructing a tour of all items,
-//  // ordered by centrality
-//  const tour: () => array.ArrayView<number> = lazy(() => {
-//    // sorting of keys by weight (descending)
-//    const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
-//
-//    const tour = new Int32Array(N);
-//    let prev = order[0];
-//
-//    for (let i = 1; i < N; i++) {
-//      const ith = order[i];
-//      tour[prev] = ith;
-//      prev = ith;
-//    }
-//
-//    tour[prev] = order[0];
-//    return tour;
-//  });
-//
-//  const dist = random.discreteDistribution(sigmas, entropy);
-//  const seen = new Int32Array(N);
-//
-//  let totSeen = 0;
-//
-//  return () => {
-//    // filtered everything?
-//    if (totSeen >= N) return void 0;
-//
-//    let idx = dist();
-//
-//    // ensure we're not returning duplicates
-//    while (seen[idx] > 0) {
-//      idx = tour()[idx];
-//    }
-//
-//    totSeen++;
-//    seen[idx]++;
-//
-//    return keys[idx];
-//  };
-//}
 
 export function createOutlierSelection<T>(
   keys: array.ArrayView<T>,
@@ -380,32 +284,21 @@ export function createOutlierSelection<T>(
     // Mean: mean of the narrowest 50% of the distribution (shorth)
     // std dev.: median absolute deviation from the mean
     const xsTmp = xs.slice();
-    
-    const xsStat = stats.online.Gaussian.fromValues(xsTmp);
-    const mean = xsStat.mean();
-    const std = stats.mad(xsTmp, mean).normMad;
+    const median = stats.median(xsTmp);
+    const std = stats.mad(xsTmp, median).normMad;
 
-    //{
-    //  let k = 0
-    //  for (let i = 0; i < N; i++) {
-    //    if (Math.abs(xs[i] - mean) / std < 1) k++
-    //  }
-    //  console.info('>>', k / N);
-    //}
+    console.info(std, stats.allPairs.crouxQn(xsTmp).correctedSpread);
 
     if (std > 0) {
       // weight by distance from the median, normalized by
-      // estimate of standard deviation
-      let k = 0;
-
+      // estimate of standard deviation. essentially a 'modified z-score'
+      // where weights are constant up to 2 s.d. and then increase
+      // rapidly.
       for (let i = 0; i < N; i++) {
-        const s = Math.abs(xs[i] - mean) / std;
-        sigmas[i] = Math.max(2, s);//s <= 2 ? 2 : s;
-
-        if (s>2) k++
+        const z = Math.abs(xs[i] - median) / std;
+        // 2+\max\left(0,\ x-2\right)^{2}
+        sigmas[i] = 2 + (Math.max(0, z - 2) ** 2);
       }
-
-      console.info('k', k/N, xsStat.kurtosis())
     } else {
       // equal weights
       array.fill(sigmas, 1 / N);
@@ -454,11 +347,3 @@ export function createOutlierSelection<T>(
   };
 }
 
-function lerp(x0: number, x1: number, t: number) {
-  return x0 + t * (x1 - x0);
-}
-
-function cdf(x: number, std = 1) {
-  const e = Math.exp(-(1.65451 * x) / std)
-  return 1 / (1 + e);
-}
