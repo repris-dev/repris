@@ -1,10 +1,44 @@
-import { quickselect, ArrayView } from '../array.js';
+import { quickselect, ArrayView, iota } from '../array.js';
 import { assert } from '../index.js';
 
 export type RobustScale = {
   spread: number;
   correctedSpread: number;
 };
+
+/**
+ * Calculates the sum of absolute differences of each element to every other
+ * element. O(n) time.
+ * @param xs numbers
+ * @param sortedIndices A sorting of xs in ascending order. If not supplied xs
+ * is assumed to be sorted
+ * @returns The sum of absolute differences of each element of xs
+ */
+export function differenceSums(
+  xs: ArrayView<number>,
+  sortedIndices: ArrayView<number> = iota(new Int32Array(xs.length), 0),
+) {
+  const N = sortedIndices.length;
+  const result = new Float64Array(N);
+
+  let tot = 0;
+  for (let i = 0; i < N; i++) tot += xs[i];
+
+  let cumSum = 0;
+  let prev = -Infinity;
+
+  for (let i = 0; i < N; i++) {
+    const x = xs[sortedIndices[i]];
+    assert.gte(x, prev);
+
+    result[i] = (2 * i - N) * x + (tot - cumSum);
+    cumSum += x;
+    tot -= x;
+    prev = x;
+  }
+
+  return result;
+}
 
 function oneObservation(sample: ArrayView<number>) {
   assert.eq(sample.length, 1);
@@ -57,7 +91,7 @@ export function crouxQn(
   }
 
   assert.eq(m, M);
-
+  
   const h = Math.floor(N / 2 + 1); // roughly half
   const k = Math.floor((h * (h - 1)) / 2); // k = hC2
 
