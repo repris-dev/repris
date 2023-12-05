@@ -287,17 +287,19 @@ export function createOutlierSelection<T>(
     const median = stats.median(xsTmp);
     const std = stats.mad(xsTmp, median).normMad;
 
-    console.info(std, stats.allPairs.crouxQn(xsTmp).correctedSpread);
+    console.info(std, stats.allPairs.crouxQn(xsTmp).correctedSpread, stats.online.Gaussian.fromValues(xsTmp).kurtosis());
 
     if (std > 0) {
-      // weight by distance from the median, normalized by
-      // estimate of standard deviation. essentially a 'modified z-score'
-      // where weights are constant up to 2 s.d. and then increase
-      // rapidly.
       for (let i = 0; i < N; i++) {
+        // weight by distance from the median, normalized by
+        // estimate of standard deviation. essentially a 'modified z-score'
+        // where weights are constant up to 2 s.d. and rapidly increase
+        // beyond 4 s.d.
         const z = Math.abs(xs[i] - median) / std;
-        // 2+\max\left(0,\ x-2\right)^{2}
-        sigmas[i] = 2 + (Math.max(0, z - 2) ** 2);
+        const weight = Math.max(2, z);
+
+        // 2+1000^{\left(\left(\ln\left(\max\left(2,\ x\right)\right)\right)-1.5\right)}
+        sigmas[i] = 2 + (1e3 ** (Math.log(weight) - 1.5));
       }
     } else {
       // equal weights
