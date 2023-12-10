@@ -89,13 +89,13 @@ describe('crouxSn', () => {
   test('gaussian', () => {
     const entropy = random.PRNGi32(51);
 
-    // mean=500, s.d.=100
+    // mean=500, s.d.=100, n=500
     const sample1 = new Float32Array(iter.take(500, iter.gen(random.gaussian(500, 100, entropy))));
 
     const scale1 = allPairs.crouxSn(sample1);
     expect(scale1.correctedSpread).toBeInRange(99, 101);
 
-    // mean=500, s.d.=1000
+    // mean=500, s.d.=1000, n=100
     const sample2 = new Float32Array(iter.take(100, iter.gen(random.gaussian(500, 1000, entropy))));
 
     const scale2 = allPairs.crouxSn(sample2);
@@ -106,7 +106,7 @@ describe('crouxSn', () => {
 
     // expect a small s.d.
     const scale12 = allPairs.crouxSn(sample12);
-    expect(scale12.correctedSpread).toBeInRange(100 * 0.66, 100 * 1.33);
+    expect(scale12.correctedSpread).toBeInRange(100, 150);
   });
 });
 
@@ -129,13 +129,13 @@ describe('crouxQn', () => {
   test('gaussian', () => {
     const entropy = random.PRNGi32(51);
 
-    // mean=500, s.d.=100
+    // mean=500, s.d.=100, n=500
     const sample1 = new Float32Array(iter.take(500, iter.gen(random.gaussian(500, 100, entropy))));
 
     const scale1 = allPairs.crouxQn(sample1);
     expect(scale1.correctedSpread).toBeInRange(99.5, 100.5);
 
-    // mean=500, s.d.=1000
+    // mean=500, s.d.=1000, n=100
     const sample2 = new Float32Array(iter.take(100, iter.gen(random.gaussian(500, 1000, entropy))));
 
     const scale2 = allPairs.crouxQn(sample2);
@@ -146,6 +146,6 @@ describe('crouxQn', () => {
 
     // expect a small s.d.
     const scale12 = allPairs.crouxQn(sample12);
-    expect(scale12.correctedSpread).toBeInRange(100 * 0.5, 100 * 1.5);
+    expect(scale12.correctedSpread).toBeInRange(100, 150);
   });
 });
