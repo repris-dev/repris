@@ -89,6 +89,7 @@ export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   arr[bdx] = tmp;
 }
 
+/** Sort an array of numbers (ascending) */
 export function sort<T extends number>(xs: ArrayView<T>) {
   Array.prototype.sort.call(xs, (a, b) => a - b);
 }

@@ -42,7 +42,7 @@ export function ppf(p: number): number {
 
 /**
  * Returns the minimum detectable effect (MDE) for two samples at the given sensitivity and
- * power level. See fundamentals of Biostatistics, Bernard Rosner - Equation 8.24
+ * power level. See fundamentals of Biostatistics, Bernard Rosner - Equation 8.25
  *
  * @param a - desired significance level in a two-tailed test (e.g., for α = 0.05, Z1−α2≈1.96)
  * @param b - desired statistical power
