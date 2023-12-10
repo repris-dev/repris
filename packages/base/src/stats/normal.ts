@@ -41,7 +41,7 @@ export function ppf(p: number): number {
 }
 
 /**
- * Returns the minimum detectable effect (MDE) for two samples at the given sensitivity and
+ * Returns the minimum detectable effect size (MDES) for two samples at the given sensitivity and
  * power level. See fundamentals of Biostatistics, Bernard Rosner - Equation 8.25
  *
  * @param a - desired significance level in a two-tailed test (e.g., for α = 0.05, Z1−α2≈1.96)
@@ -51,7 +51,29 @@ export function ppf(p: number): number {
  * @param std1 - first sample standard deviation
  * @param std2 - second sample standard deviation
  */
-export function mde(a: number, b: number, n1: number, std1: number, n2: number, std2: number) {
+export function mdes(a: number, b: number, n1: number, std1: number, n2: number, std2: number) {
+  const Za = ppf((1 - a) / 2);
+  const Zb = ppf(1 - b);
+
+  const numerator = (Za + Zb) ** 2 * (std1 ** 2 + std2 ** 2);
+  const mde1 = Math.sqrt(numerator / n1);
+  const mde2 = Math.sqrt(numerator / n2);
+
+  return (mde1 + mde2) / 2;
+}
+
+/**
+ * Returns the minimum detectable effect size (MDES) for two samples at the given sensitivity and
+ * power level. See fundamentals of Biostatistics, Bernard Rosner - Equation 8.25
+ *
+ * @param a - desired significance level in a two-tailed test (e.g., for α = 0.05, Z1−α2≈1.96)
+ * @param b - desired statistical power
+ * @param n1 - first sample size
+ * @param n2 - second sample size
+ * @param std1 - first sample standard deviation
+ * @param std2 - second sample standard deviation
+ */
+export function mdes1(a: number, b: number, n1: number, std1: number, n2: number, std2: number) {
   const Za = ppf((1 - a) / 2);
   const Zb = ppf(1 - b);
 

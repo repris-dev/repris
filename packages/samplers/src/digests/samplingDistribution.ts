@@ -18,8 +18,7 @@ import * as annotators from '../annotators.js';
 import * as types from './types.js';
 
 export type Options = types.DigestOptions & {
-  /** The location estimation statistic to create a sampling distribution from */
-  locationEstimationType: typeid;
+  powerLevel: number;
 };
 
 type DistributionDigestWT = wt.BenchmarkDigest & {
@@ -33,8 +32,11 @@ export type SamplingAggregation<T> = {
   /** Sampling distribution of the consistent subset, if any */
   samplingDistribution: number[];
 
-  /** The Coefficient of variation of the consistent subset */
-  relativeSpread: number;
+  /**
+   * The minimum detectable effect of the consistent subset at the
+   * configured power level.
+   */
+  mde: number;
 };
 
 export const NoisySample = 'sample:noisy' as typeid;
@@ -103,7 +105,7 @@ export class Digest implements types.Digest<duration.Duration> {
     }
 
     const result = new Digest(wt.isReady, {
-      relativeSpread: wt.uncertainty,
+      mde: wt.uncertainty,
       samplingDistribution: wt.statistic,
       stat,
     });
@@ -137,7 +139,7 @@ export class Digest implements types.Digest<duration.Duration> {
   }
 
   uncertainty(): number {
-    return this._aggregation.relativeSpread;
+    return this._aggregation.mde;
   }
 
   ready(): boolean {
@@ -168,7 +170,7 @@ export class Digest implements types.Digest<duration.Duration> {
       '@type': this[typeid],
       '@uuid': this[uuid],
       samples,
-      uncertainty: this._aggregation.relativeSpread,
+      uncertainty: this._aggregation.mde,
       statistic: this._aggregation.samplingDistribution,
       isReady: this._isReady,
     };
@@ -192,7 +194,7 @@ function summarize(stat: { status: types.DigestedSampleStatus }[]) {
  */
 function aggregateAndFilter<T>(
   taggedPointEstimates: [pointEstimate: number, tag: T][],
-  opts: types.DigestOptions,
+  opts: Options,
   entropy?: random.Generator,
 ): SamplingAggregation<T> {
   const N = taggedPointEstimates.length;
@@ -205,7 +207,7 @@ function aggregateAndFilter<T>(
 
     return {
       stat,
-      relativeSpread: 0,
+      mde: 0,
       samplingDistribution: [taggedPointEstimates[0][0]],
     };
   }
@@ -236,19 +238,15 @@ function aggregateAndFilter<T>(
   }
 
   const samplingDistribution = subset.map(x => x.statistic);
-  let relativeSpread = 0;
+  let mde = 0;
 
   {
     const xsTmp = subset.map(w => w.statistic);
     const os = stats.online.Gaussian.fromValues(xsTmp);
 
-    console.info(xsTmp)
-
-    // Spread as the coefficient of variation with harsh penalty for skewness.
-    // Use 1.5 ddof Rule of Thumb
-    // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
-    // The American Statistician (23) 4 p. 32 (1969)
-    relativeSpread = stats.normal.mde(0.99, 0.99, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
+    // minimum detectable effect given the configured power level and significance
+    // as a proportion of the mean
+    mde = stats.normal.mdes(0.99, opts.powerLevel, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
@@ -257,13 +255,13 @@ function aggregateAndFilter<T>(
   }
 
   // mark consistent samples
-  if (subset.length >= opts.minSize && relativeSpread <= opts.maxEffect) {
+  if (subset.length >= opts.minSize && mde <= opts.requiredEffectSize) {
     subset.forEach(x => (x.status = 'consistent'));
   }
 
   return {
     stat,
-    relativeSpread,
+    mde,
     samplingDistribution,
   };
 }
@@ -281,13 +279,13 @@ export function createOutlierSelection<T>(
   const sigmas = new Float64Array(N);
 
   {
-    // Mean: mean of the narrowest 50% of the distribution (shorth)
-    // std dev.: median absolute deviation from the mean
     const xsTmp = xs.slice();
     const median = stats.median(xsTmp);
-    const std = stats.mad(xsTmp, median).normMad;
-
-    console.info(std, stats.allPairs.crouxQn(xsTmp).correctedSpread, stats.online.Gaussian.fromValues(xsTmp).kurtosis());
+    
+    // Use faster approximation of for larger samples.
+    // TODO: Faster Qn implementation - this O(N^2) implementation isn't
+    // suitable for larger (N > 500) samples
+    const std = stats.allPairs.crouxQn(xsTmp).correctedSpread;
 
     if (std > 0) {
       for (let i = 0; i < N; i++) {
@@ -296,11 +294,12 @@ export function createOutlierSelection<T>(
         // where weights are constant up to 2 s.d. and rapidly increase
         // beyond 4 s.d.
         const z = Math.abs(xs[i] - median) / std;
-        const weight = Math.max(2, z);
+        const weight = Math.max(0, z - 1);
 
-        // 2+1000^{\left(\left(\ln\left(\max\left(2,\ x\right)\right)\right)-1.5\right)}
-        sigmas[i] = 2 + (1e3 ** (Math.log(weight) - 1.5));
+        // 2+1000^{\ln\left(\max\left(2,\ x\right)\right)-1.5}
+        sigmas[i] = 2 + 1e3 ** (Math.log(weight) - 1);
       }
+
     } else {
       // equal weights
       array.fill(sigmas, 1 / N);
@@ -348,4 +347,3 @@ export function createOutlierSelection<T>(
     return keys[idx];
   };
 }
-

@@ -38,7 +38,7 @@ const HypothesisAnnotations = Object.freeze({
   /** Confidence interval of the difference of means between the two samples */
   differenceCI: {
     id: 'hypothesis:mean:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50 },
+    opts: { level: 0.999, resamples: 2500, secondaryResamples: 50 },
   },
 
   /** Cohen's d standardized effect-size of the difference between the two samples */
@@ -156,7 +156,7 @@ ann.register('@annotator:hypothesis:mean', {
         ...request.get(HypothesisAnnotations.minimumDetectableEffect.id),
       };
 
-      const mde = stats.normal.mde(
+      const mde = stats.normal.mdes(
         opts.level, opts.power, os0.N(), os0.std(1), os1.N(), os1.std(1)
       );
  

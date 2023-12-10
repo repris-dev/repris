@@ -1,9 +1,23 @@
-import { timer, random, iterator, quantity as q, typeid, Status, asTuple } from '@repris/base';
+import {
+  timer,
+  random,
+  iterator,
+  quantity as q,
+  typeid,
+  Status,
+  asTuple,
+  stats,
+} from '@repris/base';
+
+import { annotate } from '../annotators.js';
 import * as duration from '../samples/duration.js';
 import * as defaults from '../defaults.js';
-import { Digest, processSamples, createOutlierSelection } from './samplingDistribution.js';
+import {
+  Digest,
+  processSamples,
+  createOutlierSelection,
+} from './samplingDistribution.js';
 import { DigestedSampleStatus } from './types.js';
-import { annotate } from '../annotators.js';
 
 const gen = random.PRNGi32(52);
 
@@ -34,13 +48,13 @@ function postProcess(mwu: Digest) {
   return { order, ...a };
 }
 
-describe('process()', () => {
+describe('processSamples()', () => {
   const sA = create(300, 5, 250);
   const sB = create(300, 10, 250);
   const sC = create(300, 50, 250);
   const sD = create(1000, 2, 250);
-  const sE = create(1000, 10, 250);
-  const sF = create(1005, 10, 250);
+  const sE = create(6000, 10, 250);
+  const sF = create(6500, 10, 250);
 
   const annotation = new Map([['duration:mean' as typeid, {}]]);
 
@@ -56,7 +70,8 @@ describe('process()', () => {
 
     const digest = processSamples(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
-      maxEffect: 0.05,
+      requiredEffectSize: 0.1,
+      powerLevel: 0.99,
       minSize: 2,
       maxSize: 3,
     });
@@ -82,14 +97,15 @@ describe('process()', () => {
         Status.get(
           processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
-            maxEffect: Infinity,
+            requiredEffectSize: Infinity,
+            powerLevel: 0.99,
             minSize: 2,
             maxSize: 10,
           }),
         ),
       );
 
-      expect(a.consistent).toEqual([sA, sF]);
+      expect(a.consistent).toHaveValues([sA, sF]);
       expect(a.outlier.length).toBe(0);
       expect(a.rejected.length).toBe(0);
     }
@@ -99,7 +115,8 @@ describe('process()', () => {
         Status.get(
           processSamples(annotated, {
             locationEstimationType: 'duration:mean' as typeid,
-            maxEffect: 0.01,
+            requiredEffectSize: 0.01,
+            powerLevel: 0.99,
             minSize: 2,
             maxSize: 10,
           }),
@@ -124,7 +141,8 @@ describe('process()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxEffect: 10,
+            requiredEffectSize: 10,
+            powerLevel: 0.99,
             minSize: 2,
             maxSize: 4,
           },
@@ -134,7 +152,7 @@ describe('process()', () => {
     );
 
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
-    expect(a.rejected).toEqual([sE, sF]);
+    expect(a.rejected).toHaveValues([sE, sF]);
     expect(a.consistent).toHaveValues([sA, sB, sC, sD]);
     expect(a.outlier).toEqual([]);
   });
@@ -151,7 +169,8 @@ describe('process()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxEffect: 0.2,
+            requiredEffectSize: 0.2,
+            powerLevel: 0.99,
             minSize: 2,
             maxSize: 4,
           },
@@ -161,14 +180,14 @@ describe('process()', () => {
     );
 
     expect(a.order).toHaveValues([sA, sB, sC, sE, sD, sF]);
-    expect(a.rejected).toEqual([sE, sF]);
+    expect(a.rejected).toHaveValues([sE, sF]);
     expect(a.consistent).toEqual([]);
     expect(a.outlier).toHaveValues([sA, sB, sC, sD]);
   });
 });
 
 describe('outlierSelection', () => {
-  test('Rejects values once', () => {
+  test('Rejects all values once', () => {
     const xs = [5.5, 5.4, 5.3, 3.4, 3, 2.2, 2.1, 2, 1.2, 1, 1.1, 1.3, 0.2, 0.1, 0];
     const fn = createOutlierSelection<number>(xs, x => x);
     const seen = new Set<number>();
@@ -194,5 +213,64 @@ describe('outlierSelection', () => {
     }
 
     expect(fn()).toEqual(undefined);
+  });
+
+  test('Rejects outliers', () => {
+    const std0 = 5;
+    const entropy = random.PRNGi32(15);
+    const rng = random.gaussian(0, std0, entropy);
+    const noise = random.gaussian(0, 50, entropy);
+    const xs = [] as number[];
+
+    const N = 500;
+    const noiseRatio = 0.3;
+
+    // normal dist.
+    for (const x of iterator.take(N * (1 - noiseRatio), iterator.gen(rng))) xs.push(x);
+    // outliers
+    for (const x of iterator.take(N * noiseRatio, iterator.gen(noise))) xs.push(x);
+
+    const filter = createOutlierSelection<number>(
+      iterator.collect(xs.keys()),
+      idx => xs[idx],
+      entropy,
+    );
+
+    const outlierMask = new Int32Array(xs.length);
+
+    // stats excluding outliers
+    const getStats = () =>
+      stats.online.Gaussian.fromValues(xs.filter((_, idx) => outlierMask[idx] < 1));
+
+    // In 10% increments, remove 'outliers', then measure the
+    // mean/stddev of the unfiltered items. The
+    const stats0 = getStats();
+
+    for (let i = 0; i < N * 0.75;) {
+      // filter noise in 5% increments
+      for (let j = 0; j < N * 0.05; j++, i++) {
+        outlierMask[filter()!] = 1;
+      }
+
+      const statsN = getStats();
+
+      // the stddev shouldn't fall (much) below the normal-dist
+      expect(statsN.std()).toBeGreaterThan(std0 * 0.8);
+      // the stddev should always be < the entire sample
+      expect(statsN.std()).toBeLessThan(stats0.std());
+
+      if (i > 2 * N * noiseRatio) {
+        // Outliers should be removed by this point.
+
+        // mean should be within half a stddev of the underlying
+        expect(Math.abs(statsN.mean() - stats0.mean())).toBeLessThan(std0 * 0.5);
+        // stddev should be within 20% of underlying stddev
+        expect(Math.abs(statsN.std() - std0)).toBeLessThan(std0 * 0.2);
+        // little skew
+        expect(Math.abs(statsN.skewness())).toBeLessThan(0.5);
+        // low kurtosis
+        expect(Math.abs(statsN.kurtosis())).toBeLessThan(1);
+      }
+    }
   });
 });

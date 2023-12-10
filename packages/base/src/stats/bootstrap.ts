@@ -2,6 +2,7 @@ import { ArrayView, copyTo } from '../array.js';
 import { assert } from '../index.js';
 import * as random from '../random.js';
 import { online, quantile } from '../stats.js';
+import { mean } from './centralTendency.js';
 
 /**
  * @returns A function which generates resamples of the given sample
@@ -205,13 +206,19 @@ export function studentizedDifferenceTest(
   const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
     estStat = new online.Gaussian();
-
+let p=0;
   for (let i = 0; i < K; i++) {
     const ti = resampler();
+    const lo = ti.estimate - ti.stdErr * 2.58;
+    const hi = ti.estimate + ti.stdErr * 2.58;
+    
+    if (lo < 0 && hi > 0) p++;
 
     pivotalQuantities[i] = ti.pivotalQuantity;
     estStat.push(ti.estimate);
   }
+
+  console.info('p', 1 - (p / K))
 
   return [
     stat - estStat.std() * quantile(pivotalQuantities, 0.5 + level / 2),
