@@ -273,4 +273,42 @@ describe('outlierSelection', () => {
       }
     }
   });
+
+  test('Bimodal distribution', () => {
+    const entropy = random.PRNGi32(15);
+    const rng0 = random.gaussian(10, .5, entropy);
+    const rng1 = random.gaussian(20, .5, entropy);
+    const xs = [] as number[];
+
+    const N = 15;
+
+    // N normal dist., small stddev.
+    for (const x of iterator.take(N, iterator.gen(rng0))) xs.push(x);
+    // N-1, outliers, well separated.
+    for (const x of iterator.take(N-1, iterator.gen(rng1))) xs.push(x);
+
+    const filter = createOutlierSelection<number>(
+      iterator.collect(xs.keys()),
+      idx => xs[idx],
+      entropy,
+    );
+
+    const outlierMask = new Int32Array(xs.length);
+
+    // stats excluding outliers
+    const getStats = () =>
+      stats.online.Gaussian.fromValues(xs.filter((_, idx) => outlierMask[idx] < 1));
+
+    const stats0 = getStats();
+    expect(stats0.mean()).toBeInRange(13, 17);
+    expect(stats0.std()).toBeInRange(3, 6);
+
+    for (let i = 0; i < N; i++) outlierMask[filter()!] = 1;
+    
+    // With an (almost) bimodal distribution, the outlier selection doesn't focus
+    // on the (marginally) larger peak - we reject from each sample equally.
+    const statsN = getStats();
+    expect(statsN.mean()).toBeInRange(13, 17);
+    expect(statsN.std()).toBeInRange(3, 6);
+  });
 });

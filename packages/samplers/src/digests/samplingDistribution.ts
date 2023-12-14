@@ -246,7 +246,8 @@ function aggregateAndFilter<T>(
 
     // minimum detectable effect given the configured power level and significance
     // as a proportion of the mean
-    mde = stats.normal.mdes(0.99, opts.powerLevel, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
+    mde =
+      stats.normal.mdes(0.99, opts.powerLevel, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
@@ -280,8 +281,8 @@ export function createOutlierSelection<T>(
 
   {
     const xsTmp = xs.slice();
-    const median = stats.median(xsTmp);
-    
+    const centralPoint = stats.mode.shorth(xsTmp, 0.67).mode;
+
     // Use faster approximation of for larger samples.
     // TODO: Faster Qn implementation - this O(N^2) implementation isn't
     // suitable for larger (N > 500) samples
@@ -293,13 +294,12 @@ export function createOutlierSelection<T>(
         // estimate of standard deviation. essentially a 'modified z-score'
         // where weights are constant up to 2 s.d. and rapidly increase
         // beyond 4 s.d.
-        const z = Math.abs(xs[i] - median) / std;
+        const z = Math.abs(xs[i] - centralPoint) / std;
         const weight = Math.max(0, z - 1);
 
         // 2+1000^{\ln\left(\max\left(2,\ x\right)\right)-1.5}
         sigmas[i] = 2 + 1e3 ** (Math.log(weight) - 1);
       }
-
     } else {
       // equal weights
       array.fill(sigmas, 1 / N);
