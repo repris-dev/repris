@@ -47,7 +47,7 @@ export interface ReprisConfig {
 export type Ctx = `@${string}`;
 
 export interface GradingThreshold extends annotators.Condition {
-  apply: (str: string) => string;
+  apply: (str: string, annotations?: annotators.AnnotationBag) => string;
 }
 
 export interface GradingConfig {

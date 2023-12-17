@@ -123,8 +123,7 @@ export function estimateStdDev(xs: ArrayView<number>, std = 1) {
 function hsmImpl(sample: ArrayView<number>, minInterval = 2): REM {
   assert.gte(minInterval, 2);
 
-  let lo = 0,
-    hi = sample.length - 1;
+  let lo = 0, hi = sample.length - 1;
   let variation1 = 0;
 
   while (hi - lo + 1 > minInterval) {

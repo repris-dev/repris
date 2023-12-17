@@ -1,7 +1,7 @@
 import { ArrayView, copyTo } from '../array.js';
 import { assert } from '../index.js';
 import * as random from '../random.js';
-import { online, quantile } from '../stats.js';
+import { normal, online, quantile } from '../stats.js';
 
 /**
  * @returns A function which generates resamples of the given sample
@@ -175,6 +175,15 @@ export function differenceTest(
   return [quantile(pointEsts, 0.5 - level / 2), quantile(pointEsts, 0.5 + level / 2)];
 }
 
+export type StudentizedDifferenceResult = {
+  interval: [lo: number, hi: number],
+  /**
+   * Empirical power - The probability of rejecting the null hypothesis
+   * if the alternative hypothesis (that there is a difference) is true.
+   */
+  power: number
+};
+
 /**
  * A studentized bootstrapped paired difference test of two samples. x0 - x1
  * @reference https://olebo.github.io/textbook/ch/18/hyp_studentized.html
@@ -188,15 +197,15 @@ export function studentizedDifferenceTest(
   /** Function to estimate the difference between two resamples */
   estimator: (x0: ArrayView<number>, x1: ArrayView<number>) => number,
   /** The confidence level */
-  level: number,
+  alpha: number,
   /** Number of primary resamples */
   K: number,
   /** Number of secondary resamples */
   KK: number,
   /** Random source */
   entropy = random.mathRand,
-): [lo: number, hi: number] {
-  assert.inRange(level, 0, 1);
+): StudentizedDifferenceResult {
+  assert.inRange(alpha, 0, 1);
   assert.gt(K, 0);
   assert.gt(K, 0);
 
@@ -205,24 +214,33 @@ export function studentizedDifferenceTest(
   const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
     estStat = new online.Gaussian();
-let p=0;
+
+  // total evidence in favour of the alternate hypothesis
+  const pz = normal.ppf(0.5 + alpha / 2);
+  let power = 0;
+
   for (let i = 0; i < K; i++) {
     const ti = resampler();
-    const lo = ti.estimate - ti.stdErr * 2.58;
-    const hi = ti.estimate + ti.stdErr * 2.58;
+    const lo = ti.estimate - ti.stdErr * pz;
+    const hi = ti.estimate + ti.stdErr * pz;
     
-    if (lo < 0 && hi > 0) p++;
+    if (hi < 0 || lo > 0) power++;
 
     pivotalQuantities[i] = ti.pivotalQuantity;
     estStat.push(ti.estimate);
   }
 
-  console.info('p', 1 - (p / K))
+  power = power / K;
 
-  return [
-    stat - estStat.std() * quantile(pivotalQuantities, 0.5 + level / 2),
-    stat - estStat.std() * quantile(pivotalQuantities, 0.5 - level / 2),
+  const interval: [number, number] = [
+    stat - estStat.std() * quantile(pivotalQuantities, 0.5 + alpha / 2),
+    stat - estStat.std() * quantile(pivotalQuantities, 0.5 - alpha / 2),
   ];
+
+  return {
+    interval,
+    power
+  };
 }
 
 /** Calculate the percentile confidence interval of a statistic for a given sample */
