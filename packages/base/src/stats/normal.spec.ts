@@ -24,6 +24,7 @@ describe('ppf', () => {
     expect(ppf(0.691)).toBeCloseTo(0.5, 2);
     expect(ppf(0.006)).toBeCloseTo(-2.512, 2);
     expect(ppf(0.99)).toBeCloseTo(2.326, 2);
+    expect(ppf(0.975)).toBeCloseTo(1.96, 2);
     expect(ppf(0)).toEqual(-Infinity);
     expect(ppf(1)).toEqual(Infinity);
   });

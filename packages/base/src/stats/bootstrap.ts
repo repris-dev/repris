@@ -2,7 +2,6 @@ import { ArrayView, copyTo } from '../array.js';
 import { assert } from '../index.js';
 import * as random from '../random.js';
 import { online, quantile } from '../stats.js';
-import { mean } from './centralTendency.js';
 
 /**
  * @returns A function which generates resamples of the given sample

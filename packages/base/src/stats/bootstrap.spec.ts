@@ -4,8 +4,9 @@ import * as os from './OnlineStats.js';
 import * as boot from './bootstrap.js';
 import * as online from './OnlineStats.js';
 import * as centralTendency from './centralTendency.js';
-import { quantile } from './util.js';
+import { median, quantile } from './util.js';
 import { hsm } from './mode.js';
+import { normal } from '../stats.js';
 
 describe('resampler', () => {
   test('Estimate std deviation', () => {
@@ -21,14 +22,10 @@ describe('resampler', () => {
     const K = 10_000;
 
     for (let k = 0; k < K; k++) {
-      const mean = new os.Gaussian();
       const resample = resampler();
+      const mean = os.Gaussian.fromValues(resample).mean();
 
-      for (let i = 0; i < resample.length; i++) {
-        mean.push(resample[i]);
-      }
-
-      sample.push(mean.mean());
+      sample.push(mean);
     }
 
     const std = Math.sqrt(N) * sample.std();
@@ -261,3 +258,27 @@ describe('studentizedResampler', () => {
     expect(coverage.percentile).toBeLessThan(coverage.studentized);
   });
 });
+
+describe('median bootstrap', () => {
+  test('Estimate standard deviation', () => {
+    const data = [
+      709, 709, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 711, 711,
+      711, 711, 711, 711, 711, 711, 711, 712, 712, 713,
+
+      853, 854, 865, 865, 866, 868, 911, 870, 865, 864, 862, 862, 867, 869, 
+    ];
+
+    const rng = rand.PRNGi32(55);
+    const p = 0.9;
+
+    // confidence interval of the standard error of the median
+    const ci = boot.confidenceInterval(data, median, p, 1500, void 0, rng);
+
+    // Standard error
+    const stdErr = (ci[1] - ci[0]) / (normal.ppf(.5 + p / 2) * 2);
+    // Std. Dev. - Adjust for median overestimation of the standard error of the mean
+    const std = Math.sqrt(data.length) * (stdErr / Math.sqrt(Math.PI / 2))
+
+    expect(std).toBeGreaterThan(90);
+  })
+})
