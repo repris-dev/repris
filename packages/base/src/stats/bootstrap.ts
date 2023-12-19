@@ -123,7 +123,7 @@ export function pairedStudentizedResampler(
     }
 
     const esti = estimator(replicate0, replicate1);
-    const stdErr = innerBootStat.std();
+    const stdErr = innerBootStat.std(1);
     const pivotalQuantity = (esti - est) / stdErr;
 
     return {
@@ -156,7 +156,7 @@ export function differenceTest(
   smoothing: number | [smoothing0: number, smoothing1: number] = 0,
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
-  assert.gt(K, 0);
+  assert.gt(1 - level, 1 / K, 'The number of resamples isn\'t high enough for the given confidence level')
   assert.gte(smoothing, 0);
 
   // bootstrap distribution of HSM differences
@@ -197,27 +197,32 @@ export function studentizedDifferenceTest(
   /** Function to estimate the difference between two resamples */
   estimator: (x0: ArrayView<number>, x1: ArrayView<number>) => number,
   /** The confidence level */
-  alpha: number,
+  confidence: number,
   /** Number of primary resamples */
   K: number,
   /** Number of secondary resamples */
   KK: number,
   /** Random source */
   entropy = random.mathRand,
+  /** Add bias correction to the confidence interval */
+  bc = false
 ): StudentizedDifferenceResult {
-  assert.inRange(alpha, 0, 1);
-  assert.gt(K, 0);
-  assert.gt(K, 0);
+  assert.inRange(confidence, 0, 1);
+  assert.gt(1 - confidence, 1 / K, 'The number of resamples isn\'t high enough for the given confidence level')
+  assert.gt(KK, 0);
 
+  const alpha = 1 - confidence;
   const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy);
 
   const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
     estStat = new online.Gaussian();
 
+  const pz = normal.ppf(1 - alpha / 2);
+    
   // total evidence in favour of the alternate hypothesis
-  const pz = normal.ppf(0.5 + alpha / 2);
   let power = 0;
+  let bias = 0;
 
   for (let i = 0; i < K; i++) {
     const ti = resampler();
@@ -225,16 +230,43 @@ export function studentizedDifferenceTest(
     const hi = ti.estimate + ti.stdErr * pz;
     
     if (hi < 0 || lo > 0) power++;
+    if (ti.estimate < stat) bias++;
 
     pivotalQuantities[i] = ti.pivotalQuantity;
     estStat.push(ti.estimate);
   }
 
-  power = power / K;
+  power /= K;
+
+  let p: [number, number] = [1 - alpha / 2, alpha / 2];
+
+  if (bc) {
+    bias /= K;
+    console.info('bias', bias)
+    //bias = 0.5 // (bias * 2) - 1;
+    const z0 = normal.ppf(bias);
+
+    //console.info('bias', bias); 
+    //console.info('z0', z0)
+
+    const zlo = normal.ppf(alpha / 2);
+    const zhi = normal.ppf(1 - alpha / 2);
+
+    //console.info('zlo, zhi', zlo, zhi)
+
+    // z0 + (z0 + zaLo) / (1 - acc * (z0 + zaLo))
+    const plo = normal.cdf(z0 + zlo);
+    const phi = normal.cdf(z0 + zhi);
+
+//    console.info('plo, phi', plo, phi)
+//    console.info('m', 1 - a / 2, a / 2)
+    p = [phi, plo];
+
+  }
 
   const interval: [number, number] = [
-    stat - estStat.std() * quantile(pivotalQuantities, 0.5 + alpha / 2),
-    stat - estStat.std() * quantile(pivotalQuantities, 0.5 - alpha / 2),
+    stat - estStat.std() * quantile(pivotalQuantities, p[0]),
+    stat - estStat.std() * quantile(pivotalQuantities, p[1]),
   ];
 
   return {

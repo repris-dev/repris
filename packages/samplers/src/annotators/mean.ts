@@ -45,7 +45,7 @@ const HypothesisAnnotations = Object.freeze({
   /** Confidence interval of the difference of means between the two samples */
   differenceCI: {
     id: 'hypothesis:mean:difference-ci' as typeid,
-    opts: { level: 0.99, resamples: 2500, secondaryResamples: 50 },
+    opts: { level: 0.999, resamples: 2500, secondaryResamples: 50 },
   },
 
   /** An estimate of the statistical power of the test */
@@ -152,6 +152,28 @@ ann.register('@annotator:hypothesis:mean', {
         opts.resamples,
         opts.secondaryResamples,
       );
+
+      {
+        const opts = {
+          ...HypothesisAnnotations.differenceCI.opts,
+          ...request.get(HypothesisAnnotations.differenceCI.id),
+        };
+  
+        boot = stats.bootstrap.studentizedDifferenceTest(
+          x0,
+          x1,
+          (x0, x1) => mean(x0) - mean(x1),
+          opts.level,
+          opts.resamples,
+          opts.secondaryResamples,
+          void 0,
+          true
+        );
+
+        const lo = boot.interval[0] / os1.mean();
+        const hi = boot.interval[1] / os1.mean();
+        console.info('bc', lo > 0 || hi < 0, lo * 100, hi * 100);
+      }
 
       result.set(HypothesisAnnotations.differenceCI.id, boot.interval);
       result.set(HypothesisAnnotations.power, boot.power);

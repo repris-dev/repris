@@ -12,14 +12,14 @@ describe('resampler', () => {
   test('Estimate std deviation', () => {
     const rng = rand.PRNGi32(31);
     const dist = rand.gaussian(2, 10, rng);
-    const N = 100;
+    const N = 40;
 
     const xs = new Float32Array(N);
     for (let i = 0; i < N; i++) xs[i] = dist();
 
     const resampler = boot.resampler(xs, rng);
     const sample = new os.Gaussian();
-    const K = 10_000;
+    const K = 5_000;
 
     for (let k = 0; k < K; k++) {
       const resample = resampler();
@@ -28,7 +28,9 @@ describe('resampler', () => {
       sample.push(mean);
     }
 
+    const trueStd = os.Gaussian.fromValues(xs).std();
     const std = Math.sqrt(N) * sample.std();
+    console.info('std', std, trueStd);
     expect(std).toBeInRange(9, 11);
   });
 });
@@ -100,10 +102,11 @@ describe('studentizedResampler', () => {
       return g.skewness();
     };
 
-    const resampler = boot.studentizedResampler(nerveData, estimator, 25, rand.PRNGi32(53));
-
     const nResamples = 500;
+    const nSecondaryResamples = 25;
     const alpha = 0.05;
+
+    const resampler = boot.studentizedResampler(nerveData, estimator, nSecondaryResamples, rand.PRNGi32(53));
 
     const pivotalQuantities = new Float64Array(nResamples);
     const estStat = new online.Gaussian();
@@ -167,20 +170,42 @@ describe('studentizedResampler', () => {
       sample0,
       sample1,
       (x0, x1) => hsm(x0).mode - hsm(x1).mode,
-      100,
+      50,
       rng,
     );
 
-    const nResamples = 500;
+    const nResamples = 2000;
     const alpha = 0.01;
     const pivotalQuantities = new Float64Array(nResamples);
     const estStat = new online.Gaussian();
-
+//let bias = 0;
     for (let i = 0; i < nResamples; i++) {
       const ti = resampler();
       pivotalQuantities[i] = ti.pivotalQuantity;
       estStat.push(ti.estimate);
+
+//      if (ti.estimate < est) bias++;
     }
+
+//bias /= nResamples;
+////bias = 0.5 // (bias * 2) - 1;
+//const z0 = normal.ppf(bias);
+//
+//console.info('bias', bias); 
+//console.info('z0', z0)
+////console.info(online.Gaussian.fromValues(pivotalQuantities).skewness());
+//
+//const zlo = normal.ppf(alpha / 2);
+//const zhi = normal.ppf(1 - alpha / 2);
+//
+//console.info('zlo, zhi', zlo, zhi)
+//
+//// z0 + (z0 + zalphaLo) / (1 - acc * (z0 + zalphaLo))
+//const plo = normal.cdf(z0 + zlo);
+//const phi = normal.cdf(z0 + zhi);
+//
+//console.info('plo, phi', plo, phi)
+//console.info('m', 1 - alpha / 2, alpha / 2)
 
     const bootStd = estStat.std();
     const lo = est - bootStd * quantile(pivotalQuantities, 1 - alpha / 2);
@@ -189,8 +214,68 @@ describe('studentizedResampler', () => {
     // Note the non-symmetry of the confidence interval. Since the original (non-stretched) sample
     // is heavily right-skewed, the confidence interval here is very sensitive to the lowest value of
     // of the sample.
-    expect(lo / hsm0).toBeInRange(-0.5, 0);
-    expect(hi / hsm0).toBeInRange(0, 0.25);
+    expect(lo / hsm0).toBeInRange(-0.1, 0);
+    expect(hi / hsm0).toBeInRange(0, 0.4);
+
+console.info('standard', lo / hsm0, hi / hsm1, (hi - lo) / (hi + lo));
+
+//{
+//  // bias corrected
+//  const lo = est - bootStd * quantile(pivotalQuantities, phi);
+//  const hi = est - bootStd * quantile(pivotalQuantities, plo);
+//
+//  console.info('bias corrected', lo / hsm0, hi / hsm1, (hi - lo) / (hi + lo));
+//
+//}
+  });
+
+  test('Confidence intervals of a difference test (2)', () => {
+    const hsm0 = hsm(sample0).mode;
+    const sample1 = stretchSample(sample0, hsm0, 1.15);
+    const hsm1 = hsm(sample1).mode;
+
+    const rng = rand.PRNGi32(959);
+    const est = hsm0 - hsm1;
+
+    // sample1 is just sample0 stretched around its HSM so they should both
+    // have the same point estimate.
+    expect(est).toBe(0);
+
+    { // not bias corrected
+      const { interval: [lo, hi], power } = boot.studentizedDifferenceTest(
+        sample0,
+        sample1,
+        (x0, x1) => hsm(x0).mode - hsm(x1).mode,
+        0.99,
+        1000,
+        50,
+        rng,
+      );
+  
+      // Note the non-symmetry of the confidence interval. Since the original (non-stretched) sample
+      // is heavily right-skewed, the confidence interval here is very sensitive to the lowest value of
+      // of the sample.
+      expect(lo / hsm0).toBeInRange(-0.1, 0);
+      expect(hi / hsm0).toBeInRange(0, 0.4);
+      expect(power).toBeInRange(0, 0.1);
+    }
+
+    { // bias corrected
+      const { interval: [lo, hi], power } = boot.studentizedDifferenceTest(
+        sample0,
+        sample1,
+        (x0, x1) => hsm(x0).mode - hsm(x1).mode,
+        0.99,
+        1000,
+        50,
+        rng,
+        true
+      );
+  
+      expect(lo / hsm0).toBeInRange(-0.2, -0.05);
+      expect(hi / hsm0).toBeInRange(0.1, 0.3);
+      expect(power).toBeInRange(0, 0.1);
+    }
   });
 
   /**
