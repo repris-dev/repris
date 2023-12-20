@@ -92,6 +92,7 @@ export function pairedStudentizedResampler(
   estimator: (xs0: ArrayView<number>, xs1: ArrayView<number>) => number,
   secondaryResamples: number,
   entropy = random.mathRand,
+  stdErrCorrection = 1,
 ): () => StudentizedResample {
   const N0 = sample0.length;
   const N1 = sample1.length;
@@ -123,7 +124,7 @@ export function pairedStudentizedResampler(
     }
 
     const esti = estimator(replicate0, replicate1);
-    const stdErr = innerBootStat.std();
+    const stdErr = innerBootStat.std() * stdErrCorrection;
     const pivotalQuantity = (esti - est) / stdErr;
 
     return {
@@ -205,14 +206,16 @@ export function studentizedDifferenceTest(
   /** Random source */
   entropy = random.mathRand,
   /** Add bias correction to the confidence interval */
-  bc = false
+  bc = false,
+  /**  */
+  stdErrCorrection?: number
 ): StudentizedDifferenceResult {
   assert.inRange(confidence, 0, 1);
   assert.gt(1 - confidence, 1 / K, 'The number of resamples isn\'t high enough for the given confidence level')
   assert.gt(KK, 0);
 
   const alpha = 1 - confidence;
-  const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy);
+  const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy, stdErrCorrection);
 
   const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),

@@ -303,19 +303,14 @@ export function createOutlierSelection<T>(
     const xsTmp = xs.slice();
     let { mode: centralPoint } = stats.mode.shorth(xsTmp, 0.67);
 
-    // Use faster approximation of for larger samples.
-    // TODO: Faster Qn implementation - this O(N^2) implementation isn't
-    // suitable for larger (N > 500) samples
-console.info('spread', stats.allPairs.crouxQn(xsTmp).correctedSpread);
-
-
-    const p = 0.95;
+    const p = 0.99;
     const ci = stats.bootstrap.confidenceInterval(xs, stats.median, p, 1500, void 0, entropy);
 
     let std = Math.sqrt(N) * (ci[1] - ci[0]) / (stats.normal.ppf(.5 + p / 2) * 2);
     std /= Math.sqrt(Math.PI / 2);
 
-console.info('>>', centralPoint, std)
+    const mde = stats.normal.mdes(p, .8, N, std, N, std) / centralPoint;
+console.info('>>', mde)
 
     if (std > 0) {
       for (let i = 0; i < N; i++) {
