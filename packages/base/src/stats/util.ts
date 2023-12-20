@@ -125,8 +125,8 @@ export function rme(interval: [number, number], estimate: number) {
   return (interval[1] - interval[0]) / 2 / estimate;
 }
 
-/** Cohen's d effect size */
-export function cohensD(
+/** Hedges-G standardized effect size */
+export function hedgesG(
   n0: number,
   mean0: number,
   sd0: number,
@@ -134,7 +134,13 @@ export function cohensD(
   mean1: number,
   sd1: number,
 ) {
-  // Pooled variance
-  const sSq = ((n0 - 1) * sd0 ** 2 + (n1 - 1) * sd1 ** 2) / (n0 + n1 - 2);
-  return Math.abs(mean0 - mean1) / Math.sqrt(sSq);
+  assert.gt(n0 + n1, 2);
+
+  const n = n0 + n1;
+  // Pooled and weighted variance
+  const sSq = ((n0 - 1) * sd0 ** 2 + (n1 - 1) * sd1 ** 2) / (n - 2);
+  // bias correction (Durlak)
+  const correction = (n - 3) / (n - 2.25) * Math.sqrt((n - 2) / n);
+
+  return (Math.abs(mean0 - mean1) / Math.sqrt(sSq)) * correction;
 }

@@ -148,17 +148,17 @@ describe("cohen's D", () => {
     }
 
     expect(
-      util.cohensD(stats.N(), stats.mean(), stats.var(1), stats.N(), stats.mean(), stats.var(1)),
+      util.hedgesG(stats.N(), stats.mean(), stats.var(1), stats.N(), stats.mean(), stats.var(1)),
     ).toEqual(0);
   });
 
   test('1 s.d. difference', () => {
     const sd = 2;
-    expect(util.cohensD(20, 1, sd, 20, 1 + sd, sd)).toEqual(1);
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd, sd)).toEqual(1);
   });
 
   test('0.5 s.d. difference', () => {
     const sd = 2;
-    expect(util.cohensD(20, 1, sd, 20, 1 + sd / 2, sd)).toEqual(0.5);
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd / 2, sd)).toEqual(0.5);
   });
 });

@@ -156,7 +156,7 @@ ann.register('@annotator:hypothesis:mean', {
     }
 
     if (request.has(HypothesisAnnotations.effectSize)) {
-      const d = stats.cohensD(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
+      const d = stats.hedgesG(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
       result.set(HypothesisAnnotations.effectSize, d);
     }
 
