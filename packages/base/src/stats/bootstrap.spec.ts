@@ -229,7 +229,7 @@ console.info('standard', lo / hsm0, hi / hsm1, (hi - lo) / (hi + lo));
 //}
   });
 
-  test('Confidence intervals of a difference test (2)', () => {
+  test.only('Confidence intervals of a difference test (2)', () => {
     const hsm0 = hsm(sample0).mode;
     const sample1 = stretchSample(sample0, hsm0, 1.15);
     const hsm1 = hsm(sample1).mode;
@@ -271,6 +271,8 @@ console.info('standard', lo / hsm0, hi / hsm1, (hi - lo) / (hi + lo));
         rng,
         true
       );
+
+      console.info('>>', lo, hi)
   
       expect(lo / hsm0).toBeInRange(-0.2, -0.05);
       expect(hi / hsm0).toBeInRange(0.1, 0.3);

@@ -54,10 +54,6 @@ const HypothesisAnnotations = Object.freeze({
   /** Cohen's d standardized effect-size of the difference in means between the two samples */
   effectSize: 'hypothesis:mean:effect-size' as typeid,
 
-  
-  /** Standardized effect-size of the difference in medians between the two samples */
-  effectSizeMedian: 'hypothesis:median:effect-size' as typeid,
-
   /** A text summary of the difference of two means */
   differenceSummary: 'hypothesis:mean:summary-text' as typeid,
 });
@@ -151,29 +147,9 @@ ann.register('@annotator:hypothesis:mean', {
         opts.level,
         opts.resamples,
         opts.secondaryResamples,
+        void 0,
+        true /* bias correction */
       );
-
-      {
-        const opts = {
-          ...HypothesisAnnotations.differenceCI.opts,
-          ...request.get(HypothesisAnnotations.differenceCI.id),
-        };
-  
-        boot = stats.bootstrap.studentizedDifferenceTest(
-          x0,
-          x1,
-          (x0, x1) => mean(x0) - mean(x1),
-          opts.level,
-          opts.resamples,
-          opts.secondaryResamples,
-          void 0,
-          true
-        );
-
-        const lo = boot.interval[0] / os1.mean();
-        const hi = boot.interval[1] / os1.mean();
-        console.info('bc', lo > 0 || hi < 0, lo * 100, hi * 100);
-      }
 
       result.set(HypothesisAnnotations.differenceCI.id, boot.interval);
       result.set(HypothesisAnnotations.power, boot.power);
@@ -182,11 +158,6 @@ ann.register('@annotator:hypothesis:mean', {
     if (request.has(HypothesisAnnotations.effectSize)) {
       const d = stats.cohensD(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
       result.set(HypothesisAnnotations.effectSize, d);
-    }
-
-    if (request.has(HypothesisAnnotations.effectSize)) {
-      const es = stats.mwu(x0, x1).effectSize;
-      result.set(HypothesisAnnotations.effectSizeMedian, es);
     }
 
     // summary of the difference

@@ -9,7 +9,7 @@ import {
   stats,
   lazy,
   array,
-  iterator,
+  math
 } from '@repris/base';
 
 import { duration } from '../samples.js';
@@ -249,7 +249,24 @@ function aggregateAndFilter<T>(
     mde =
       stats.normal.mdes(0.99, opts.powerLevel, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
 
-console.info('mde', mde)
+      {
+        const m = stats.median(xsTmp);
+        const sensitivity = 0.01;
+
+        const q = math.gss((es) => {
+          
+          const result = stats.kruskalWallis([
+            xsTmp, xsTmp.map(x => x + es)
+          ]);
+
+          const y = (result.pValue() - sensitivity) ** 2;
+          //console.info(es, result.pValue(), y);
+
+          return y;
+        }, m * 0.001, m * 0.5, m * 0.001, 100);
+        
+        console.info('mde', mde.toFixed(4), ((q[0] + q[1]) / 2 / m).toFixed(4));
+      }
 
     // Sort by distance from the mean as the measure of centrality
     stat = stat.sort(
