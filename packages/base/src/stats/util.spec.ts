@@ -148,17 +148,27 @@ describe("cohen's D", () => {
     }
 
     expect(
-      util.hedgesG(stats.N(), stats.mean(), stats.var(1), stats.N(), stats.mean(), stats.var(1)),
+      util.hedgesG(stats.N(), stats.mean(), stats.std(1), stats.N(), stats.mean(), stats.std(1)),
     ).toEqual(0);
   });
 
   test('1 s.d. difference', () => {
     const sd = 2;
-    expect(util.hedgesG(20, 1, sd, 20, 1 + sd, sd)).toEqual(1);
+    expect(util.hedgesG(200, 1, sd, 200, 1 + sd, sd)).toBeCloseTo(1, 2);
   });
 
   test('0.5 s.d. difference', () => {
     const sd = 2;
-    expect(util.hedgesG(20, 1, sd, 20, 1 + sd / 2, sd)).toEqual(0.5);
+    expect(util.hedgesG(200, 1, sd, 200, 1 + sd / 2, sd)).toBeCloseTo(0.5, 2);
+  });
+
+  test('1 s.d. difference (small sample)', () => {
+    const sd = 2;
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd, sd)).toBeCloseTo(0.96, 2);
+  });
+
+  test('0.5 s.d. difference (small sample)', () => {
+    const sd = 2;
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd / 2, sd)).toBeCloseTo(0.48, 2);
   });
 });
