@@ -1,4 +1,4 @@
-import { ArrayView } from '../array.js';
+import { ArrayView, sort } from '../array.js';
 import * as rand from '../random.js';
 import * as os from './OnlineStats.js';
 import * as boot from './bootstrap.js';
@@ -229,7 +229,7 @@ console.info('standard', lo / hsm0, hi / hsm1, (hi - lo) / (hi + lo));
 //}
   });
 
-  test.only('Confidence intervals of a difference test (2)', () => {
+  test('Confidence intervals of a difference test (2)', () => {
     const hsm0 = hsm(sample0).mode;
     const sample1 = stretchSample(sample0, hsm0, 1.15);
     const hsm1 = hsm(sample1).mode;
@@ -350,22 +350,24 @@ describe('median bootstrap', () => {
   test('Estimate standard deviation', () => {
     const data = [
       709, 709, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 711, 711,
-      711, 711, 711, 711, 711, 711, 711, 712, 712, 713,
-
       853, 854, 865, 865, 866, 868, 911, 870, 865, 864, 862, 862, 867, 869, 
+      711, 711, 711, 711, 711, 711, 711, 712, 712, 713,
     ];
 
+    sort(data);
+
     const rng = rand.PRNGi32(55);
-    const p = 0.9;
+    const p = 0.95;
 
     // confidence interval of the standard error of the median
-    const ci = boot.confidenceInterval(data, median, p, 1500, void 0, rng);
+    const ci = boot.confidenceInterval(data, xs => median(xs, true), p, 5000, void 0, rng);
 
     // Standard error
     const stdErr = (ci[1] - ci[0]) / (normal.ppf(.5 + p / 2) * 2);
-    // Std. Dev. - Adjust for median overestimation of the standard error of the mean
-    const std = Math.sqrt(data.length) * (stdErr / Math.sqrt(Math.PI / 2))
 
-    expect(std).toBeGreaterThan(90);
-  })
+    // Std. Dev. - Adjust for median overestimation of the standard error of the mean
+    const std = Math.sqrt(data.length) * (stdErr / Math.sqrt(Math.PI / 2));
+
+    expect(std).toBeInRange(150, 180);
+  });
 })
