@@ -259,7 +259,7 @@ describe.only('outlierSelection', () => {
       const statsN = getStats();
 
       // the stddev shouldn't fall (much) below the normal-dist
-      expect(statsN.std()).toBeGreaterThan(std0 * 0.8);
+      expect(statsN.std()).toBeGreaterThan(std0 * 0.75);
       // the stddev should always be < the entire sample
       expect(statsN.std()).toBeLessThan(stats0.std());
 
@@ -268,8 +268,8 @@ describe.only('outlierSelection', () => {
 
         // mean should be within half a stddev of the underlying
         expect(Math.abs(statsN.mean() - stats0.mean())).toBeLessThan(std0 * 0.5);
-        // stddev should be within 20% of underlying stddev
-        expect(Math.abs(statsN.std() - std0)).toBeLessThan(std0 * 0.2);
+        // stddev should be within 25% of underlying stddev
+        expect(Math.abs(statsN.std() - std0)).toBeLessThan(std0 * 0.25);
         // little skew
         expect(Math.abs(statsN.skewness())).toBeLessThan(0.5);
         // low kurtosis

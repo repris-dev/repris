@@ -109,6 +109,19 @@ const sampleAnnotator: ann.Annotator = {
           smoothing,
         );
 
+        {
+          const hsmCI = stats.bootstrap.confidenceInterval(
+            xs,
+            xs => stats.mode.hsm(xs).mode,
+            opts.level,
+            opts.resamples,
+            smoothing,
+            void 0,
+            true
+          );
+          console.info('!', stats.rme(hsmCI, hsm.mode));
+        }
+
         result.set(
           SampleAnnotations.hsmCIRel.id,
           quantity.create('percent', stats.rme(hsmCI, hsm.mode)),

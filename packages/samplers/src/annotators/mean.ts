@@ -156,17 +156,15 @@ ann.register('@annotator:hypothesis:mean', {
         array.sort(x0);
         array.sort(x1);
         
-        const correction = 1;// / (stats.normal.ppf(.5 + opts.level / 2) * 2);
         const boot2 = stats.bootstrap.studentizedDifferenceTest(
           x0,
           x1,
-          (x0, x1) => stats.median(x0) - stats.median(x1),
+          (x0, x1) => stats.median(x0, true) - stats.median(x1, true),
           opts.level,
           opts.resamples,
           opts.secondaryResamples,
           void 0,
           true /* bias correction */,
-          correction
         );
 
         const fmt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 1 });

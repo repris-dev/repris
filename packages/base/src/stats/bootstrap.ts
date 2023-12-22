@@ -298,7 +298,5 @@ export function confidenceInterval(
     ? biasCorrectedInterval(bias / K, alpha)
     : [alpha / 2, 1 - alpha / 2];
 
-console.info('bias', bias / K, p)
-
   return [quantile(dist, p[0]), quantile(dist, p[1])];
 }

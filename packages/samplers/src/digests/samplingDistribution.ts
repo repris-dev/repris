@@ -301,16 +301,27 @@ export function createOutlierSelection<T>(
 
   {
     const xsTmp = xs.slice();
-    let { mode: centralPoint } = stats.mode.shorth(xsTmp, 0.67);
+    //let { mode: centralPoint } = stats.mode.shorth(xsTmp, 0.67);
+    const centralPoint = stats.median(xsTmp)
 
     const p = 0.99;
-    const ci = stats.bootstrap.confidenceInterval(xs, stats.median, p, 1500, void 0, entropy);
+//    {
+//      const ci = stats.bootstrap.confidenceInterval(xs, xs => stats.median(xs), p, 1500, void 0, entropy);
+//  
+//      // convert std-err of the median to standard deviation.
+//      let std = Math.sqrt(N) * (ci[1] - ci[0]) / (stats.normal.ppf(.5 + p / 2) * 2);
+//      std /= Math.sqrt(Math.PI / 2);
+//
+//      console.info('std2!', std)
+//    }
+//
+    //const iqr = stats.quantile(xsTmp, 0.75) - stats.quantile(xsTmp, 0.25);
+    const std = stats.mad(xsTmp).normMad
 
-    let std = Math.sqrt(N) * (ci[1] - ci[0]) / (stats.normal.ppf(.5 + p / 2) * 2);
-    std /= Math.sqrt(Math.PI / 2);
+    console.info(centralPoint, std)
 
     const mde = stats.normal.mdes(p, .8, N, std, N, std) / centralPoint;
-console.info('>>', mde)
+//console.info('>>', mde)
 
     if (std > 0) {
       for (let i = 0; i < N; i++) {
