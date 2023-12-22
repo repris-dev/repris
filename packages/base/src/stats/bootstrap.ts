@@ -92,7 +92,6 @@ export function pairedStudentizedResampler(
   estimator: (xs0: ArrayView<number>, xs1: ArrayView<number>) => number,
   secondaryResamples: number,
   entropy = random.mathRand,
-  stdErrCorrection = 1,
 ): () => StudentizedResample {
   const N0 = sample0.length;
   const N1 = sample1.length;
@@ -124,7 +123,7 @@ export function pairedStudentizedResampler(
     }
 
     const esti = estimator(replicate0, replicate1);
-    const stdErr = innerBootStat.std() * stdErrCorrection;
+    const stdErr = innerBootStat.std();
     const pivotalQuantity = (esti - est) / stdErr;
 
     return {
@@ -207,17 +206,15 @@ export function studentizedDifferenceTest(
   entropy = random.mathRand,
   /** Add bias correction to the confidence interval */
   bc = false,
-  /**  */
-  stdErrCorrection?: number
 ): StudentizedDifferenceResult {
   assert.inRange(confidence, 0, 1);
   assert.gt(1 - confidence, 1 / K, 'The number of resamples isn\'t high enough for the given confidence level')
   assert.gt(KK, 0);
 
   const alpha = 1 - confidence;
-  const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy, stdErrCorrection);
+  const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy);
 
-  const stat = estimator(x0, x1),
+  const stat0 = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
     estStat = new online.Gaussian();
 
@@ -233,7 +230,7 @@ export function studentizedDifferenceTest(
     const hi = ti.estimate + ti.stdErr * pz;
     
     if (hi < 0 || lo > 0) power++;
-    if (ti.estimate < stat) bias++;
+    if (ti.estimate < stat0) bias++;
 
     pivotalQuantities[i] = ti.pivotalQuantity;
     estStat.push(ti.estimate);
@@ -241,41 +238,30 @@ export function studentizedDifferenceTest(
 
   power /= K;
 
-  let p: [number, number] = [1 - alpha / 2, alpha / 2];
-
-  if (bc) {
-    bias /= K;
-    console.info('bias', bias)
-    //bias = 0.5 // (bias * 2) - 1;
-    const z0 = normal.ppf(bias);
-
-    //console.info('bias', bias); 
-    //console.info('z0', z0)
-
-    const zlo = normal.ppf(alpha / 2);
-    const zhi = normal.ppf(1 - alpha / 2);
-
-    //console.info('zlo, zhi', zlo, zhi)
-
-    // z0 + (z0 + zaLo) / (1 - acc * (z0 + zaLo))
-    const plo = normal.cdf(z0 + zlo);
-    const phi = normal.cdf(z0 + zhi);
-
-//    console.info('plo, phi', plo, phi)
-//    console.info('m', 1 - a / 2, a / 2)
-    p = [phi, plo];
-
-  }
+  const p = bc
+    ? biasCorrectedInterval(bias / K, alpha)
+    : [alpha / 2, 1 - alpha / 2];
 
   const interval: [number, number] = [
-    stat - estStat.std() * quantile(pivotalQuantities, p[0]),
-    stat - estStat.std() * quantile(pivotalQuantities, p[1]),
+    stat0 - estStat.std() * quantile(pivotalQuantities, p[1]),
+    stat0 - estStat.std() * quantile(pivotalQuantities, p[0]),
   ];
 
   return {
     interval,
     power
   };
+}
+
+function biasCorrectedInterval(bias: number, alpha: number) {
+  const z0 = normal.ppf(bias);
+  const zlo = normal.ppf(alpha / 2);
+  const zhi = normal.ppf(1 - alpha / 2);
+
+  const plo = normal.cdf(z0 + zlo);
+  const phi = normal.cdf(z0 + zhi);
+
+  return [plo, phi];
 }
 
 /** Calculate the percentile confidence interval of a statistic for a given sample */
@@ -291,16 +277,28 @@ export function confidenceInterval(
   /** Smoothing to apply to resamples, if any */
   smoothing?: number,
   entropy = random.mathRand,
+  bc?: boolean
 ): [lo: number, hi: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
-
+  
   // bootstrap sample distribution
   const dist = new Float64Array(K);
+  const alpha = 1 - level;
+  const est0 = estimator(xs);
+
+  let bias = 0;
 
   for (let i = 0, next = resampler(xs, entropy, smoothing); i < K; i++) {
     dist[i] = estimator(next());
+    if (dist[i] < est0) bias++;
   }
 
-  return [quantile(dist, 0.5 - level / 2), quantile(dist, 0.5 + level / 2)];
+  const p = bc
+    ? biasCorrectedInterval(bias / K, alpha)
+    : [alpha / 2, 1 - alpha / 2];
+
+console.info('bias', bias / K, p)
+
+  return [quantile(dist, p[0]), quantile(dist, p[1])];
 }
