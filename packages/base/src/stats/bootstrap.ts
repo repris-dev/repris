@@ -300,3 +300,26 @@ export function confidenceInterval(
 
   return [quantile(dist, p[0]), quantile(dist, p[1])];
 }
+
+/** Calculate a bootstrap sampling distribution */
+export function bootStat(
+  /** The sample */
+  xs: ArrayView<number>,
+  /** Function to estimate a statistic */
+  estimator: (xi: ArrayView<number>) => number,
+  /** Number of bootstrap resamples */
+  K: number,
+  /** Smoothing to apply to resamples, if any */
+  smoothing?: number,
+  entropy = random.mathRand,
+): online.Gaussian {
+  assert.gt(K, 1);
+
+  const dist = new online.Gaussian();
+
+  for (let i = 0, next = resampler(xs, entropy, smoothing); i < K; i++) {
+    dist.push(estimator(next()));
+  }
+
+  return dist;
+}

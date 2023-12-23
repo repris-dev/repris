@@ -106,9 +106,7 @@ const sampleAnnotator: ann.Annotator = {
           xs => stats.mode.hsm(xs).mode,
           opts.level,
           opts.resamples,
-          smoothing,
-          void 0,
-          true
+          smoothing
         );
 
         result.set(

@@ -238,39 +238,30 @@ function aggregateAndFilter<T>(
   }
 
   const samplingDistribution = subset.map(x => x.statistic);
+  
+  // minimum detectable effect given the configured power level and significance
+  // as a proportion of the mean
   let mde = 0;
 
   {
-    const xsTmp = subset.map(w => w.statistic);
-    const os = stats.online.Gaussian.fromValues(xsTmp);
+    const xsTmp = array.sort(subset.map(w => w.statistic));
+    const m = stats.median(xsTmp, true);
+    
+    const stdErr = stats.bootstrap.bootStat(
+      xsTmp,
+      xs => stats.median(xs, true),
+      1500
+    ).std();
 
-    // minimum detectable effect given the configured power level and significance
-    // as a proportion of the mean
-    mde =
-      stats.normal.mdes(0.99, opts.powerLevel, os.N(), os.std(1), os.N(), os.std(1)) / os.mean();
+    // convert std-err of the median to standard deviation.
+    let std = Math.sqrt(N) * stdErr;
+    std /= Math.sqrt(Math.PI / 2);
 
-      {
-        const m = stats.median(xsTmp);
-        const sensitivity = 0.01;
+    mde = stats.normal.mde(0.99, opts.powerLevel, N, std) / m;
 
-        const q = math.gss((es) => {
-          
-          const result = stats.kruskalWallis([
-            xsTmp, xsTmp.map(x => x + es)
-          ]);
-
-          const y = (result.pValue() - sensitivity) ** 2;
-          //console.info(es, result.pValue(), y);
-
-          return y;
-        }, m * 0.001, m * 0.5, m * 0.001, 100);
-        
-        console.info('mde', mde.toFixed(4), ((q[0] + q[1]) / 2 / m).toFixed(4));
-      }
-
-    // Sort by distance from the mean as the measure of centrality
+    // Sort by distance from the median as the measure of centrality
     stat = stat.sort(
-      (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()),
+      (a, b) => Math.abs(a.statistic - m) - Math.abs(b.statistic - m),
     );
   }
 
@@ -301,27 +292,8 @@ export function createOutlierSelection<T>(
 
   {
     const xsTmp = xs.slice();
-    //let { mode: centralPoint } = stats.mode.shorth(xsTmp, 0.67);
     const centralPoint = stats.median(xsTmp)
-
-    const p = 0.99;
-//    {
-//      const ci = stats.bootstrap.confidenceInterval(xs, xs => stats.median(xs), p, 1500, void 0, entropy);
-//  
-//      // convert std-err of the median to standard deviation.
-//      let std = Math.sqrt(N) * (ci[1] - ci[0]) / (stats.normal.ppf(.5 + p / 2) * 2);
-//      std /= Math.sqrt(Math.PI / 2);
-//
-//      console.info('std2!', std)
-//    }
-//
-    //const iqr = stats.quantile(xsTmp, 0.75) - stats.quantile(xsTmp, 0.25);
     const std = stats.mad(xsTmp).normMad
-
-    console.info(centralPoint, std)
-
-    const mde = stats.normal.mdes(p, .8, N, std, N, std) / centralPoint;
-//console.info('>>', mde)
 
     if (std > 0) {
       for (let i = 0; i < N; i++) {
