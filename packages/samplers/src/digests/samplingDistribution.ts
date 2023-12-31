@@ -287,53 +287,33 @@ export function createOutlierSelection<T>(
 
   for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
 
-  // std. Devs from the mean for each sample
-  const sigmas = new Float64Array(N);
+  // std. Devs from the median for each sample
+  const weights = new Float64Array(N);
 
   {
     const xsTmp = xs.slice();
-    const centralPoint = stats.median(xsTmp)
-    const std = stats.mad(xsTmp).normMad
+    const centralPoint = stats.median(xsTmp);
+    const std = stats.mad(xsTmp, centralPoint).normMad;
 
     if (std > 0) {
       for (let i = 0; i < N; i++) {
         // weight by distance from the median, normalized by
-        // estimate of standard deviation. essentially a 'modified z-score'
+        // estimate of standard deviation. Essentially a 'modified z-score'
         // where weights are constant up to 3 s.d. and rapidly increase
         // beyond 4 s.d.
         const z = Math.abs(xs[i] - centralPoint) / std;
-        const weight = Math.max(0, z - 1.5);
+        const weight = Math.max(0, z - 1);
 
-        // 1+100^{\ln\left(\max\left(0,\ x-1.5\right)\right)-1.5}
-        sigmas[i] = 1 + 1e2 ** (Math.log(weight) - 1.5);
+        // 1+100^{\ln\left(\max\left(0,\ x-1.25\right)\right)-1.25}
+        weights[i] = 1 + 1e2 ** (Math.log(weight) - 1);
       }
     } else {
       // equal weights
-      array.fill(sigmas, 1 / N);
+      array.fill(weights, 1 / N);
     }
   }
 
-  // A lazy list of index-pointers constructing a tour of all items,
-  // ordered by centrality
-  const tour: () => array.ArrayView<number> = lazy(() => {
-    // sorting of keys by weight descending
-    const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
-
-    const tour = new Int32Array(N);
-    let prev = order[0];
-
-    for (let i = 1; i < N; i++) {
-      const ith = order[i];
-      tour[prev] = ith;
-      prev = ith;
-    }
-
-    tour[prev] = order[0];
-    return tour;
-  });
-
-  const dist = random.discreteDistribution(sigmas, entropy);
-  const seen = new Int32Array(N);
+  const dist = random.discreteDistribution(weights, entropy);
 
   let totSeen = 0;
 
@@ -343,13 +323,8 @@ export function createOutlierSelection<T>(
 
     let idx = dist();
 
-    // ensure we're not returning duplicates
-    while (seen[idx] > 0) {
-      idx = tour()[idx];
-    }
-
     totSeen++;
-    seen[idx]++;
+    dist.reweight(idx, 0);
 
     return keys[idx];
   };
