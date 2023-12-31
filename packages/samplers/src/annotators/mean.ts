@@ -111,7 +111,7 @@ ann.register('@annotator:hypothesis:mean', {
       return Status.value(void 0);
     }
 
-    const mean = stats.centralTendency.mean;
+//    const mean = stats.centralTendency.mean;
     const result = new Map<typeid, ann.Annotation>();
 
     const [c0, c1] = hypot.operands();
@@ -122,10 +122,10 @@ ann.register('@annotator:hypothesis:mean', {
       return Status.err('Samples must have a sampling distribution');
     }
 
-    const os0 = stats.online.Gaussian.fromValues(x0);
-    const os1 = stats.online.Gaussian.fromValues(x1);
-    
-    const relChange = (os0.mean() - os1.mean()) / os1.mean();
+    const m0 = stats.median(x0);
+    const m1 = stats.median(x1);
+
+    const relChange = (m0 - m1) / m1;
     result.set(HypothesisAnnotations.relativeDifference, relChange);
 
     let boot: stats.bootstrap.StudentizedDifferenceResult | undefined;
@@ -140,23 +140,11 @@ ann.register('@annotator:hypothesis:mean', {
         ...request.get(HypothesisAnnotations.differenceCI.id),
       };
 
-
-      boot = stats.bootstrap.studentizedDifferenceTest(
-        x0,
-        x1,
-        (x0, x1) => mean(x0) - mean(x1),
-        opts.level,
-        opts.resamples,
-        opts.secondaryResamples,
-        void 0,
-        true /* bias correction */
-      );
-
       {  
         array.sort(x0);
         array.sort(x1);
         
-        const boot2 = stats.bootstrap.studentizedDifferenceTest(
+        boot = stats.bootstrap.studentizedDifferenceTest(
           x0,
           x1,
           (x0, x1) => stats.median(x0, true) - stats.median(x1, true),
@@ -166,14 +154,6 @@ ann.register('@annotator:hypothesis:mean', {
           void 0,
           true /* bias correction */,
         );
-
-        const fmt = new Intl.NumberFormat(void 0, { maximumFractionDigits: 1 });
-
-        console.info(
-          fmt.format(((stats.median(x0) - stats.median(x1)) / stats.median(x1)) * 100), 
-          fmt.format((boot2.interval[0] / stats.median(x0)) * 100),
-          fmt.format((boot2.interval[1] / stats.median(x0)) * 100),
-        )
       }
 
       result.set(HypothesisAnnotations.differenceCI.id, boot.interval);
@@ -181,8 +161,8 @@ ann.register('@annotator:hypothesis:mean', {
     }
 
     if (request.has(HypothesisAnnotations.effectSize)) {
-      const d = stats.hedgesG(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
-      result.set(HypothesisAnnotations.effectSize, d);
+//      const d = stats.hedgesG(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
+//      result.set(HypothesisAnnotations.effectSize, d);
     }
 
     // summary of the difference
@@ -191,8 +171,8 @@ ann.register('@annotator:hypothesis:mean', {
       let summary = (relChange > 0 ? '+' : '') + fmt.format(relChange * 100) + '%';
 
       if (boot) {
-        const lo = boot.interval[0] / os1.mean();
-        const hi = boot.interval[1] / os1.mean();
+        const lo = boot.interval[0] / m1;
+        const hi = boot.interval[1] / m1;
 
         summary += ` (${fmt.format(lo * 100)}, ${fmt.format(hi * 100)})`;
       }
@@ -201,6 +181,11 @@ ann.register('@annotator:hypothesis:mean', {
     }
 
     if (request.has(HypothesisAnnotations.significantDifference.id)) {
+      const opts = {
+        ...HypothesisAnnotations.meaningfulDifference.opts,
+        ...request.get(HypothesisAnnotations.meaningfulDifference.id),
+      };
+
       if (boot) {
         const [lo, hi] = boot.interval;
 
@@ -208,8 +193,8 @@ ann.register('@annotator:hypothesis:mean', {
         // includes 0, otherwise reject
         let rejectH0 = lo > 0 || hi < 0;
 
-        // (Relative) effect-size must be larger than the minimum
-//        reject = reject && Math.abs(relChange) > opts.minimumEffectSize;
+        // (Relative) effect-size must be larger than the minimum meaningful effect-size
+        rejectH0 = rejectH0 && Math.abs(relChange) > opts.minimumEffectSize;
 
         result.set(HypothesisAnnotations.significantDifference.id, rejectH0 ? relChange : 0);
       }

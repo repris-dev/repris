@@ -69,7 +69,7 @@ const compare = {
     {
       '@index': [
         [
-          'digest:mean',
+          'digest:median',
           {
             displayName: 'Index',
             grading: [
@@ -105,18 +105,13 @@ const compare = {
             ],
           },
         ],
-        [
-          'hypothesis:mean:difference-ci',
-          { display: false },
-        ],
-        ['hypothesis:median:effect-size', { displayName: 'median-es'}],
-        ['hypothesis:mean:effect-size', { displayName: 'mean-es'}],
+        ['hypothesis:mean:difference-ci', { display: false }],
         ['hypothesis:mean:power', { displayName: 'power'}],
       ],
 
       '@baseline': [
         [
-          'digest:mean',
+          'digest:median',
           {
             displayName: 'Baseline',
             grading: [
