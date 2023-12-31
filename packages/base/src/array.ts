@@ -145,7 +145,7 @@ export function quickselect<T>(arr: ArrayView<T>, n: number, lo = 0, hi = arr.le
   if (lo === hi) return lo;
 
   while (hi >= lo) {
-    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(Math.random() * (hi - lo + 1)));
+    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(0.5 * (hi - lo + 1)));
 
     if (n === pivotIdx) return pivotIdx;
 
