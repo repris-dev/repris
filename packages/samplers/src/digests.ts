@@ -9,6 +9,7 @@ export const defaults = {
     maxSize: 30,
     requiredEffectSize: 0.02,
     powerLevel: 0.9,
+    sensitivity: 0.99,
     locationEstimationType: 'sample:hsm' as typeid,
   } as const satisfies import('./digests/samplingDistribution.js').Options,
 };

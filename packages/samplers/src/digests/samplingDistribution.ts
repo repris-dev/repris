@@ -9,7 +9,7 @@ import {
   stats,
   lazy,
   array,
-  math
+  math,
 } from '@repris/base';
 
 import { duration } from '../samples.js';
@@ -19,6 +19,7 @@ import * as types from './types.js';
 
 export type Options = types.DigestOptions & {
   powerLevel: number;
+  sensitivity: number;
 };
 
 type DistributionDigestWT = wt.BenchmarkDigest & {
@@ -238,31 +239,26 @@ function aggregateAndFilter<T>(
   }
 
   const samplingDistribution = subset.map(x => x.statistic);
-  
-  // minimum detectable effect given the configured power level and significance
-  // as a proportion of the mean
+
+  // (relative) Minimum Detectable Effect (MDE) given the configured power level
+  // and significance as a proportion of the median
   let mde = 0;
 
   {
     const xsTmp = array.sort(subset.map(w => w.statistic));
     const m = stats.median(xsTmp, true);
-    
-    const stdErr = stats.bootstrap.bootStat(
-      xsTmp,
-      xs => stats.median(xs, true),
-      1500
-    ).std();
+
+    // Estimate the std-err of the median
+    const stdErr = stats.bootstrap.bootStat(xsTmp, xs => stats.median(xs, true), 1500).std();
 
     // convert std-err of the median to standard deviation.
-    let std = Math.sqrt(N) * stdErr;
-    std /= Math.sqrt(Math.PI / 2);
+    // SE(median) is ~1.25x SE(mean)
+    const std = (Math.sqrt(N) * stdErr) / Math.sqrt(Math.PI / 2);
 
-    mde = stats.normal.mde(0.99, opts.powerLevel, N, std) / m;
+    mde = stats.normal.mde(opts.sensitivity, opts.powerLevel, N, std) / m;
 
     // Sort by distance from the median as the measure of centrality
-    stat = stat.sort(
-      (a, b) => Math.abs(a.statistic - m) - Math.abs(b.statistic - m),
-    );
+    stat = stat.sort((a, b) => Math.abs(a.statistic - m) - Math.abs(b.statistic - m));
   }
 
   // mark consistent samples

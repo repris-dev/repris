@@ -92,8 +92,8 @@ export class Duration implements MutableSample<timer.HrTime, number> {
   private onlineStats: stats.online.Lognormal;
   private uuid: uuid | undefined;
 
-  constructor(private opts: Options) {
-    this.times = new stats.ReservoirSample(opts.maxCapacity);
+  constructor(private opts: Options, rng?: random.Generator) {
+    this.times = new stats.ReservoirSample(opts.maxCapacity, rng);
     this.onlineStats = new stats.online.Lognormal();
   }
 
