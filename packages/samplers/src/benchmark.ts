@@ -211,6 +211,7 @@ export const annotations = {
   /** Total number of runs stored by the benchmark */
   runs: 'benchmark:runs' as typeid,
 
+  /** TODO - rename as minimum detectable effect */
   uncertainty: 'benchmark:uncertainty' as typeid,
 
   /** Indicates whether the benchmark is ready to be snapshotted/tested */

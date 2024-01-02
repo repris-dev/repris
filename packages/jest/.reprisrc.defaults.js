@@ -27,7 +27,10 @@ function benchmarkSummary(displayName, ctx = undefined) {
 const show = {
   annotations: [
     {
-      '@index': [['digest:mean', { displayName: 'mean' }], benchmarkSummary('Index', '@index')],
+      '@index': [
+        ['digest:mean', { displayName: 'mean' }],
+        benchmarkSummary('Index', '@index')
+      ],
       '@baseline': [
         ['digest:mean', { displayName: 'mean' }],
         benchmarkSummary('Baseline', '@baseline'),
@@ -92,16 +95,27 @@ const compare = {
           'hypothesis:mean:summary-text',
           {
             displayName: 'Change (99% CI)',
-            grading: [
-              // color if there is a significant difference
-              'hypothesis:mean:significant-difference',
-              {
-                rules: [
-                  { '==': 0, apply: chalk.dim },
-                  { '<': 0, apply: chalk.green },
-                  { '>': 0, apply: chalk.red },
-                ],
-              },
+            gradings: [
+              [
+                // color if there is a significant difference
+                'hypothesis:mean:significant-difference',
+                {
+                  rules: [
+                    { '==': 0, apply: chalk.dim },
+                    { '<': 0, apply: chalk.green },
+                    { '>': 0, apply: chalk.red },
+                  ],
+                },
+              ],
+              [
+                // color if there is a significant difference
+                'hypothesis:mean:meaningful-difference',
+                {
+                  rules: [
+                    { '==': false, apply: chalk.yellow },
+                  ],
+                },
+              ]
             ],
           },
         ],

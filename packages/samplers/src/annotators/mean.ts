@@ -39,7 +39,7 @@ const HypothesisAnnotations = Object.freeze({
    */
   meaningfulDifference: {
     id: 'hypothesis:mean:meaningful-difference' as typeid,
-    opts: { minimumEffectSize: 0 },
+    opts: { minimumEffectSize: 'auto' as number | 'auto' },
   },
 
   /** Confidence interval of the difference of means between the two samples */
@@ -50,9 +50,6 @@ const HypothesisAnnotations = Object.freeze({
 
   /** An estimate of the statistical power of the test */
   power: 'hypothesis:mean:power' as typeid,
-
-  /** Cohen's d standardized effect-size of the difference in means between the two samples */
-  effectSize: 'hypothesis:mean:effect-size' as typeid,
 
   /** A text summary of the difference of two means */
   differenceSummary: 'hypothesis:mean:summary-text' as typeid,
@@ -111,7 +108,6 @@ ann.register('@annotator:hypothesis:mean', {
       return Status.value(void 0);
     }
 
-//    const mean = stats.centralTendency.mean;
     const result = new Map<typeid, ann.Annotation>();
 
     const [c0, c1] = hypot.operands();
@@ -129,8 +125,8 @@ ann.register('@annotator:hypothesis:mean', {
     result.set(HypothesisAnnotations.relativeDifference, relChange);
 
     let boot: stats.bootstrap.StudentizedDifferenceResult | undefined;
+    let rejectH0 = false;
 
-    // hsm difference confidence intervals/power
     if (
       request.has(HypothesisAnnotations.differenceCI.id) ||
       request.has(HypothesisAnnotations.power)
@@ -139,30 +135,29 @@ ann.register('@annotator:hypothesis:mean', {
         ...HypothesisAnnotations.differenceCI.opts,
         ...request.get(HypothesisAnnotations.differenceCI.id),
       };
+  
+      array.sort(x0);
+      array.sort(x1);
+      
+      boot = stats.bootstrap.studentizedDifferenceTest(
+        x0,
+        x1,
+        (x0, x1) => stats.median(x0, true) - stats.median(x1, true),
+        opts.level,
+        opts.resamples,
+        opts.secondaryResamples,
+        void 0,
+        true /* bias correction */,
+      );
+    
+      const [lo, hi] = boot.interval;
 
-      {  
-        array.sort(x0);
-        array.sort(x1);
-        
-        boot = stats.bootstrap.studentizedDifferenceTest(
-          x0,
-          x1,
-          (x0, x1) => stats.median(x0, true) - stats.median(x1, true),
-          opts.level,
-          opts.resamples,
-          opts.secondaryResamples,
-          void 0,
-          true /* bias correction */,
-        );
-      }
+      // Accept the null hypothesis (no difference) if the interval
+      // includes 0, otherwise reject
+      rejectH0 = lo > 0 || hi < 0;
 
       result.set(HypothesisAnnotations.differenceCI.id, boot.interval);
       result.set(HypothesisAnnotations.power, boot.power);
-    }
-
-    if (request.has(HypothesisAnnotations.effectSize)) {
-//      const d = stats.hedgesG(os0.N(), os0.mean(), os0.std(1), os1.N(), os1.mean(), os1.std(1));
-//      result.set(HypothesisAnnotations.effectSize, d);
     }
 
     // summary of the difference
@@ -180,23 +175,30 @@ ann.register('@annotator:hypothesis:mean', {
       result.set(HypothesisAnnotations.differenceSummary, summary);
     }
 
+    // is the difference statistically significant
     if (request.has(HypothesisAnnotations.significantDifference.id)) {
+      result.set(HypothesisAnnotations.significantDifference.id, rejectH0 ? relChange : 0);
+    }
+
+    // is the difference meaningfully different
+    if (request.has(HypothesisAnnotations.meaningfulDifference.id)) {
       const opts = {
         ...HypothesisAnnotations.meaningfulDifference.opts,
         ...request.get(HypothesisAnnotations.meaningfulDifference.id),
       };
 
-      if (boot) {
-        const [lo, hi] = boot.interval;
+      if (rejectH0) {
+        const mde0 = c0.uncertainty();
+        const mde1 = c0.uncertainty();
+        const mde = (mde0 + mde1) / 2;
 
-        // Accept the null hypothesis (no difference) if the interval
-        // includes 0, otherwise reject
-        let rejectH0 = lo > 0 || hi < 0;
-
-        // (Relative) effect-size must be larger than the minimum meaningful effect-size
-        rejectH0 = rejectH0 && Math.abs(relChange) > opts.minimumEffectSize;
-
-        result.set(HypothesisAnnotations.significantDifference.id, rejectH0 ? relChange : 0);
+console.info('mde', mde)
+        
+        if (opts.minimumEffectSize === 'auto') {
+          result.set(HypothesisAnnotations.meaningfulDifference.id, relChange >= mde);
+        } else if (typeof opts.minimumEffectSize === 'number') {
+          result.set(HypothesisAnnotations.meaningfulDifference.id, relChange >= opts.minimumEffectSize);
+        }
       }
     }
 
