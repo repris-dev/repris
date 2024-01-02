@@ -44,21 +44,22 @@ function convertToColumn(
     return;
   }
 
-  const grading =
-    a.grading !== undefined
-      ? Array.isArray(a.grading)
-        ? {
-            type: a.grading[0] as typeid,
-            rules: a.grading[1].rules,
-            ctx: a.grading[1].ctx ? [a.grading[1].ctx] : ctx,
-          }
-        : { type: type as typeid, rules: a.grading?.rules }
-      : undefined;
+  const cfgGradings = a.grading ? [a.grading] : a.gradings ?? [];
+
+  const gradings = cfgGradings.map(g =>
+    Array.isArray(g)
+      ? {
+          type: g[0] as typeid,
+          rules: g[1].rules,
+          ctx: g[1].ctx ? [g[1].ctx] : ctx,
+        }
+      : { type: type as typeid, rules: g?.rules, ctx },
+  );
 
   columns.push({
     type: type as typeid,
     ctx,
     displayName: a.displayName ?? type,
-    grading,
+    grading: gradings.length > 0 ? gradings : void 0,
   });
 }
