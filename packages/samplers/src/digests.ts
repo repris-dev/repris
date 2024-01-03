@@ -7,7 +7,7 @@ export const defaults = {
   duration: {
     minSize: 20,
     maxSize: 30,
-    requiredEffectSize: 0.02,
+    requiredEffectSize: 0.05,
     powerLevel: 0.9,
     sensitivity: 0.99,
     locationEstimationType: 'sample:hsm' as typeid,
