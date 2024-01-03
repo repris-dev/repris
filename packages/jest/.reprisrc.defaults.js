@@ -1,5 +1,6 @@
 // @ts-check
 import chalk from 'chalk';
+import strip from 'strip-ansi';
 import { defaults } from '@repris/samplers';
 
 /**
@@ -112,7 +113,7 @@ const compare = {
                 'hypothesis:mean:meaningful-difference',
                 {
                   rules: [
-                    { '==': false, apply: chalk.yellow },
+                    { '==': false, apply: str => chalk.yellow(strip(str)) },
                   ],
                 },
               ]

@@ -63,6 +63,7 @@
     "@repris/base": "workspace:*",
     "@repris/samplers": "workspace:*",
     "chalk": "^5.0.1",
+    "strip-ansi": "^7.1.0",
     "commander": "^10.0.0",
     "lilconfig": "^2.0"
   },
