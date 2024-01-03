@@ -35,7 +35,15 @@ const HypothesisAnnotations = Object.freeze({
   },
 
   /**
+   * Whether the difference is meaningful, not just statistically significant.
+   * The behavior can be altered by the 'minimumEffectSize' option. The default
+   * value is 'auto':
    * 
+   * - 'auto' - The minimum effect size must be larger than the minimum-detectable
+   *   effect-size (MDES) of each of the two samples in the comparison.
+   * 
+   * - {number} - A minimum relative effect-size. e.g. a value of 0.05 would mean
+   *   The minimum effect size must be at least 5% from the baseline.
    */
   meaningfulDifference: {
     id: 'hypothesis:mean:meaningful-difference' as typeid,
@@ -188,13 +196,11 @@ ann.register('@annotator:hypothesis:mean', {
       };
 
       if (rejectH0) {
-        const mde0 = c0.uncertainty();
-        const mde1 = c0.uncertainty();
-        const mde = (mde0 + mde1) / 2;
-
-console.info('mde', mde)
-        
         if (opts.minimumEffectSize === 'auto') {
+          const mde0 = c0.uncertainty();
+          const mde1 = c0.uncertainty();
+          const mde = Math.max(mde0, mde1);
+
           result.set(HypothesisAnnotations.meaningfulDifference.id, relChange >= mde);
         } else if (typeof opts.minimumEffectSize === 'number') {
           result.set(HypothesisAnnotations.meaningfulDifference.id, relChange >= opts.minimumEffectSize);
