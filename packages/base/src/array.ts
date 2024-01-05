@@ -1,4 +1,5 @@
 import * as assert from './assert.js';
+import * as random from './random.js';
 
 /* A mutable view over an array */
 export interface ArrayView<T> {
@@ -202,4 +203,22 @@ export function partitionEqual<T>(arr: ArrayView<T>, value: T, lo: number, hi: n
   }
 
   return lo > hi ? -1 : lo;
+}
+
+/** Random shuffle */
+export function shuffle<T>(arr: ArrayView<T>, rng: random.Generator) {
+  const dist = random.uniform(0, 1, rng);
+  let currentIdx = arr.length;
+
+  while (currentIdx !== 0) {
+    const randomIdx = Math.floor(dist() * currentIdx);
+    currentIdx--;
+
+    // And swap it with the current element.
+    const a = arr[currentIdx];
+    arr[currentIdx] = arr[randomIdx];
+    arr[randomIdx] = a;
+  }
+
+  return arr;
 }
