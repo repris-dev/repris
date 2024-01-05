@@ -121,7 +121,6 @@ const compare = {
           },
         ],
         ['hypothesis:mean:difference-ci', { display: false }],
-        ['hypothesis:mean:power', { displayName: 'power'}],
       ],
 
       '@baseline': [
