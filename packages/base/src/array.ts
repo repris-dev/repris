@@ -90,8 +90,9 @@ export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   arr[bdx] = tmp;
 }
 
-export function sort<T extends number>(xs: ArrayView<T>) {
-  Array.prototype.sort.call(xs, (a, b) => a - b);
+/** Sort an array of numbers (ascending) */
+export function sort<T extends ArrayView<number>>(xs: T): T {
+  return Array.prototype.sort.call(xs, (a, b) => a - b) as any;
 }
 
 /**
@@ -144,7 +145,7 @@ export function quickselect<T>(arr: ArrayView<T>, n: number, lo = 0, hi = arr.le
   if (lo === hi) return lo;
 
   while (hi >= lo) {
-    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(Math.random() * (hi - lo + 1)));
+    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(0.5 * (hi - lo + 1)));
 
     if (n === pivotIdx) return pivotIdx;
 
