@@ -64,6 +64,30 @@ describe('subspan', () => {
   });
 });
 
+describe('gen', () => {
+  test('infinite generation', () => {
+    let i = 0;
+    const iter = iterator.gen(() => ++i);
+
+    for (const x of iter) {
+      expect(x).toEqual(i);
+      if (i > 100) break;
+    }
+
+    expect(i).toEqual(101);
+  });
+
+  test('2 values', () => {
+    const iter = iterator.gen(() => 'a', 2);
+    expect(Array.from(iter)).toEqual(['a', 'a']);
+  });
+
+  test('0 values', () => {
+    const iter = iterator.gen(() => 'a', 0);
+    expect(Array.from(iter)).toEqual([]);
+  });
+});
+
 describe('outerJoin', () => {
   test('paired values', () => {
     const iter = iterator.outerJoin(['a', 'b', 'c'], ['b', 'c', 'a'], x => x);

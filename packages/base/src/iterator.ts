@@ -91,10 +91,11 @@ export function* take<T>(n: number, it: Iterable<T>): Iterable<T> {
 }
 
 /**
- * Create a generator
+ * Create a generator (optionally limited)
  */
-export function* gen<T>(fn: () => T): Iterable<T> {
+export function* gen<T>(fn: () => T, n = NaN): Iterable<T> {
   while (true) {
+    if (n-- === 0) break;
     yield fn();
   }
 }
