@@ -179,51 +179,32 @@ describe('kruskalWallis', () => {
     expect(order).toEqual([1, 0, 2]);
   });
 
-  test.only('effect-size test', () => {
+  test('effect-size test', () => {
     const data = [
-      509, 609, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 711, 711,
-      711, 711, 711, 711, 711, 711, 711, 712, 712, 713,
-  
-      853, 854, 865, 865, 866, 868, 911, 870, 865, 864, 862, 862, 867, 869,
-      864, 862, 862, 967, 969, 862, 862, 967, 969, 
+      509, 609, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 711, 711, 711, 711, 711, 711, 711,
+      711, 711, 712, 712, 713,
+
+      853, 854, 865, 865, 866, 868, 911, 870, 865, 864, 862, 862, 867, 869, 864, 862, 862, 967, 969,
+      862, 862, 967, 969,
     ];
 
     const m = median(data);
     let sensitivity = 0.005;
 
-    const q = gss((es) => {
-      
-      const result = kruskalWallis([
-        data, data.map(x => x + es)
-      ]);
+    // the smallest effect-size which is statistically significant at the given
+    // sensitivity.
+    const mde = gss(
+      es => {
+        const result = kruskalWallis([data, data.map(x => x + es)]);
+        return (result.pValue() - sensitivity) ** 2;
+      },
+      m * 0.001,
+      m * 0.5,
+      m * 0.001,
+      100,
+    );
 
-      const y = (result.pValue() - sensitivity) ** 2;
-      console.info(es, result.pValue(), y);
-
-      return y;
-    }, m * 0.001, m * 0.5, m * 0.001, 100);
-
-    console.info('q', q)
-
-    // non-parametric smallest detectable effect-size
-    // find the smallest effect-size (offset) which yields a p-val < 0.01 
-
-//    let str = ''
-//    for (let i = 0; i < 50; i++) {
-//      
-//      const off = m * (i * 0.0005);
-//      const result = kruskalWallis([
-//        data, data.map(x => x + off)
-//      ]);
-//    
-//      //if (result.pValue() < 0.01) {
-//        str += result.pValue() + '\n'
-//        console.info(off, 'p', result.pValue());
-//        //break;
-//      //}
-//    }
-
-//    console.info(str)
-
+    expect(mde[0]).toBeInRange(5.75, 6.25);
+    expect(mde[1]).toBeInRange(6.25, 6.5);
   });
 });
