@@ -29,11 +29,11 @@ const show = {
   annotations: [
     {
       '@index': [
-        ['digest:mean', { displayName: 'mean' }],
+        ['digest:median', { displayName: 'avg.' }],
         benchmarkSummary('Index', '@index')
       ],
       '@baseline': [
-        ['digest:mean', { displayName: 'mean' }],
+        ['digest:median', { displayName: 'avg.' }],
         benchmarkSummary('Baseline', '@baseline'),
       ],
     },
@@ -78,7 +78,7 @@ const compare = {
             displayName: 'Index',
             grading: [
               // highlight if this snapshot is significantly faster
-              'hypothesis:mean:significant-difference',
+              'hypothesis:median:significant-difference',
               {
                 ctx: '@test',
                 rules: [
@@ -93,13 +93,13 @@ const compare = {
 
       '@test': [
         [
-          'hypothesis:mean:summary-text',
+          'hypothesis:median:summary-text',
           {
             displayName: 'Change (99% CI)',
             gradings: [
               [
                 // color if there is a significant difference
-                'hypothesis:mean:significant-difference',
+                'hypothesis:median:significant-difference',
                 {
                   rules: [
                     { '==': 0, apply: chalk.dim },
@@ -110,7 +110,7 @@ const compare = {
               ],
               [
                 // color if there is a significant difference
-                'hypothesis:mean:meaningful-difference',
+                'hypothesis:median:meaningful-difference',
                 {
                   rules: [
                     { '==': false, apply: str => chalk.yellow(strip(str)) },
@@ -120,7 +120,7 @@ const compare = {
             ],
           },
         ],
-        ['hypothesis:mean:difference-ci', { display: false }],
+        ['hypothesis:median:difference-ci', { display: false }],
       ],
 
       '@baseline': [
@@ -130,7 +130,7 @@ const compare = {
             displayName: 'Baseline',
             grading: [
               // highlight if this snapshot is significantly faster
-              'hypothesis:mean:significant-difference',
+              'hypothesis:median:significant-difference',
               {
                 ctx: '@test',
                 rules: [
