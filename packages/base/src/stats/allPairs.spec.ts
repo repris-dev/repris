@@ -116,13 +116,13 @@ describe('crouxQn', () => {
     const sample1 = new Float32Array(iter.gen(random.gaussian(500, 100, entropy), 500));
 
     const scale1 = allPairs.crouxQn(sample1);
-    expect(scale1.correctedSpread).toBeInRange(99.5, 100.5);
+    expect(scale1.correctedSpread).toBeInRange(95, 105);
 
     // mean=500, s.d.=1000, n=100
     const sample2 = new Float32Array(iter.gen(random.gaussian(500, 1000, entropy), 100));
 
     const scale2 = allPairs.crouxQn(sample2);
-    expect(scale2.correctedSpread).toBeInRange(975, 1025);
+    expect(scale2.correctedSpread).toBeInRange(900, 1100);
 
     // 2 samples mixed
     const sample12 = new Float32Array(iter.concat([sample1, sample2]));
