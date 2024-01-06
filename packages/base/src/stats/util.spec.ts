@@ -43,8 +43,15 @@ describe('iqr', () => {
 
 describe('median', () => {
   test('even sample size', () => {
-    const arr = [0, 1, 2, 3];
+    const arr = [2, 3, 0, 1];
     const m = util.median(arr);
+
+    expect(m).toEqual(1.5);
+  });
+
+  test('even sample size (sorted)', () => {
+    const arr = [0, 1, 2, 3];
+    const m = util.median(arr, true);
 
     expect(m).toEqual(1.5);
   });
@@ -57,8 +64,15 @@ describe('median', () => {
   });
 
   test('odd sample size', () => {
-    const arr = [0, 1, 2];
+    const arr = [0, 2, 1];
     const m = util.median(arr);
+
+    expect(m).toEqual(1);
+  });
+
+  test('odd sample size (sorted)', () => {
+    const arr = [0, 1, 2];
+    const m = util.median(arr, true);
 
     expect(m).toEqual(1);
   });

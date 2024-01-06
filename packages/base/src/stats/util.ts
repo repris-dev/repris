@@ -20,9 +20,9 @@ export function iqr(sample: ArrayView<number>): [number, number] {
 }
 
 /** Median of the given sample */
-export function median(sample: ArrayView<number>): number {
+export function median(sample: ArrayView<number>, sorted?: boolean): number {
   gt(sample.length, 0);
-  return quantile(sample, 0.5);
+  return quantile(sample, 0.5, sorted);
 }
 
 /** median absolute deviation of the given sample */
@@ -56,19 +56,21 @@ export function qcd(iqr: [number, number]) {
   return (iqr[1] - iqr[0]) / (iqr[1] + iqr[0]);
 }
 
-export function quantile(sample: ArrayView<number>, q: number) {
+export function quantile(sample: ArrayView<number>, q: number, sorted?: boolean) {
   assert.inRange(q, 0, 1);
+  if (sorted) assert.isSorted(sample)
 
   let index = q * (sample.length - 1);
   let frac = index % 1;
 
   if (frac === 0) {
-    return sample[quickselect(sample, index)];
+    const kdx = sorted ? index : quickselect(sample, index);
+    return sample[kdx];
   } else {
-    const lo = sample[quickselect(sample, Math.floor(index))];
-    const hi = sample[quickselect(sample, Math.ceil(index))];
+    const lodx = sorted ? Math.floor(index) : quickselect(sample, Math.floor(index));
+    const hidx = sorted ? Math.ceil(index) : quickselect(sample, Math.ceil(index));
 
-    return lerp(lo, hi, frac);
+    return lerp(sample[lodx], sample[hidx], frac);
   }
 }
 
