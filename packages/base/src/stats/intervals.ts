@@ -1,7 +1,3 @@
-export function normal95(mean: number, variance: number, n: number) {
-  throw new Error('Not impl');
-}
-
 /**
  * Cox method (1971)
  *
