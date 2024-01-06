@@ -63,7 +63,7 @@ export function gss(
   while (n-- > 0) {
     h = invphi * h;
 
-    if (yc < yd) {
+    if (yc <= yd) {
       b = d;
       d = c;
       yd = yc;
