@@ -123,13 +123,13 @@ describe('quickSelect', () => {
 
   test('finds values (2)', () => {
     const rng = random.PRNGi32(55);
-    const arr = array.iota(new Float32Array(1000), 0)
+    const arr = array.iota(new Float32Array(1000), 0);
 
     for (let i = 0; i < 1000; i++) {
       array.shuffle(arr, rng);
       expect(array.quickselect(arr, i)).toEqual(i);
     }
-  })
+  });
 });
 
 describe('removeAtIndices', () => {

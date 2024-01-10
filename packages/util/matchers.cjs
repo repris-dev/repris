@@ -9,7 +9,7 @@ expect.extend({
     }
 
     if (max < min) {
-      throw new Error(`expected min <= max (${ min }, ${ max })`);
+      throw new Error(`expected min <= max (${min}, ${max})`);
     }
 
     const pass = received >= min && received <= max;

@@ -44,7 +44,7 @@ export function ppf(p: number): number {
  * Returns the minimum detectable effect size (MDES) at the given sensitivity and
  * power level in a hypothetical two sided hypothesis test with a sample defined
  * by the given size and standard deviation.
- * 
+ *
  * @reference fundamentals of Biostatistics, Bernard Rosner - Equation 8.25
  *
  * @param a - desired significance level in a two-tailed test (e.g., for α = 0.05, Z1−α2≈1.96)
