@@ -88,6 +88,8 @@ export interface AnnotationConfig {
    */
   grading?: [id: string, config: GradingConfig] | GradingConfig;
 
+  gradings?: ([id: string, config: GradingConfig] | GradingConfig)[];
+
   brand?: BrandingConfig;
 }
 
@@ -179,14 +181,15 @@ export function* iterateAnnotationTree(
         ctx,
       };
 
-      if (cfg.grading) {
-        const grading = cfg.grading;
+      const gradings = cfg.grading ? [cfg.grading] : (cfg.gradings ?? []);
+
+      for (const grading of gradings) {
         const [gType, gCfg] = Array.isArray(grading) ? grading : [type, grading];
 
         yield {
           type: gType as typeid,
           options: gCfg.options,
-          ctx: gCfg.ctx ? [gCfg.ctx] : void 0,
+          ctx: gCfg.ctx ? [gCfg.ctx] : ctx,
         };
       }
 

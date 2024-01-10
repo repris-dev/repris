@@ -20,7 +20,7 @@ export interface Column {
   /** The units of the annotation */
   units?: string;
   /** Style config for individual cells */
-  grading?: ColumnGrading;
+  grading?: ColumnGrading[];
 }
 
 export interface RenderedLine {
@@ -86,7 +86,7 @@ export class TerminalReport<Id> {
       if (ann !== undefined) {
         let cell = this.fmt.format(ann);
         if (c.grading !== void 0) {
-          cell = this._colorizeByQuality(cell, c.grading, bag);
+          for (const g of c.grading) cell = this._colorizeByQuality(cell, g, bag);
         }
 
         return cell;
