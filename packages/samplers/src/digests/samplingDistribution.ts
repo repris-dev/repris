@@ -296,27 +296,7 @@ export function createOutlierSelection<T>(
     }
   }
 
-  // A lazy list of index-pointers constructing a tour of all items,
-  // ordered by centrality
-  const tour: () => array.ArrayView<number> = lazy(() => {
-    // sorting of keys by weight descending
-    const order = array.iota(new Int32Array(N), 0).sort((a, b) => sigmas[b] - sigmas[a]);
-
-    const tour = new Int32Array(N);
-    let prev = order[0];
-
-    for (let i = 1; i < N; i++) {
-      const ith = order[i];
-      tour[prev] = ith;
-      prev = ith;
-    }
-
-    tour[prev] = order[0];
-    return tour;
-  });
-
   const dist = random.discreteDistribution(sigmas, entropy);
-  const seen = new Int32Array(N);
 
   let totSeen = 0;
 
@@ -326,13 +306,8 @@ export function createOutlierSelection<T>(
 
     let idx = dist();
 
-    // ensure we're not returning duplicates
-    while (seen[idx] > 0) {
-      idx = tour()[idx];
-    }
-
     totSeen++;
-    seen[idx]++;
+    dist.reweight(idx, 0);
 
     return keys[idx];
   };
