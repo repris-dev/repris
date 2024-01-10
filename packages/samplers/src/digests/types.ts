@@ -13,12 +13,19 @@ export interface DigestOptions {
    */
   maxSize: number;
 
+  /** The location estimation statistic to create a sampling distribution from */
+  locationEstimationType: typeid;
+
   /**
-   * Threshold for the digest to be considered valid, between
-   * 0 (maximum similarity, no uncertainty) and 1 (completely dissimilar)
-   * inclusive.
+   * The threshold for a digest to be considered for snapshotting.
+   * The value should be the smallest difference (in proportion to the mean)
+   * that you are interested in.
+   *
+   * A smaller threshold would mean smaller changes could be reliably detected, but
+   * more runs will be needed and even then, some benchmarks might not be sufficiently
+   * reliable to meet the threshold for the maximum sample size (maxSize).
    */
-  maxUncertainty: number;
+  minEffectSize: number;
 }
 
 export type DigestedSampleStatus =
@@ -56,13 +63,13 @@ export interface Digest<T extends Sample<V>, V = any>
   stat(): readonly { sample: T; status: DigestedSampleStatus }[];
 
   /**
-   * A measure of the robustness of the 'consistent' subset, if any. An
-   * uncertainty of zero means the samples are entirely heterogeneous
-   * according to the analysis used.
+   * The minimum detectable effect-size (MDES) of the digest.
+   * A smaller MDES is needed to reliably detect smaller differences
+   * in a difference test.
    */
-  uncertainty(): number;
+  mdes(): number;
 
-  /** A sufficiently large consistent subset was found */
+  /** The digest is sufficiently large and its MDE is sufficiently small */
   ready(): boolean;
 
   /** Convert a sample value as a quantity */

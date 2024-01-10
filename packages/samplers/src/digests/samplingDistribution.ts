@@ -7,7 +7,6 @@ import {
   assert,
   quantity,
   stats,
-  lazy,
   array,
 } from '@repris/base';
 
@@ -17,8 +16,8 @@ import * as annotators from '../annotators.js';
 import * as types from './types.js';
 
 export type Options = types.DigestOptions & {
-  /** The location estimation statistic to create a sampling distribution from */
-  locationEstimationType: typeid;
+  powerLevel: number;
+  sensitivity: number;
 };
 
 type DistributionDigestWT = wt.BenchmarkDigest & {
@@ -32,8 +31,11 @@ export type SamplingAggregation<T> = {
   /** Sampling distribution of the consistent subset, if any */
   samplingDistribution: number[];
 
-  /** The Coefficient of variation of the consistent subset */
-  relativeSpread: number;
+  /**
+   * The minimum detectable effect-size of the consistent subset at the
+   * configured power level.
+   */
+  mdes: number;
 };
 
 export const NoisySample = 'sample:noisy' as typeid;
@@ -102,7 +104,7 @@ export class Digest implements types.Digest<duration.Duration> {
     }
 
     const result = new Digest(wt.isReady, {
-      relativeSpread: wt.uncertainty,
+      mdes: wt.mdes,
       samplingDistribution: wt.statistic,
       stat,
     });
@@ -135,8 +137,8 @@ export class Digest implements types.Digest<duration.Duration> {
     return this._aggregation.stat;
   }
 
-  uncertainty(): number {
-    return this._aggregation.relativeSpread;
+  mdes(): number {
+    return this._aggregation.mdes;
   }
 
   ready(): boolean {
@@ -167,7 +169,7 @@ export class Digest implements types.Digest<duration.Duration> {
       '@type': this[typeid],
       '@uuid': this[uuid],
       samples,
-      uncertainty: this._aggregation.relativeSpread,
+      mdes: this._aggregation.mdes,
       statistic: this._aggregation.samplingDistribution,
       isReady: this._isReady,
     };
@@ -191,7 +193,7 @@ function summarize(stat: { status: types.DigestedSampleStatus }[]) {
  */
 function aggregateAndFilter<T>(
   taggedPointEstimates: [pointEstimate: number, tag: T][],
-  opts: types.DigestOptions,
+  opts: Options,
   entropy?: random.Generator,
 ): SamplingAggregation<T> {
   const N = taggedPointEstimates.length;
@@ -204,7 +206,7 @@ function aggregateAndFilter<T>(
 
     return {
       stat,
-      relativeSpread: 0,
+      mdes: 0,
       samplingDistribution: [taggedPointEstimates[0][0]],
     };
   }
@@ -235,32 +237,36 @@ function aggregateAndFilter<T>(
   }
 
   const samplingDistribution = subset.map(x => x.statistic);
-  let relativeSpread = 0;
+
+  // (relative) Minimum Detectable Effect (MDE) given the configured power level
+  // and significance as a proportion of the median
+  let mdes = 0;
 
   {
-    const xsTmp = subset.map(w => w.statistic);
-    const os = stats.online.Gaussian.fromValues(xsTmp);
+    const xsTmp = array.sort(subset.map(w => w.statistic));
+    const m = stats.median(xsTmp, true);
 
-    // Spread as the coefficient of variation
-    // Use 1.5 ddof Rule of Thumb
-    // See: Richard M. Brugger, "A Note on Unbiased Estimation on the Standard Deviation",
-    // The American Statistician (23) 4 p. 32 (1969)
-    relativeSpread = os.cov(1.5);
+    // Estimate the std-err of the median
+    const stdErr = stats.bootstrap.bootStat(xsTmp, xs => stats.median(xs, true), 1500).std();
 
-    // Sort by distance from the mean as the measure of centrality
-    stat = stat.sort(
-      (a, b) => Math.abs(a.statistic - os.mean()) - Math.abs(b.statistic - os.mean()),
-    );
+    // convert std-err of the median to standard deviation.
+    // SE(median) is ~1.25x SE(mean)
+    const std = (Math.sqrt(N) * stdErr) / Math.sqrt(Math.PI / 2);
+
+    mdes = stats.normal.mde(opts.sensitivity, opts.powerLevel, N, std) / m;
+
+    // Sort by distance from the median as the measure of centrality
+    stat = stat.sort((a, b) => Math.abs(a.statistic - m) - Math.abs(b.statistic - m));
   }
 
   // mark consistent samples
-  if (subset.length >= opts.minSize && relativeSpread <= opts.maxUncertainty) {
+  if (subset.length >= opts.minSize && mdes <= opts.minEffectSize) {
     subset.forEach(x => (x.status = 'consistent'));
   }
 
   return {
     stat,
-    relativeSpread,
+    mdes,
     samplingDistribution,
   };
 }
@@ -272,31 +278,36 @@ export function createOutlierSelection<T>(
 ): () => T | undefined {
   const N = keys.length,
     xs = new Float64Array(N);
+
   for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
 
-  // std. Devs from the mean for each sample
-  const sigmas = new Float64Array(N);
+  // std. Devs from the median for each sample
+  const weights = new Float64Array(N);
 
   {
-    // Mean: mean of the narrowest 50% of the distribution (shorth)
-    // std dev.: median absolute deviation from the mean
     const xsTmp = xs.slice();
-    const mean = stats.mode.shorth(xsTmp).mode,
-      std = stats.mad(xsTmp, mean).normMad;
+    const centralPoint = stats.median(xsTmp);
+    const std = stats.mad(xsTmp, centralPoint).normMad;
 
     if (std > 0) {
-      // weight by distance from the median, normalized by
-      // estimate of standard deviation
       for (let i = 0; i < N; i++) {
-        sigmas[i] = Math.abs(xs[i] - mean) / std;
+        // weight by distance from the median, normalized by
+        // estimate of standard deviation. Essentially a 'modified z-score'
+        // where weights are constant up to 3 s.d. and rapidly increase
+        // beyond 4 s.d.
+        const z = Math.abs(xs[i] - centralPoint) / std;
+        const weight = Math.max(0, z - 1);
+
+        // 1+100^{\ln\left(\max\left(0,\ x-1.25\right)\right)-1.25}
+        weights[i] = 1 + 1e2 ** (Math.log(weight) - 1);
       }
     } else {
       // equal weights
-      array.fill(sigmas, 1 / N);
+      array.fill(weights, 1 / N);
     }
   }
 
-  const dist = random.discreteDistribution(sigmas, entropy);
+  const dist = random.discreteDistribution(weights, entropy);
 
   let totSeen = 0;
 
