@@ -1,5 +1,7 @@
 import { iota } from '../array.js';
+import { gss } from '../math.js';
 import { kruskalWallis, mwu } from './mwu.js';
+import { median } from './util.js';
 
 describe('mwu', () => {
   test('simple ranks', () => {
@@ -175,5 +177,34 @@ describe('kruskalWallis', () => {
 
     const order = iota(new Array(3), 0).sort((a, b) => result.ranks[a] - result.ranks[b]);
     expect(order).toEqual([1, 0, 2]);
+  });
+
+  test('effect-size test', () => {
+    const data = [
+      509, 609, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 711, 711, 711, 711, 711, 711, 711,
+      711, 711, 712, 712, 713,
+
+      853, 854, 865, 865, 866, 868, 911, 870, 865, 864, 862, 862, 867, 869, 864, 862, 862, 967, 969,
+      862, 862, 967, 969,
+    ];
+
+    const m = median(data);
+    let sensitivity = 0.005;
+
+    // the smallest effect-size which is statistically significant at the given
+    // sensitivity.
+    const mde = gss(
+      es => {
+        const result = kruskalWallis([data, data.map(x => x + es)]);
+        return (result.pValue() - sensitivity) ** 2;
+      },
+      m * 0.001,
+      m * 0.5,
+      m * 0.001,
+      100,
+    );
+
+    expect(mde[0]).toBeInRange(5.75, 6.25);
+    expect(mde[1]).toBeInRange(6.25, 6.5);
   });
 });

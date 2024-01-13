@@ -54,8 +54,8 @@ export function mwu(as: ArrayView<number>, bs: ArrayView<number>): MWUResult {
   const aLen = as.length;
   const bLen = bs.length;
 
-  let u1 = aLen * bLen + (aLen * (aLen + 1)) / 2 - r1;
-  let u2 = aLen * bLen + (bLen * (bLen + 1)) / 2 - r2;
+  const u1 = aLen * bLen + (aLen * (aLen + 1)) / 2 - r1;
+  const u2 = aLen * bLen + (bLen * (bLen + 1)) / 2 - r2;
 
   return {
     u1,

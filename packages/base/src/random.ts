@@ -56,30 +56,42 @@ export function PRNGi32(seed = mathRand()): Generator {
 export function discreteDistribution(
   weights: ArrayView<number>,
   entropy: Generator = mathRand,
-): Generator {
+): Generator & { reweight: (idx: number, newWeight: number) => void } {
   const N = weights.length;
-  let sum = 0;
+  const ws = new Float64Array(N);
 
-  for (let i = 0; i < weights.length; i++) {
-    assert.gte(weights[i], 0);
-    sum += weights[i];
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    const w = (ws[i] = weights[i]);
+    assert.gte(w, 0);
+    sum += w;
   }
 
-  assert.gt(sum, 0);
-  const rng = uniform(0, sum, entropy);
-
-  return () => {
-    let thresh = rng();
+  const gen = () => {
+    assert.gt(sum, 0, 'The sum of weights must be positive');
+    let thresh = (entropy() / randMax) * sum;
 
     for (let i = 0; i < N; i++) {
-      if (thresh < weights[i]) {
+      if (thresh < ws[i]) {
         return i;
       }
-      thresh -= weights[i];
+      thresh -= ws[i];
     }
 
     assert.never();
   };
+
+  gen.reweight = (i: number, w: number) => {
+    assert.bounds(ws, i);
+    assert.gte(w, 0);
+
+    const delta = ws[i] - w;
+
+    ws[i] = w;
+    sum -= delta;
+  };
+
+  return gen;
 }
 
 /**

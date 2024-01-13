@@ -43,8 +43,15 @@ describe('iqr', () => {
 
 describe('median', () => {
   test('even sample size', () => {
-    const arr = [0, 1, 2, 3];
+    const arr = [2, 3, 0, 1];
     const m = util.median(arr);
+
+    expect(m).toEqual(1.5);
+  });
+
+  test('even sample size (sorted)', () => {
+    const arr = [0, 1, 2, 3];
+    const m = util.median(arr, true);
 
     expect(m).toEqual(1.5);
   });
@@ -57,8 +64,15 @@ describe('median', () => {
   });
 
   test('odd sample size', () => {
-    const arr = [0, 1, 2];
+    const arr = [0, 2, 1];
     const m = util.median(arr);
+
+    expect(m).toEqual(1);
+  });
+
+  test('odd sample size (sorted)', () => {
+    const arr = [0, 1, 2];
+    const m = util.median(arr, true);
 
     expect(m).toEqual(1);
   });
@@ -133,5 +147,42 @@ describe('jarqueBera', () => {
     }
 
     expect(util.jarqueBera(N, stats.skewness(), stats.kurtosis())).toBeGreaterThan(50);
+  });
+});
+
+describe("cohen's D", () => {
+  const N = 100;
+
+  test('identical distributions', () => {
+    const rng = random.gaussian(5, 5, random.PRNGi32());
+    const stats = new OS.Gaussian();
+
+    for (let i = 0; i < N; i++) {
+      stats.push(rng());
+    }
+
+    expect(
+      util.hedgesG(stats.N(), stats.mean(), stats.std(1), stats.N(), stats.mean(), stats.std(1)),
+    ).toEqual(0);
+  });
+
+  test('1 s.d. difference', () => {
+    const sd = 2;
+    expect(util.hedgesG(200, 1, sd, 200, 1 + sd, sd)).toBeCloseTo(1, 2);
+  });
+
+  test('0.5 s.d. difference', () => {
+    const sd = 2;
+    expect(util.hedgesG(200, 1, sd, 200, 1 + sd / 2, sd)).toBeCloseTo(0.5, 2);
+  });
+
+  test('1 s.d. difference (small sample)', () => {
+    const sd = 2;
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd, sd)).toBeCloseTo(0.96, 2);
+  });
+
+  test('0.5 s.d. difference (small sample)', () => {
+    const sd = 2;
+    expect(util.hedgesG(20, 1, sd, 20, 1 + sd / 2, sd)).toBeCloseTo(0.48, 2);
   });
 });

@@ -84,7 +84,18 @@ export function valuesEq(a: ArrayLike<any>, b: ArrayLike<any>): void {
     }
     for (let i = 0; i < a.length; i++) {
       if (a[i] !== b[i]) {
-        err(`Expected array entries at index ${i} to be equal. (${a[i]} vs. ${b[i]})`);
+        err(`Expected array entries at index ${i} to be equal. (${a[i]} > ${b[i]})`);
+      }
+    }
+  }
+}
+
+export function isSorted(a: ArrayLike<any>): void {
+  if (__DEBUG) {
+    if (a.length < 2) return;
+    for (let i = 1; i < a.length; i++) {
+      if (a[i] < a[i - 1]) {
+        err(`Expected array to be sorted. (${a[i - 1]} vs. ${a[i]})`);
       }
     }
   }

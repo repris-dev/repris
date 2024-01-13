@@ -1,4 +1,5 @@
 import * as assert from './assert.js';
+import * as random from './random.js';
 
 /* A mutable view over an array */
 export interface ArrayView<T> {
@@ -89,8 +90,9 @@ export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   arr[bdx] = tmp;
 }
 
-export function sort<T extends number>(xs: ArrayView<T>) {
-  Array.prototype.sort.call(xs, (a, b) => a - b);
+/** Sort an array of numbers (ascending) */
+export function sort<T extends ArrayView<number>>(xs: T): T {
+  return Array.prototype.sort.call(xs, (a, b) => a - b) as any;
 }
 
 /**
@@ -143,7 +145,7 @@ export function quickselect<T>(arr: ArrayView<T>, n: number, lo = 0, hi = arr.le
   if (lo === hi) return lo;
 
   while (hi >= lo) {
-    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(Math.random() * (hi - lo + 1)));
+    const pivotIdx = partition(arr, lo, hi, lo + Math.floor(0.5 * (hi - lo + 1)));
 
     if (n === pivotIdx) return pivotIdx;
 
@@ -202,4 +204,22 @@ export function partitionEqual<T>(arr: ArrayView<T>, value: T, lo: number, hi: n
   }
 
   return lo > hi ? -1 : lo;
+}
+
+/** Random shuffle */
+export function shuffle<T>(arr: ArrayView<T>, rng: random.Generator) {
+  const dist = random.uniform(0, 1, rng);
+  let currentIdx = arr.length;
+
+  while (currentIdx !== 0) {
+    const randomIdx = Math.floor(dist() * currentIdx);
+    currentIdx--;
+
+    // And swap it with the current element.
+    const a = arr[currentIdx];
+    arr[currentIdx] = arr[randomIdx];
+    arr[randomIdx] = a;
+  }
+
+  return arr;
 }

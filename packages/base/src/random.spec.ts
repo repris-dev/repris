@@ -73,14 +73,13 @@ test('uniformi distribution', () => {
 });
 
 describe('discreteDistribution', () => {
-  const weights = [100, 50, 1, 0];
-
-  test('Biased towards selecting outliers', () => {
+  test('Biased towards selecting heavier weights', () => {
+    const weights = [100, 50, 1, 0];
     const entropy = random.PRNGi32(571);
     const counts = new Int32Array(weights.length);
     const rng = random.discreteDistribution(weights, entropy);
 
-    for (let index = 0; index < 10_000; index++) {
+    for (let n = 0; n < 10_000; n++) {
       const x = rng();
       expect(x).toBeInRange(0, 3);
       expect(x).toEqual(Math.round(x));
@@ -90,6 +89,26 @@ describe('discreteDistribution', () => {
     expect(counts[0]).toBeGreaterThan(counts[1]);
     expect(counts[1]).toBeGreaterThan(counts[2]);
     expect(counts[3]).toEqual(0);
+  });
+
+  test('Can update weights', () => {
+    const weights = [100, 50, 1, 2];
+    const entropy = random.PRNGi32(571);
+    const counts = new Int32Array(weights.length);
+
+    for (let n = 0; n < 5_000; n++) {
+      const rng = random.discreteDistribution(weights, entropy);
+      counts.fill(0);
+
+      for (let i = 0; i < weights.length - 1; i++) {
+        const x = rng();
+        expect(x).toEqual(Math.round(x));
+        expect(counts[x]).toBe(0);
+
+        rng.reweight(x, 0);
+        counts[x]++;
+      }
+    }
   });
 });
 

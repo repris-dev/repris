@@ -122,7 +122,7 @@ ann.register('@annotator:hypothesis:mean', {
         opts.level,
         opts.resamples,
         opts.secondaryResamples,
-      );
+      ).interval;
 
       result.set(HypothesisAnnotations.differenceCI.id, ci);
     }
