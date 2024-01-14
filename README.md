@@ -22,7 +22,7 @@
 - Collect performance snapshots across many runs
 - Reject poor quality samples automatically
 - Run benchmarks in CI runners and other poorly controlled environments
-- Identify unreliable benchmarks and calibrate statistical significance in testing
+- Identify unreliable benchmarks and automatically calibrate statistical tests
 - Avoid making assumptions about underlying statistical properties of benchmarks
 
 ## Get started
