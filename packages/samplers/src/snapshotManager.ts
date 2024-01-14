@@ -73,7 +73,7 @@ export class SnapshotFileManager {
           suiteFilePath: meta.testPath,
           snapshot: snapshot.toJson(),
         };
-  
+
         const dir = path.dirname(meta.cachePath);
 
         await fs.mkdir(dir, { recursive: true });

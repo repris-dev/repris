@@ -23,7 +23,7 @@ export type BenchmarkDigest = {
   statistic: json.Value;
 
   /** The digests own measure of confidence in the statistic it generated */
-  uncertainty: number;
+  mdes: number;
 
   /** */
   isReady: boolean;

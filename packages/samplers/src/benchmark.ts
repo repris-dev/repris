@@ -203,7 +203,7 @@ export const annotations = {
   /**
    * A summary of the cache status. Legend:
    *
-   *   <uncertainty> (<total stored>/<total runs>)
+   *   <mdes> (<total stored>/<total runs>)
    *
    */
   summaryText: 'benchmark:summary-text' as typeid,
@@ -211,7 +211,8 @@ export const annotations = {
   /** Total number of runs stored by the benchmark */
   runs: 'benchmark:runs' as typeid,
 
-  uncertainty: 'benchmark:uncertainty' as typeid,
+  /** Relative minimum detectable effect-size */
+  mdes: 'benchmark:mdes' as typeid,
 
   /** Indicates whether the benchmark is ready to be snapshotted/tested */
   stable: 'benchmark:stable' as typeid,
@@ -244,7 +245,7 @@ ann.register('@benchmark:annotator' as typeid, {
 
       // <uncertainty> (<total stored>/<total runs>)
       summary = `${
-        totalIndexed > 1 ? digest.uncertainty().toFixed(2) : '-'
+        totalIndexed > 1 ? digest.mdes().toFixed(2) : '-'
       } (${totalIndexed}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)
@@ -258,7 +259,7 @@ ann.register('@benchmark:annotator' as typeid, {
     ]);
 
     if (digest) {
-      result.set(annotations.uncertainty, digest.uncertainty());
+      result.set(annotations.mdes, digest.mdes());
     }
 
     return Status.value(ann.DefaultBag.from(result));

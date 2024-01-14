@@ -3,18 +3,14 @@ import { samplers } from '@repris/samplers';
 declare namespace repris {
   interface Each {
     // Exclusively arrays.
-    <T extends any[] | [any]>(cases: ReadonlyArray<T>): (
-      name: string,
-      fn: samplers.stopwatch.SamplerFn<T>,
-      timeout?: number
-    ) => void;
+    <T extends any[] | [any]>(
+      cases: ReadonlyArray<T>,
+    ): (name: string, fn: samplers.stopwatch.SamplerFn<T>, timeout?: number) => void;
 
     // Not arrays.
-    <T>(cases: ReadonlyArray<T>): (
-      name: string,
-      fn: samplers.stopwatch.SamplerFn<[T]>,
-      timeout?: number
-    ) => void;
+    <T>(
+      cases: ReadonlyArray<T>,
+    ): (name: string, fn: samplers.stopwatch.SamplerFn<[T]>, timeout?: number) => void;
   }
 
   interface It {

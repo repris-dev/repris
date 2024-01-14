@@ -7,7 +7,9 @@ export const defaults = {
   duration: {
     minSize: 20,
     maxSize: 30,
-    maxUncertainty: 0.025,
+    minEffectSize: 0.05,
+    powerLevel: 0.9,
+    sensitivity: 0.99,
     locationEstimationType: 'sample:hsm' as typeid,
   } as const satisfies import('./digests/samplingDistribution.js').Options,
 };

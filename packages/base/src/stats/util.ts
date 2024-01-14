@@ -58,7 +58,7 @@ export function qcd(iqr: [number, number]) {
 
 export function quantile(sample: ArrayView<number>, q: number, sorted?: boolean) {
   assert.inRange(q, 0, 1);
-  if (sorted) assert.isSorted(sample)
+  if (sorted) assert.isSorted(sample);
 
   let index = q * (sample.length - 1);
   let frac = index % 1;
@@ -142,7 +142,7 @@ export function hedgesG(
   // Pooled and weighted variance
   const sSq = ((n0 - 1) * sd0 ** 2 + (n1 - 1) * sd1 ** 2) / (n - 2);
   // bias correction (Durlak) - https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/hedgeg.htm
-  const correction = (n - 3) / (n - 2.25) * Math.sqrt((n - 2) / n);
+  const correction = ((n - 3) / (n - 2.25)) * Math.sqrt((n - 2) / n);
 
   return (Math.abs(mean0 - mean1) / Math.sqrt(sSq)) * correction;
 }

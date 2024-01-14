@@ -2,23 +2,23 @@
 
 ## Overcoming measurement bias
 
-A typical benchmark runs software before and after modification to see whether its performance has changed. Then, the pair of measurements (usually averages) are compared in a [hypothesis test](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing). In an ideal world this two-sample method would be statistically sound and robust approach to performance testing.
+A typical benchmark runs software before and after modification to see whether its performance has changed. The pair of measurements (usually averages) are compared in a [hypothesis test](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing). In an ideal world this two-sample testing method would be statistically sound and robust approach to performance testing.
 
 However, you might've noticed that if you run the same benchmark a number of times and under the same conditions, perhaps 20% or more those runs produce results that diverge significantly from the others. This makes automated performance monitoring far more challenging and there are several reasons it can happen.
 
-Just-In-Time (JIT) compiled and garbage collected languages, such as JavaScript, are especially sensitive to factors external to the benchmark itself. One factor in particular is the use of dynamic profiling information which, due to small timing fluctuations, can alter the JIT compilation of the same piece of code. These small changes to code can cascade and lead to changes to runtime performance from run to run [1, 4].
+Just-In-Time (JIT) compiled and garbage collected languages, such as JavaScript, are especially sensitive to factors external to the benchmark itself. One factor in particular is the use of dynamic profiling information which, due to small timing fluctuations, can alter the JIT compilation of the same piece of code. These small changes to code can cascade and lead to large changes in runtime performance from run to run [1, 4].
 
-More generally these factors amount to a _measurement bias_ which, if unaccounted for, make it difficult (or impossible) to make claims about performance due to code modification, rather than other incidental factors. It also means benchmark results seemingly can't be reproduced, even under identical conditions.
+More generally, these factors amount to a _measurement bias_ which, if unaccounted for, make it difficult (or impossible) to make claims about performance due to deliberate code modification, rather than other incidental factors. It also means benchmark results seemingly can't be reproduced, even under identical conditions.
 
-To mitigate this bias, Repris collects samples across multiple runs. Each run effectively samples from the space of possible JIT compilations of the same piece of code, introducing a kind of randomization to the experimental setup (a more explicit version of this technique is used by [stabilizer](https://github.com/ccurtsinger/stabilizer)).
+To mitigate these problems, Repris collects samples across multiple runs. Each run effectively samples from the space of feasible JIT compilations of the same piece of code, introducing a kind of randomization to the experimental setup (a more explicit version of this technique is used by [stabilizer](https://github.com/ccurtsinger/stabilizer)).
 
-Ultimately, 20-30 runs are usually sufficient to accurately detect a ~1% change in runtime performance, and also makes it easier to detect unreliable benchmarks before they are added to your test suite.
+Ultimately, 20-30 runs are usually sufficient to reliably detect a 1-2% change in runtime performance, and also makes it easier to detect unreliable benchmarks before they are added to your test suite.
 
 ## Non-parametric statistics
 
-Many assumptions are made when benchmarking. These might include normality of measurements or fixed variance across runs. Usually these assumptions are made for convenience and compatibility with well-known statistical tests (e.g. t-tests) or summary statistics (e.g. the mean or median).
+Many assumptions are made when benchmarking. These might include normality of measurements or fixed variance across runs of the same benchmark. Usually these assumptions are made for convenience and compatibility with well-known statistical tests (e.g. t-tests) or summary statistics (e.g. the mean or median).
 
-It's well known that benchmarks generally don't follow a normal distribution; this is sometimes side-stepped by more exotic distributions (e.g. log-normal, exponential). Some benchmarks may behave according to these assumptions, however this isn't generally true. In practice, benchmarks are very often multi-modal with variance changing across runs:
+It's well known that benchmarks generally don't follow a normal distribution; this is sometimes side-stepped by more exotic distributions (e.g. log-normal, exponential). Some benchmarks may behave according to these assumptions, however this isn't generally true. In practice, benchmarks are very often multi-modal with variance changing unpredictably across runs:
 
 <p align="center">
   <img src="./distributions.svg" style="background-color: white">
@@ -36,7 +36,7 @@ Non-parametric statistics are not restricted by assumptions concerning distribut
 
 A confidence interval is a range of values that describes the uncertainty surrounding an estimate.
 
-By default, Repris computes [bootstrapped confidence intervals](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Deriving_confidence_intervals_from_the_bootstrap_distribution) when running tests to report the sample quality.
+By default, Repris computes [bootstrapped confidence intervals](<https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Deriving_confidence_intervals_from_the_bootstrap_distribution>) when running tests to report the sample quality.
 
 When comparing samples, a [studentized bootstrap](https://olebo.github.io/textbook/ch/18/hyp_studentized.html) paired difference test is used determine whether a change in performance is statistically significant.
 

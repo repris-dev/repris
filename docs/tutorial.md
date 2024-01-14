@@ -62,7 +62,7 @@ So far, so ordinary.
 Now we'll add a simple benchmark to `index.test.js` for our `fib` function:
 
 ```js
-bench('fib(500)', (state) => {
+bench('fib(500)', state => {
   let result = 0;
 
   // Repris will take a sample by iterating a number
@@ -100,10 +100,10 @@ Re-run Jest like before with `npm test`:
 
 The test and benchmark ran. The report contains a summary of each sample that was collected from the benchmark:
 
-- __Iter.__ - The number of iterations of `fib(500)`
-- __Mode__ - The 'most likely' (modal) value of the sample
-- __95% CI__ - A [Confidence interval](./statistics-of-repris.md#confidence-intervals) expressed as a % of the mode
-- __Index__ - The status of the [trove](./concepts.md#troves) for this benchmark (explained later)
+- **Iter.** - The number of iterations of `fib(500)`
+- **Mode** - The 'most likely' (modal) value of the sample
+- **95% CI** - A [Confidence interval](./statistics-of-repris.md#confidence-intervals) expressed as a % of the mode
+- **Index** - The status of the [trove](./concepts.md#troves) for this benchmark (explained later)
 
 ## Create a baseline
 
@@ -129,6 +129,7 @@ The statistics are reported in the same way. You can also see the index summary 
 ```
 
 This summary has two parts:
+
 - `0.19` - A measure of the uncertainty of the trove collected so far. Ideally, we want this number to be as low as possible. As more samples are collected we should expect uncertainty to decrease.
 - `(2/2)` - (The number of samples in the trove/Total number of runs of this benchmark). Eventually the worst samples get rejected once the trove is full.
 
@@ -191,7 +192,8 @@ Next, we'll change our `fib` function to use an iterative version of the same al
 
 ```js
 function fib(n) {
-  let k = 0, k1 = 1;
+  let k = 0,
+    k1 = 1;
 
   while (n > 0) {
     [k, k1] = [k1, k + k1];
