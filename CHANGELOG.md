@@ -1,3 +1,8 @@
+## 0.9.0
+
+- `repris compare` Use minimum detectable effect-sizes during testing (#8)
+- Use median bootstrap for processing troves and sample rejection (#8) 
+
 ## 0.8.5
 
 - `repris compare` - change default bootstrap resamples to 5000 from 2500
