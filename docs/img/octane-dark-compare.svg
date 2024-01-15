@@ -4,7 +4,7 @@
    height="168"
    version="1.1"
    id="svg58"
-   sodipodi:docname="octane-dark.svg"
+   sodipodi:docname="octane-dark-compare.svg"
    inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -21,9 +21,9 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="20.87052"
-     inkscape:cx="401.78682"
-     inkscape:cy="54.981859"
+     inkscape:zoom="2.608815"
+     inkscape:cx="240.14734"
+     inkscape:cy="65.355343"
      inkscape:window-width="2496"
      inkscape:window-height="1601"
      inkscape:window-x="-8"
@@ -58,19 +58,12 @@
          height="167"
          id="rect61"
          style="stroke:none" />
-      <rect
-         fill="#98c379"
-         x="59.956501"
-         y="-283.72882"
-         width="47"
-         height="15"
-         id="rect62" />
       <text
          fill="#212329"
          font-size="13px"
          x="67.800247"
          y="-271.72882"
-         id="text62">PASS</text>
+         id="text62" />
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -80,13 +73,11 @@
       <text
          fill="#6e6f72"
          font-size="13px"
-         x="114.59712"
+         x="66.597122"
          y="-271.72882"
          id="text64">octane/<tspan
    style="fill:#ffffff"
-   id="tspan3">octane.spec.js (<tspan
-   style="fill:#ff5555"
-   id="tspan4">27.209s</tspan>)</tspan></text>
+   id="tspan3">octane.spec.js</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -96,35 +87,19 @@
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="371.16229"
+         x="319.16229"
          y="-256.72882"
          id="text68"><tspan
            style="text-align:end;text-anchor:end"
-           id="tspan18">Mode</tspan></text>
+           id="tspan18">Index</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
-         x="302.29822"
-         y="-256.72882"
-         id="text68-3"><tspan
-           style="text-align:end;text-anchor:end"
-           id="tspan17">Iter.</tspan></text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="432.91937"
+         x="468.91937"
          y="-256.72882"
          id="text68-4"><tspan
            style="text-align:end;text-anchor:end"
-           id="tspan19">95% CI</tspan></text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="535.60199"
-         y="-256.72882"
-         id="text68-4-0"><tspan
-           style="text-align:end;text-anchor:end"
-           id="tspan2">Index</tspan></text>
+           id="tspan19">Change (99% CI)</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -132,29 +107,18 @@
          y="-241.72881"
          id="text69" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-241.72881"
-         id="text70">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-241.72881"
          id="text71">Delta blue</text>
       <text
          fill="#98c379"
          font-size="13px"
-         x="404.20648"
-         y="-241.72881"
-         id="text73">0.2%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.17529"
-         y="-241.72881"
-         id="text74">0.01 (20/20)</text>
+         x="354.57074"
+         y="-241.72882"
+         id="text73"
+         style="fill:#6e6f72;fill-opacity:1">0.2% (-0.3, 0.8)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -162,29 +126,18 @@
          y="-226.72881"
          id="text75" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-226.72881"
-         id="text76">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-226.72881"
          id="text77">Early boyer</text>
       <text
          fill="#e5c07b"
          font-size="13px"
-         x="388.53461"
-         y="-226.72881"
-         id="text79">12.45%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.15967"
-         y="-226.72881"
-         id="text80">0.01 (20/20)</text>
+         x="347.42328"
+         y="-226.72882"
+         id="text79"
+         style="fill:#6e6f72;fill-opacity:1">-2.1% (-3.1, 1.9)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -192,29 +145,18 @@
          y="-211.72881"
          id="text81" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-211.72881"
-         id="text82">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-211.72881"
          id="text83">Splay</text>
       <text
          fill="#e5c07b"
          font-size="13px"
-         x="396.36273"
-         y="-211.72881"
-         id="text85">5.41%</text>
-      <text
-         fill="#6e6f72"
-         font-size="13px"
-         x="451.15967"
-         y="-211.72881"
-         id="text86">0.11 (20/20)</text>
+         x="461.55414"
+         y="-211.72882"
+         id="text85"
+         style="fill:#6e6f72;fill-opacity:1">-</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -222,29 +164,20 @@
          y="-196.72881"
          id="text87" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-196.72881"
-         id="text88">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-196.72881"
          id="text89">Richards</text>
       <text
          fill="#98c379"
          font-size="13px"
-         x="396.37836"
-         y="-196.72881"
-         id="text91">0.11%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.17529"
-         y="-196.72881"
-         id="text92">0.02 (20/20)</text>
+         x="354.57074"
+         y="-196.72882"
+         id="text91"
+         style="fill:#e5c07b;fill-opacity:1"><tspan
+           style="fill:#e5c07b;fill-opacity:1"
+           id="tspan4">-0.1% (-0.3, -0)</tspan></text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -252,29 +185,18 @@
          y="-181.72881"
          id="text93" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-181.72881"
-         id="text94">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-181.72881"
          id="text95">Crypto</text>
       <text
          fill="#98c379"
          font-size="13px"
-         x="396.36273"
-         y="-181.72881"
-         id="text97">0.17%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.15967"
-         y="-181.72881"
-         id="text98">0.01 (20/20)</text>
+         x="361.7182"
+         y="-181.72882"
+         id="text97"
+         style="fill:#6e6f72;fill-opacity:1">+0% (-0.3, 0.4)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -282,29 +204,18 @@
          y="-166.72881"
          id="text99" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-166.72881"
-         id="text100">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-166.72881"
          id="text101">Navier stokes</text>
       <text
          fill="#98c379"
          font-size="13px"
-         x="396.36273"
-         y="-166.72881"
-         id="text103">0.04%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.15967"
-         y="-166.72881"
-         id="text104">0.00 (20/20)</text>
+         x="390.30804"
+         y="-166.72882"
+         id="text103"
+         style="fill:#6e6f72;fill-opacity:1">+0% (-0, 0)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -312,29 +223,19 @@
          y="-151.72881"
          id="text105" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-151.72881"
-         id="text106">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-151.72881"
-         id="text107">Raytrace</text>
+         id="text107"
+         style="fill:#ffffff">Raytrace</text>
       <text
          fill="#98c379"
          font-size="13px"
-         x="404.19086"
-         y="-151.72881"
-         id="text109">0.2%</text>
-      <text
-         fill="#dcdfe4"
-         font-size="13px"
-         x="451.15967"
-         y="-151.72881"
-         id="text110">0.02 (20/20)</text>
+         x="333.12836"
+         y="-151.72882"
+         id="text109"
+         style="fill:#98c379;fill-opacity:1">-14.5% (-16.1, -12)</text>
       <text
          fill="#dcdfe4"
          font-size="13px"
@@ -342,161 +243,152 @@
          y="-136.72881"
          id="text111" />
       <text
-         fill="#98c379"
-         font-size="13px"
-         x="75.456497"
-         y="-136.72881"
-         id="text112">✓</text>
-      <text
          fill="#6e6f72"
          font-size="13px"
-         x="91.112747"
+         x="77.112747"
          y="-136.72881"
          id="text113">Regexp</text>
       <g
          id="g116"
-         transform="translate(-636.65218,-300.72881)">
+         transform="translate(-688.65218,-300.72881)"
+         style="fill:#6e6f72;fill-opacity:1">
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="59"
-           style="text-align:end;text-anchor:end"
-           id="text72">436.94µs</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text72">413.84µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="74"
-           id="text78"><tspan
-             style="text-align:end;text-anchor:end"
-             id="tspan1">10.89ms</tspan></text>
+           id="text78"
+           style="fill:#6e6f72;fill-opacity:1"><tspan
+             style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+             id="tspan1">10.56ms</tspan></text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="89"
-           style="text-align:end;text-anchor:end"
-           id="text84">628.77µs</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text84">497.45µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="104"
-           style="text-align:end;text-anchor:end"
-           id="text90">159.47µs</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text90">152.36µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="119"
-           style="text-align:end;text-anchor:end"
-           id="text96">5.4ms</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text96">5.2ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="134"
-           style="text-align:end;text-anchor:end"
-           id="text102">5.21ms</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text102">5.01ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="149"
-           style="text-align:end;text-anchor:end"
-           id="text108">5.66ms</text>
+           style="text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1"
+           id="text108">4.63ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
            x="1008.1509"
            y="164"
-           style="text-align:end;text-anchor:end"
-           id="text114">20.46ms</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text114">18.9ms</text>
       </g>
+      <text
+         fill="#dcdfe4"
+         font-size="13px"
+         x="541.16229"
+         y="-256.72882"
+         id="text68-6"><tspan
+           style="text-align:end;text-anchor:end"
+           id="tspan18-9">Baseline</tspan></text>
       <g
          id="g116-1"
-         transform="translate(-686.65462,-300.72881)">
+         transform="translate(-466.65218,-300.72881)"
+         style="fill:#6e6f72;fill-opacity:1">
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.17554"
+           x="1008.1509"
            y="59"
-           style="text-align:end;text-anchor:end"
-           id="text72-9">2,237</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text72-8">412.76µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.1311"
+           x="1008.1509"
            y="74"
-           style="text-align:end;text-anchor:end"
-           id="text78-4">1,022</text>
+           id="text78-0"
+           style="fill:#6e6f72;fill-opacity:1"><tspan
+             style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+             id="tspan1-2">10.75ms</tspan></text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="986.94067"
+           x="1008.1509"
            y="89"
-           style="text-align:end;text-anchor:end"
-           id="text84-4">10,000</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text84-0">496.43µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.28979"
+           x="1008.1509"
            y="104"
-           style="text-align:end;text-anchor:end"
-           id="text90-1">6,173</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text90-9">152.52µs</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.20093"
+           x="1008.1509"
            y="119"
-           style="text-align:end;text-anchor:end"
-           id="text96-1">181</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text96-3">5.2ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.1311"
+           x="1008.1509"
            y="134"
-           style="text-align:end;text-anchor:end"
-           id="text102-4">192</text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text102-6">5.01ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="987.1311"
+           x="1008.1509"
            y="149"
-           style="text-align:end;text-anchor:end"
-           id="text108-9">172</text>
+           style="text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1"
+           id="text108-0">5.3ms</text>
         <text
            fill="#dcdfe4"
            font-size="13px"
-           x="986.71851"
+           x="1008.1509"
            y="164"
-           style="text-align:end;text-anchor:end"
-           id="text114-8">104</text>
-        <text
-           xml:space="preserve"
-           style="font-size:53.3333px;text-align:end;text-anchor:end;fill:#000000;stroke-width:7.46667;stroke-linecap:round;stroke-linejoin:round"
-           x="992.24359"
-           y="198.29872"
-           id="text118"><tspan
-             sodipodi:role="line"
-             id="tspan117"
-             x="992.24359"
-             y="198.29872" /></text>
+           style="text-align:end;text-anchor:end;fill:#6e6f72;fill-opacity:1"
+           id="text114-1">16.88ms</text>
       </g>
       <text
          fill="#98c379"
          font-size="13px"
-         x="396.36273"
-         y="-136.72881"
-         id="text115">2.59%</text>
-      <text
-         fill="#6e6f72"
-         font-size="13px"
-         x="451.15967"
-         y="-136.72881"
-         id="text116"
-         style="fill:#e4e4e1;fill-opacity:1">0.04 (20/20)</text>
+         x="347.42328"
+         y="-136.72882"
+         id="text115"
+         style="fill:#6e6f72;fill-opacity:1">+0.1% (-1.7, 1.4)</text>
       <text
          xml:space="preserve"
          style="font-size:53.3333px;text-align:center;text-anchor:middle;fill:#000000;stroke-width:7.46667;stroke-linecap:round;stroke-linejoin:round"
@@ -507,6 +399,14 @@
            id="tspan116"
            x="434.19495"
            y="-79.047836" /></text>
+      <text
+         xml:space="preserve"
+         style="font-size:53.3333px;font-family:Verdana;-inkscape-font-specification:Verdana;text-align:end;text-anchor:end;fill:#000000;stroke-width:0.785506;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+         x="418.72403"
+         y="3.5742805"
+         id="text2"><tspan
+           sodipodi:role="line"
+           id="tspan2"></tspan></text>
     </g>
   </g>
 </svg>

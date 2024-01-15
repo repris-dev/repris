@@ -11,24 +11,32 @@
 
 ## Features
 
-<BR>
+### Collect snapshots
 
 <p>
   <img width="503" src="./docs/img/octane-dark.svg">
 </p>
 
-<BR>
-
 - Collect performance snapshots across many runs
 - Reject poor quality samples automatically
-- Run benchmarks in CI runners and other poorly controlled environments
+- Run benchmarks in CI runners and other poorly controlled environments with confidence
 - Identify unreliable benchmarks and automatically calibrate statistical tests
-- Avoid making assumptions about underlying statistical properties of benchmarks
+
+<BR>
+
+### Compare snapshots
+
+<p>
+  <img width="503" src="./docs/img/octane-dark-compare.svg">
+</p>
+
+- With the Repris CLI, use [advanced statistical methods](./docs/statistics-of-repris.md) to compare snapshots after code modification
+
+<BR>
 
 ## Get started
 
 See [Getting started with Repris](./docs/tutorial.md).
-
 
 ## Documentation
 
