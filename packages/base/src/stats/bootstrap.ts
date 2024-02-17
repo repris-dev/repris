@@ -124,7 +124,7 @@ export function pairedStudentizedResampler(
 
     const esti = estimator(replicate0, replicate1);
     const stdErr = innerBootStat.std();
-    const pivotalQuantity = (esti - est) / stdErr;
+    const pivotalQuantity = stdErr > 0 ? (esti - est) / stdErr : 0;
 
     return {
       replicate: replicate0,
