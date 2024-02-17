@@ -124,7 +124,7 @@ export function pairedStudentizedResampler(
 
     const esti = estimator(replicate0, replicate1);
     const stdErr = innerBootStat.std();
-    const pivotalQuantity = (esti - est) / stdErr;
+    const pivotalQuantity = stdErr > 0 ? (esti - est) / stdErr : 0;
 
     return {
       replicate: replicate0,
@@ -222,7 +222,7 @@ export function studentizedDifferenceTest(
   const alpha = 1 - confidence;
   const resampler = pairedStudentizedResampler(x0, x1, estimator, KK, entropy);
 
-  const stat0 = estimator(x0, x1),
+  const stat = estimator(x0, x1),
     pivotalQuantities = new Float64Array(K),
     estStat = new online.Gaussian();
 
@@ -238,7 +238,7 @@ export function studentizedDifferenceTest(
     const hi = ti.estimate + ti.stdErr * pz;
 
     if (hi < 0 || lo > 0) power++;
-    if (ti.estimate < stat0) bias++;
+    if (ti.estimate < stat) bias++;
 
     pivotalQuantities[i] = ti.pivotalQuantity;
     estStat.push(ti.estimate);
@@ -249,8 +249,8 @@ export function studentizedDifferenceTest(
   const p = bc ? biasCorrectedInterval(bias / K, alpha) : [alpha / 2, 1 - alpha / 2];
 
   const interval: [number, number] = [
-    stat0 - estStat.std() * quantile(pivotalQuantities, p[1]),
-    stat0 - estStat.std() * quantile(pivotalQuantities, p[0]),
+    stat - estStat.std() * quantile(pivotalQuantities, p[1]),
+    stat - estStat.std() * quantile(pivotalQuantities, p[0]),
   ];
 
   return {

@@ -214,6 +214,30 @@ describe('studentizedResampler', () => {
     }
   });
 
+  test('Confidence intervals of a sample of zero std-err', () => {
+    const rng = rand.PRNGi32(95);
+    const sample0 = new Float32Array(100).fill(8);
+    const sample1 = new Float32Array(100).fill(5.5);
+
+    const {
+      interval: [lo, hi],
+      power,
+    } = boot.studentizedDifferenceTest(
+      sample0,
+      sample1,
+      (x0, x1) => median(x0) - median(x1),
+      0.99,
+      100,
+      10,
+      rng,
+      true,
+    );
+
+    expect(lo).toEqual(8 - 5.5);
+    expect(hi).toEqual(8 - 5.5);
+    expect(power).toEqual(1);
+  });
+
   /**
    * @see: https://www.samlau.me/test-textbook/ch/18/hyp_studentized.html
    * Skipped because this test takes ~30 seconds to run, but is kept here
