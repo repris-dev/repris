@@ -1,3 +1,7 @@
+## 0.9.1
+
+- [Fix] `repris compare` NaNs in confidence intervals of samples with zero stderr. (#9)
+
 ## 0.9.0
 
 - `repris compare` Use minimum detectable effect-sizes during testing (#8)
