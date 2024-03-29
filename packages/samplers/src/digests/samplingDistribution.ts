@@ -204,10 +204,15 @@ function aggregateAndFilter<T>(
       ? [{ sample: taggedPointEstimates[0][1], status: 'consistent' as types.DigestedSampleStatus }]
       : [];
 
+    // single sample summary statistic
+    const samplingDistribution = N > 0
+      ? [taggedPointEstimates[0][0]]
+      : [];
+
     return {
       stat,
       mdes: 0,
-      samplingDistribution: [taggedPointEstimates[0][0]],
+      samplingDistribution
     };
   }
 
