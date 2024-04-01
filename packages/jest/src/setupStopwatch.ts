@@ -74,3 +74,17 @@ _this.bench.each = function <T extends any[]>(cases: ReadonlyArray<T>) {
   return (name: string, fn: samplers.stopwatch.SamplerFn<T>, timeout?: number) =>
     caseFn(name, (...args) => createRunFn<T>(fn)(...args), timeout);
 };
+
+_this.bench.skip.each = function <T extends any[]>(cases: ReadonlyArray<T>) {
+  const caseFn = test.each<T>(cases);
+
+  return (name: string, fn: samplers.stopwatch.SamplerFn<T>, timeout?: number) =>
+    caseFn(name, (...args) => createRunFn<T>(fn)(...args), timeout);
+}
+
+_this.bench.only.each = function <T extends any[]>(cases: ReadonlyArray<T>) {
+  const caseFn = test.only.each<T>(cases);
+
+  return (name: string, fn: samplers.stopwatch.SamplerFn<T>, timeout?: number) =>
+    caseFn(name, (...args) => createRunFn<T>(fn)(...args), timeout);
+};
