@@ -38,6 +38,12 @@ export function lt(a: any, b: any, msg?: string): void {
   }
 }
 
+export function lte(a: any, b: any, msg?: string): void {
+  if (__DEBUG) {
+    if (a > b) err(msg ?? `Expected ${a} to be <= ${b}`);
+  }
+}
+
 export function gt(a: any, b: any, msg?: string): void {
   if (__DEBUG) {
     if (a <= b) err(msg ?? `Expected ${a} to be > ${b}`);

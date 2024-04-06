@@ -64,10 +64,11 @@ export function subsetOf<T, P extends { push(val: T): any }>(
   return dest;
 }
 
+/** Remove all elements from the given indices. */
 export function removeAtIndices(arr: ArrayView<any>, indices: ArrayView<number>): number {
-  let off = 0;
   const len = arr.length;
-
+  
+  let off = 0;
   for (let i = 0; i < len; i++) {
     const el = arr[i];
 
@@ -82,6 +83,119 @@ export function removeAtIndices(arr: ArrayView<any>, indices: ArrayView<number>)
   return len - off;
 }
 
+/** Remove elements equal to the given value. Returns the new length of the array. */
+export function removeWhere<T>(arr: ArrayView<T>, value: T): number {
+  const len = arr.length;
+  
+  let off = 0;
+  for (let i = 0; i < len; i++) {
+    const el = arr[i];
+
+    if (el === value) {
+      // discard this value
+      off++;
+    } else {
+      arr[i - off] = el;
+    }
+  }
+
+  return len - off;
+}
+
+/**
+ * Place the intersection of sorted array as and sorted array bs in as.
+ * Returns the size of the intersection.
+ */
+export function intersection<T>(
+  as: ArrayView<T>,
+  bs: ArrayView<T>,
+  cmp: (a: T, b: T) => number,
+): number {
+  const aLen = as.length,
+    bLen = bs.length;
+
+  let i = 0,
+    j = 0,
+    k = 0;
+
+  while (i < aLen && j < bLen) {
+    const w = cmp(as[i], bs[j]);
+
+    if (w < 0) i++;
+    else if (w > 0) j++;
+    else {
+      as[k++] = as[i++];
+      j++;
+    }
+  }
+
+  return k;
+}
+
+/** Merge the two given sorted arrays */
+export function union<T>(
+  as: ArrayView<T>,
+  bs: ArrayView<T>,
+  cmp: (a: T, b: T) => number,
+  push: (item: T) => any,
+): void {
+  const aLen = as.length,
+    bLen = bs.length;
+
+  let i = 0,
+    j = 0;
+
+  while (i < aLen && j < bLen) {
+    const w = cmp(as[i], bs[j]);
+
+    let val;
+
+    if (w === 0) {
+      val = bs[j++];
+      i++;
+    } else if (w > 0) {
+      val = bs[j++];
+    } else {
+      val = as[i++];
+    }
+
+    push(val);
+  }
+
+  // Store remaining elements of first array
+  while (i < aLen) push(as[i++]);
+
+  // Store remaining elements of second array
+  while (j < bLen) push(bs[j++]);
+}
+
+/** Rotate all values between first and last (inclusive) to the left. */
+export function rotateLeft(arr: ArrayView<any>, first: number, last: number) {
+  assert.lte(first, last);
+  assert.bounds(arr, first);
+  assert.bounds(arr, last);
+
+  const rotatedElement = arr[last];
+
+  while (last !== first) arr[last] = arr[--last];
+
+  arr[first] = rotatedElement;
+}
+
+/** Rotate all values between first and last (inclusive) to the right. */
+export function rotateRight(arr: ArrayView<any>, first: number, last: number) {
+  assert.lte(first, last);
+  assert.bounds(arr, first);
+  assert.bounds(arr, last);
+
+  const rotatedElement = arr[first];
+
+  while (first !== last) arr[first] = arr[++first];
+
+  arr[last] = rotatedElement;
+}
+
+/** Swap the elements in the two given indices */
 export function swap<T>(arr: ArrayView<T>, adx: number, bdx: number) {
   assert.is(adx >= 0 && adx < arr.length && bdx >= 0 && bdx < arr.length);
 
