@@ -1,3 +1,7 @@
+## 0.9.3
+
+- `@repris/base` - various array utils.
+
 ## 0.9.2
 
 - [Fix] `@repris/jest` handle case where all collected samples are noisy.
