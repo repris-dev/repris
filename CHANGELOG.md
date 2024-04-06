@@ -1,3 +1,9 @@
+## 0.9.2
+
+- [Fix] `@repris/jest` handle case where all collected samples are noisy.
+- Introduce `bench.skip.each()` and `bench.only.each()`
+- `@repris/base` Publish type declarations
+
 ## 0.9.1
 
 - [Fix] `repris compare` NaNs in confidence intervals of samples with zero stderr. (#9)
