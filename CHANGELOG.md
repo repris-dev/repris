@@ -1,3 +1,7 @@
+## 0.9.4
+
+- `@repris/jest` - TS support
+
 ## 0.9.3
 
 - `@repris/base` - various array utils.

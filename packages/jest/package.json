@@ -1,6 +1,6 @@
 {
   "name": "@repris/jest",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "author": {
     "name": "Ray Glover",
     "email": "ray@repris.dev"
@@ -13,6 +13,7 @@
   "files": [
     "package.json",
     "lib",
+    "env",
     "script",
     "preset.js",
     ".reprisrc.defaults.js"
