@@ -223,17 +223,18 @@ export function lowerBound<T, T2 = T>(
   count = arr.length - first,
 ): number {
   assert.le(first + count, arr.length);
+  first |= 0;
 
-  let it: number;
   let step = 0;
 
   while (count > 0) {
-    it = first | 0;
-    step = (count / 2) | 0;
+    let it = first;
+
+    step = count >>> 1;
     it += step;
 
     if (cmp(arr[it], value)) {
-      first = ++it;
+      first = it + 1;
       count -= step + 1;
     } else {
       count = step;
@@ -244,7 +245,7 @@ export function lowerBound<T, T2 = T>(
 }
 
 /**
- * Returns the index of the n-th smallest element of list within
+ * Returns the index of the n-th smallest element of an unsorted list within
  * lo..hi inclusive (i.e. lo <= n <= hi).
  * Time complexity: O(N).
  *
