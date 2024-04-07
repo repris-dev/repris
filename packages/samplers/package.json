@@ -15,14 +15,15 @@
     "lib"
   ],
   "type": "module",
-  "types": "./.tsc/index.d.ts",
+  "types": "./lib/index.d.ts",
   "exports": {
     ".": {
       "types": "./.tsc/index.d.ts",
       "development": "./.tsc/index.js",
       "default": {
-        "import": "./lib/index.js",
-        "require": "./lib/index.cjs"
+        "types": "./lib/index.d.ts",
+        "require": "./lib/index.cjs",
+        "import": "./lib/index.js"
       }
     }
   },
