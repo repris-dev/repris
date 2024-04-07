@@ -1,3 +1,7 @@
+## 0.9.5
+
+- `@repris/samplers` - TS support
+
 ## 0.9.4
 
 - `@repris/jest` - TS support
