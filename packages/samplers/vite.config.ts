@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import * as globals from '@repris/util/globals.config';
+import dts from 'vite-plugin-dts';
 import pkg from './package.json' assert { type: 'json' };
 
 const define = globals.defaults(pkg);
@@ -21,5 +22,6 @@ export default defineConfig({
     },
     outDir: './lib',
   },
+  plugins: [dts({ compilerOptions: { declarationMap: false } })],
   mode: process.env.MODE,
 });
