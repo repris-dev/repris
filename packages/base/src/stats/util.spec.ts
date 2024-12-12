@@ -186,3 +186,18 @@ describe("cohen's D", () => {
     expect(util.hedgesG(20, 1, sd, 20, 1 + sd / 2, sd)).toBeCloseTo(0.48, 2);
   });
 });
+
+describe('sum', () => {
+  test('various', () => {
+    expect(util.sum([])).toEqual(0);
+    expect(util.sum([Math.PI])).toEqual(Math.PI);
+    expect(util.sum([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])).toEqual(1);
+    expect(util.sum([3, -6, -0.1])).toEqual(-3.1);
+  });
+
+  test('subset', () => {
+    expect(util.sum([])).toEqual(0);
+    expect(util.sum([3, -6, -0.1], 1)).toEqual(-6.1);
+    expect(util.sum([3, 3 -0.1], 0, 1)).toEqual(3);
+  });
+});

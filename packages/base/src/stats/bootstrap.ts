@@ -259,7 +259,7 @@ export function studentizedDifferenceTest(
   };
 }
 
-function biasCorrectedInterval(bias: number, alpha: number) {
+function biasCorrectedInterval(bias: number, alpha: number): [number, number] {
   const z0 = normal.ppf(bias);
   const zlo = normal.ppf(alpha / 2);
   const zhi = normal.ppf(1 - alpha / 2);
@@ -270,7 +270,10 @@ function biasCorrectedInterval(bias: number, alpha: number) {
   return [plo, phi];
 }
 
-/** Calculate the percentile confidence interval of a statistic for a given sample */
+/**
+ * Calculate the percentile confidence interval of a statistic for a given sample
+ * and an estimate of the bias
+ */
 export function confidenceInterval(
   /** The sample */
   xs: ArrayView<number>,
@@ -283,9 +286,9 @@ export function confidenceInterval(
   /** Smoothing to apply to resamples, if any */
   smoothing?: number,
   entropy = random.mathRand,
-  /** Bias correction */
+  /** Apply bias correction to the returned confidence interval */
   bc?: boolean,
-): [lo: number, hi: number] {
+): [lo: number, hi: number, bias: number] {
   assert.inRange(level, 0, 1);
   assert.gt(K, 1);
 
@@ -297,13 +300,15 @@ export function confidenceInterval(
   let bias = 0;
 
   for (let i = 0, next = resampler(xs, entropy, smoothing); i < K; i++) {
-    dist[i] = estimator(next());
-    if (dist[i] < est0) bias++;
+    const xi = dist[i] = estimator(next());
+    if (xi < est0) bias++;
   }
 
-  const p = bc ? biasCorrectedInterval(bias / K, alpha) : [alpha / 2, 1 - alpha / 2];
+  const p = bc
+    ? biasCorrectedInterval(bias / K, alpha)
+    : [alpha / 2, 1 - alpha / 2] as const;
 
-  return [quantile(dist, p[0]), quantile(dist, p[1])];
+  return [quantile(dist, p[0]), quantile(dist, p[1]), quantile(dist, 0.5) - est0];
 }
 
 /** Calculate a bootstrap sampling distribution */

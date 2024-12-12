@@ -122,6 +122,8 @@ export function jarqueBera(n: number, S: number, K: number, ddof = 0) {
  * Relative margin of error
  * The relative margin of error is the percentage of deviation possible (i.e a radius)
  * around the point estimate at a specific confidence interval.
+ * 
+ * Reference: Duran v. U.S. Bank Nat. Ass’n, 325 (Cal. 2014)
  */
 export function rme(interval: [number, number], estimate: number) {
   return (interval[1] - interval[0]) / 2 / estimate;
@@ -145,4 +147,32 @@ export function hedgesG(
   const correction = ((n - 3) / (n - 2.25)) * Math.sqrt((n - 2) / n);
 
   return (Math.abs(mean0 - mean1) / Math.sqrt(sSq)) * correction;
+}
+
+/** Sums the given array of numbers, compensating for numerical errors with Kahan summation */
+export function sum(xs: ArrayView<number>, i = 0, len = xs.length - i) {
+  // Prepare the accumulator.
+  let sum = 0.0
+  // A running compensation for lost low-order bits.
+  let c = 0.0
+  // The array input has elements indexed input[1] to input[input.length].
+
+  for (let k = i + len; i < k; i++) {
+    let y = xs[i] - c;
+    let t = sum + y;
+ 
+    // Algebraically, c is always 0
+    // when t is replaced by its
+    // value from the above expression.
+    // But, when there is a loss,
+    // the higher-order y is cancelled
+    // out by subtracting y from c and
+    // all that remains is the
+    // lower-order error in c
+    c = (t - sum) - y;
+
+    sum = t;
+  }
+
+  return sum
 }
