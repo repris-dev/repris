@@ -133,16 +133,16 @@ export function rme(interval: [number, number], estimate: number) {
 export function hedgesG(
   n0: number,
   mean0: number,
-  sd0: number,
+  std0: number,
   n1: number,
   mean1: number,
-  sd1: number,
+  std1: number,
 ) {
   assert.gt(n0 + n1, 2);
 
   const n = n0 + n1;
   // Pooled and weighted variance
-  const sSq = ((n0 - 1) * sd0 ** 2 + (n1 - 1) * sd1 ** 2) / (n - 2);
+  const sSq = ((n0 - 1) * std0 ** 2 + (n1 - 1) * std1 ** 2) / (n - 2);
   // bias correction (Durlak) - https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/hedgeg.htm
   const correction = ((n - 3) / (n - 2.25)) * Math.sqrt((n - 2) / n);
 
