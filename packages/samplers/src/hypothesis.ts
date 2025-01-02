@@ -41,14 +41,10 @@ export class DefaultHypothesis<T extends Digest<any>> implements PooledHypothesi
 export function compare<C extends Digest<any>>(
   a: C,
   b: C,
-  annotations: Map<typeid, any>,
+  annotationRequest: Map<typeid, any>,
 ): Status<BenchmarkComparison<C>> {
-  if (!a.ready() || !b.ready()) {
-    return Status.err('Digests(s) are not ready for comparison');
-  }
-
   const h = new DefaultHypothesis(a, b);
-  const as = anno.annotate(h, annotations);
+  const as = anno.annotate(h, annotationRequest);
 
   if (Status.isErr(as)) {
     return as;

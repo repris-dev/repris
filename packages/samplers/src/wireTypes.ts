@@ -1,4 +1,4 @@
-import { json, typeid, uuid } from '@repris/base';
+import { json, uuid } from '@repris/base';
 
 export type Parameter = number | string | boolean | { label: string; value: json.Value };
 
@@ -17,16 +17,13 @@ export type BenchmarkDigest = {
   '@uuid': uuid;
 
   /** The samples included in the digest and their classification  */
-  samples: { '@ref': uuid; outlier: boolean }[];
+  samples: { '@ref': uuid; rejected?: boolean }[];
 
   /** The annotated statistic produced by the digest */
   statistic: json.Value;
 
-  /** The digests own measure of confidence in the statistic it generated */
-  mdes: number;
-
   /** */
-  isReady: boolean;
+  normality: number;
 };
 
 export type SamplerInfo = json.Value & {

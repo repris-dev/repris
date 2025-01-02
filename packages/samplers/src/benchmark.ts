@@ -110,8 +110,8 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
     if (this._digest) {
       const index = new Set(iterator.map(this._samples.keys(), s => s[uuid]));
-      for (const { sample, status } of this._digest.stat()) {
-        if (status !== 'rejected' && !index.has(sample[uuid])) {
+      for (const { sample, rejected } of this._digest.stat()) {
+        if (rejected !== true && !index.has(sample[uuid])) {
           throw new Error(
             `Benchmark failed validation. The benchmark doesn't contain\n` +
               `sample ${sample[uuid]} (status: ${status}) which the digest references.`,
@@ -145,8 +145,8 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
 
     // Create a new benchmark, filter rejected samples
     const samples: { sample: duration.Duration; run: number }[] = [];
-    for (const { status, sample } of digest.stat()) {
-      if (status !== 'rejected') {
+    for (const { rejected, sample } of digest.stat()) {
+      if (rejected !== true) {
         // The run this sample appears in
         const run = this._samples.get(sample)?.run ?? nextRun;
         samples.push({ sample, run });
@@ -199,7 +199,7 @@ export class DefaultBenchmark implements AggregatedBenchmark<duration.Duration> 
   }
 }
 
-export const annotations = {
+export const Annotations = {
   /**
    * A summary of the cache status. Legend:
    *
@@ -211,56 +211,66 @@ export const annotations = {
   /** Total number of runs stored by the benchmark */
   runs: 'benchmark:runs' as typeid,
 
-  /** Relative minimum detectable effect-size */
-  mdes: 'benchmark:mdes' as typeid,
-
-  /** Indicates whether the benchmark is ready to be snapshotted/tested */
-  stable: 'benchmark:stable' as typeid,
+  /** Thresholds for a benchmark digest to become snapshottable */
+  snapshottable: {
+    id: 'benchmark:snapshottable' as typeid,
+    opts: {
+      /** Minimum number of samples required for snapshotting */
+      minSize: 3,
+      /**
+       * Threshold p-value of the sampling distribution's likeness to a normal
+       * distribution.
+       */
+      minNormalitySignificance: 0.05
+    },
+  },
 } as const;
 
 ann.register('@benchmark:annotator' as typeid, {
   annotations() {
-    return Object.values(annotations);
+    return Object.values(Annotations).map(x => (typeof x === 'object' ? x.id : x));
   },
 
   annotate(
     fixt: DefaultBenchmark,
-    _request: Map<typeid, {}>,
+    request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
     if (!DefaultBenchmark.is(fixt)) return Status.value(void 0);
 
+    const digest = fixt.digest();
+    const result = new Map<typeid, ann.Annotation>();
+
     let summary: string;
 
-    const digest = fixt.digest();
     if (digest) {
       let totalIndexed = 0;
 
       digest.stat().forEach(x => {
-        switch (x.status) {
-          case 'consistent':
-          case 'outlier':
-            totalIndexed++;
-        }
+        if (x.rejected !== true) totalIndexed++;
       });
 
-      // <uncertainty> (<total stored>/<total runs>)
+      if (request.has(Annotations.snapshottable.id)) {
+        const opts = {
+          ...Annotations.snapshottable.opts,
+          ...request.get(Annotations.snapshottable.id),
+        };
+
+        result.set(
+          Annotations.snapshottable.id,
+          totalIndexed >= opts.minSize && digest.normality() > opts.minNormalitySignificance,
+        );
+      }
+
       summary = `${
-        totalIndexed > 1 ? digest.mdes().toFixed(2) : '-'
+        totalIndexed > 1 ? digest.normality().toFixed(2) : '-'
       } (${totalIndexed}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)
       summary = `- (-/${fixt.totalRuns()})`;
     }
 
-    const result = new Map<typeid, ann.Annotation>([
-      [annotations.runs, fixt.totalRuns()],
-      [annotations.summaryText, summary],
-      [annotations.stable, digest?.ready() ?? false],
-    ]);
-
-    if (digest) {
-      result.set(annotations.mdes, digest.mdes());
-    }
+    result.set(Annotations.runs, fixt.totalRuns());
+    result.set(Annotations.summaryText, summary);
 
     return Status.value(ann.DefaultBag.from(result));
   },

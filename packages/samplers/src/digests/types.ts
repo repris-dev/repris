@@ -3,9 +3,6 @@ import { Sample } from '../samples.js';
 import * as wt from '../wireTypes.js';
 
 export interface DigestOptions {
-  /** Minimum number of samples in a valid digest */
-  minSize: number;
-
   /**
    * The maximum number of samples to be included in the digest. The digest will
    * suggest which samples could be discarded by the benchmark when the trove
@@ -13,36 +10,15 @@ export interface DigestOptions {
    */
   maxSize: number;
 
-  /** The location estimation statistic to create a sampling distribution from */
+  /** 
+   * The location estimation statistic of each sample to create a sampling distribution
+   * from, e.g. median, mean.
+   */
   locationEstimationType: typeid;
 
-  /**
-   * The threshold for a digest to be considered for snapshotting.
-   * The value should be the smallest difference (in proportion to the mean)
-   * that you are interested in.
-   *
-   * A smaller threshold would mean smaller changes could be reliably detected, but
-   * more runs will be needed and even then, some benchmarks might not be sufficiently
-   * reliable to meet the threshold for the maximum sample size (maxSize).
-   */
-  minEffectSize: number;
+  /** Maximum assumed precision of observations in each sample. */
+  maxPrecision: number;
 }
-
-export type DigestedSampleStatus =
-  /**
-   * A sample rejected due to limits on the maximum digest size.
-   */
-  | 'rejected'
-  /**
-   * A sample not included in the digest because it differs significantly
-   * from the rest of the digest
-   */
-  | 'outlier'
-  /**
-   * A sample which is sufficiently similar to be considered to
-   * have been drawn from the same distribution.
-   */
-  | 'consistent';
 
 /** A function to summarize a set of samples */
 export type DigestMethod<T extends Sample<any>> = (
@@ -60,17 +36,15 @@ export interface Digest<T extends Sample<V>, V = any>
   readonly [uuid]: uuid;
 
   /** Samples ordered from 'best' to 'worst' depending on the method used. */
-  stat(): readonly { sample: T; status: DigestedSampleStatus }[];
+  stat(): readonly { sample: T; rejected?: boolean }[];
 
   /**
-   * The minimum detectable effect-size (MDES) of the digest.
-   * A smaller MDES is needed to reliably detect smaller differences
-   * in a difference test.
+   * A measure of the digest's sampling distribution's divergence from a normal distribution.
+   * A value of 1 indicates perfect normality (more exactly, no evidence against the null
+   * hypothesis that the sampling distribution is normal), 0 indicates a non-normal
+   * distribution.
    */
-  mdes(): number;
-
-  /** The digest is sufficiently large and its MDE is sufficiently small */
-  ready(): boolean;
+  normality(): number;
 
   /** Convert a sample value as a quantity */
   asQuantity(value: V): q.Quantity;

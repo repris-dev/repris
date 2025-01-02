@@ -60,6 +60,7 @@ function convertToColumn(
     type: type as typeid,
     ctx,
     displayName: a.displayName ?? type,
+    style: a.style,
     grading: gradings.length > 0 ? gradings : void 0,
   });
 }

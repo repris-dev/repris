@@ -13,7 +13,6 @@ import { annotate } from '../annotators.js';
 import * as duration from '../samples/duration.js';
 import * as defaults from '../defaults.js';
 import { Digest, processSamples, createOutlierSelection } from './samplingDistribution.js';
-import { DigestedSampleStatus } from './types.js';
 
 const gen = random.PRNGi32(52);
 
@@ -30,18 +29,19 @@ function create(mean: number, std: number, size: number) {
 
 function postProcess(mwu: Digest) {
   const order = [] as duration.Duration[];
-  const a: Record<DigestedSampleStatus, duration.Duration[]> = {
-    consistent: [],
-    rejected: [],
-    outlier: [],
-  };
+  const rejected = [] as duration.Duration[]
+  const consistent = [] as duration.Duration[];
 
-  for (let { sample, status } of mwu.stat()) {
+  for (let { sample, rejected: r } of mwu.stat()) {
     order.push(sample);
-    a[status].push(sample);
+    if (r) {
+      rejected.push(sample);
+    } else {
+      consistent.push(sample)
+    }
   }
 
-  return { order, ...a };
+  return { order, rejected, consistent };
 }
 
 describe('processSamples()', () => {
@@ -71,10 +71,7 @@ describe('processSamples()', () => {
 
     const digest = processSamples(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
-      minEffectSize: 0.1,
-      powerLevel: 0.9,
-      sensitivity: 0.99,
-      minSize: 2,
+      maxPrecision: 0.1,
       maxSize: 8,
     });
 
@@ -83,54 +80,7 @@ describe('processSamples()', () => {
     // samples a, b, c
     expect(result.consistent.length).toBe(8);
     expect(result.consistent.includes(sD)).toBeFalsy();
-
-    // The outlier is also the slowest
-    expect(result.order.length).toEqual(9);
-    expect(result.order[result.order.length - 1]).toBe(sD);
-  });
-
-  test('minEffect', () => {
-    const samples = [sA, sF];
-    const annotated = samples.map(s => asTuple([s, Status.get(annotate(s, annotation)).toJson()]));
-
-    {
-      // High threshold of uncertainty
-      const a = postProcess(
-        Status.get(
-          processSamples(annotated, {
-            locationEstimationType: 'duration:mean' as typeid,
-            minEffectSize: Infinity,
-            powerLevel: 0.9,
-            sensitivity: 0.99,
-            minSize: 2,
-            maxSize: 10,
-          }),
-        ),
-      );
-
-      expect(a.consistent).toHaveValues([sA, sF]);
-      expect(a.outlier.length).toBe(0);
-      expect(a.rejected.length).toBe(0);
-    }
-    {
-      // Low threshold of uncertainty
-      const a = postProcess(
-        Status.get(
-          processSamples(annotated, {
-            locationEstimationType: 'duration:mean' as typeid,
-            minEffectSize: 0.01,
-            powerLevel: 0.9,
-            sensitivity: 0.99,
-            minSize: 2,
-            maxSize: 10,
-          }),
-        ),
-      );
-
-      expect(a.consistent).toEqual([]);
-      expect(a.outlier.length).toBe(2);
-      expect(a.rejected.length).toBe(0);
-    }
+    expect(result.rejected).toHaveValues([sD]);
   });
 
   test('maxSize', () => {
@@ -145,10 +95,7 @@ describe('processSamples()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            minEffectSize: 10,
-            powerLevel: 0.9,
-            sensitivity: 0.99,
-            minSize: 2,
+            maxPrecision: 0.1,
             maxSize: 3,
           },
           entropy,
@@ -156,11 +103,9 @@ describe('processSamples()', () => {
       ),
     );
 
-    expect(a.order).toHaveValues([sA, sB, sC, sE, sF]);
-
-    expect(a.rejected).toHaveValues([sE, sF]);
-    expect(a.consistent).toHaveValues([sA, sB, sC]);
-    expect(a.outlier).toEqual([]);
+    expect(a.order).toHaveValues(samples);
+    expect(a.rejected).toHaveValues([sF, sE]);
+    expect(a.consistent).toHaveValues([sB, sC, sA]);
   });
 
   test('maxSize, outliers', () => {
@@ -175,10 +120,7 @@ describe('processSamples()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            minEffectSize: 0.002,
-            powerLevel: 0.9,
-            sensitivity: 0.99,
-            minSize: 2,
+            maxPrecision: 0.1,
             maxSize: 3,
           },
           entropy,
@@ -186,10 +128,9 @@ describe('processSamples()', () => {
       ),
     );
 
-    expect(a.order).toHaveValues([sA, sB, sC, sE, sD]);
+    expect(a.order).toHaveValues(samples);
     expect(a.rejected).toHaveValues([sD, sE]);
-    expect(a.consistent).toEqual([]);
-    expect(a.outlier).toHaveValues([sA, sB, sC]);
+    expect(a.consistent).toEqual([sB, sC, sA]);
   });
 });
 

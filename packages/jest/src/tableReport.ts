@@ -17,6 +17,8 @@ export interface Column {
   ctx?: config.Ctx[];
   /** Column header */
   displayName?: string;
+  /** Style to apply */
+  style?: (str: string) => string;
   /** The units of the annotation */
   units?: string;
   /** Style config for individual cells */
@@ -85,6 +87,11 @@ export class TerminalReport<Id> {
 
       if (ann !== undefined) {
         let cell = this.fmt.format(ann);
+
+        if (c.style) {
+          cell = [c.style(Cell.text(cell)), Cell.length(cell)];
+        }
+
         if (c.grading !== void 0) {
           for (const g of c.grading) cell = this._colorizeByQuality(cell, g, bag);
         }

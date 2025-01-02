@@ -5,11 +5,8 @@ export * as duration from './digests/samplingDistribution.js';
 
 export const defaults = {
   duration: {
-    minSize: 20,
     maxSize: 30,
-    minEffectSize: 0.05,
-    powerLevel: 0.9,
-    sensitivity: 0.99,
+    maxPrecision: 0.1, /** microseconds */
     locationEstimationType: 'sample:hsm' as typeid,
   } as const satisfies import('./digests/samplingDistribution.js').Options,
 };

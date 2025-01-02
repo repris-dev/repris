@@ -12,13 +12,10 @@ import {
 
 import { duration } from '../samples.js';
 import * as wt from '../wireTypes.js';
-import * as annotators from '../annotators.js';
+import * as ann from '../annotators.js';
 import * as types from './types.js';
 
-export type Options = types.DigestOptions & {
-  powerLevel: number;
-  sensitivity: number;
-};
+export type Options = types.DigestOptions;
 
 type DistributionDigestWT = wt.BenchmarkDigest & {
   statistic: number[];
@@ -26,16 +23,13 @@ type DistributionDigestWT = wt.BenchmarkDigest & {
 
 export type SamplingAggregation<T> = {
   /** Status/classification of each sample */
-  stat: { sample: T; status: types.DigestedSampleStatus }[];
+  stat: { sample: T; rejected?: boolean }[];
 
   /** Sampling distribution of the consistent subset, if any */
   samplingDistribution: number[];
 
-  /**
-   * The minimum detectable effect-size of the consistent subset at the
-   * configured power level.
-   */
-  mdes: number;
+  /** normality significance level of the consistent subset */
+  normality: number;
 };
 
 export const NoisySample = 'sample:noisy' as typeid;
@@ -55,7 +49,7 @@ export function processSamples(
       noisySamples.push(sample);
     } else if (bag !== void 0 && bag[opts.locationEstimationType]) {
       // get the location estimate to analyze
-      const locationStat = annotators.fromJson(bag[opts.locationEstimationType]);
+      const locationStat = ann.fromJson(bag[opts.locationEstimationType]);
       const val = quantity.isQuantity(locationStat) ? locationStat.scalar : Number(locationStat);
       points.push([Number(val), sample]);
     } else {
@@ -67,12 +61,9 @@ export function processSamples(
   }
 
   const aggregation = aggregateAndFilter(points, opts, entropy);
-  noisySamples.forEach(sample => aggregation.stat.push({ sample, status: 'rejected' }));
+  noisySamples.forEach(sample => aggregation.stat.push({ sample, rejected: true }));
 
-  const summary = summarize(aggregation.stat);
-  const isReady = summary.consistent >= opts.minSize;
-
-  return Status.value(new Digest(isReady, aggregation));
+  return Status.value(new Digest(aggregation));
 }
 
 export class Digest implements types.Digest<duration.Duration> {
@@ -99,13 +90,13 @@ export class Digest implements types.Digest<duration.Duration> {
 
       stat.push({
         sample: refs.get(ref)!,
-        status: (s.outlier ? 'outlier' : 'consistent') as types.DigestedSampleStatus,
+        rejected: s.rejected
       });
     }
 
-    const result = new Digest(wt.isReady, {
-      mdes: wt.mdes,
+    const result = new Digest({
       samplingDistribution: wt.statistic,
+      normality: wt.normality,
       stat,
     });
 
@@ -125,7 +116,6 @@ export class Digest implements types.Digest<duration.Duration> {
   }
 
   constructor(
-    private _isReady: boolean,
     private _aggregation: SamplingAggregation<duration.Duration>,
   ) {}
 
@@ -137,12 +127,8 @@ export class Digest implements types.Digest<duration.Duration> {
     return this._aggregation.stat;
   }
 
-  mdes(): number {
-    return this._aggregation.mdes;
-  }
-
-  ready(): boolean {
-    return this._isReady;
+  normality(): number {
+    return this._aggregation.normality;
   }
 
   /** Convert a sample value as a quantity */
@@ -159,32 +145,19 @@ export class Digest implements types.Digest<duration.Duration> {
   toJson(): DistributionDigestWT {
     const samples = this._aggregation.stat
       // filter samples which were excluded from the analysis
-      .filter(s => s.status !== 'rejected')
+      .filter(s => s.rejected !== true)
       .map(s => ({
         '@ref': s.sample[uuid],
-        outlier: s.status !== 'consistent',
       }));
 
     return {
       '@type': this[typeid],
       '@uuid': this[uuid],
       samples,
-      mdes: this._aggregation.mdes,
       statistic: this._aggregation.samplingDistribution,
-      isReady: this._isReady,
+      normality: this._aggregation.normality,
     };
   }
-}
-
-function summarize(stat: { status: types.DigestedSampleStatus }[]) {
-  const result: Record<types.DigestedSampleStatus, number> = {
-    consistent: 0,
-    outlier: 0,
-    rejected: 0,
-  };
-
-  for (const s of stat) result[s.status]++;
-  return result;
 }
 
 /**
@@ -201,7 +174,7 @@ function aggregateAndFilter<T>(
   if (N < 2) {
     // prettier-ignore
     const stat = N === 1
-      ? [{ sample: taggedPointEstimates[0][1], status: 'consistent' as types.DigestedSampleStatus }]
+      ? [{ sample: taggedPointEstimates[0][1] }]
       : [];
 
     // single sample summary statistic
@@ -211,7 +184,7 @@ function aggregateAndFilter<T>(
 
     return {
       stat,
-      mdes: 0,
+      normality: 0,
       samplingDistribution
     };
   }
@@ -219,8 +192,8 @@ function aggregateAndFilter<T>(
   // Sampling distribution, sorted by hsm;
   let stat = taggedPointEstimates.map(([pointEst, tag]) => ({
     sample: tag,
+    rejected: false,
     statistic: pointEst,
-    status: 'outlier' as types.DigestedSampleStatus,
   }));
 
   // Sorting of the sampling distribution, distance from mean (desc)
@@ -233,58 +206,45 @@ function aggregateAndFilter<T>(
     for (let n = N; n > opts.maxSize; n--) {
       const s = rejector();
       assert.isDefined(s);
-      s.status = 'rejected';
+      s.rejected = true;
     }
 
     // remove the rejected samples
-    subset = subset.filter(s => s.status !== 'rejected');
+    subset = subset.filter(s => s.rejected !== true);
     assert.eq(subset.length, opts.maxSize);
   }
 
   const samplingDistribution = subset.map(x => x.statistic);
 
-  // (relative) Minimum Detectable Effect (MDE) given the configured power level
-  // and significance as a proportion of the median
-  let mdes = 0;
+  // normality significance
+  let normalitySignificance = 0;
 
   {
-    const xsTmp = array.sort(subset.map(w => w.statistic));
-    const m = stats.median(xsTmp, true);
+    // pre-sort the sample to speed up the (median) bootstrap
+    const xsTmp = array.sort(samplingDistribution.slice());
 
-    // Estimate the std-err of the median
-    const stdErr = stats.bootstrap.bootStat(xsTmp, xs => stats.median(xs, true), 1500).std();
-
-    // convert std-err of the median to standard deviation.
-    // SE(median) is ~1.25x SE(mean)
-    const std = (Math.sqrt(N) * stdErr) / Math.sqrt(Math.PI / 2);
-
-    mdes = stats.normal.mde(opts.sensitivity, opts.powerLevel, N, std) / m;
-
-    // Sort by distance from the median as the measure of centrality
-    stat = stat.sort((a, b) => Math.abs(a.statistic - m) - Math.abs(b.statistic - m));
-  }
-
-  // mark consistent samples
-  if (subset.length >= opts.minSize && mdes <= opts.minEffectSize) {
-    subset.forEach(x => (x.status = 'consistent'));
+    if (xsTmp.length >= 3) {
+      normalitySignificance = xsTmp[xsTmp.length - 1] - xsTmp[0] > opts.maxPrecision 
+        ? stats.shapiro.shapiroWilk(xsTmp).pValue
+        : 1;
+    }
   }
 
   return {
     stat,
-    mdes,
+    normality: normalitySignificance,
     samplingDistribution,
   };
 }
 
 export function createOutlierSelection<T>(
   keys: array.ArrayView<T>,
-  toScalar: (k: T) => number,
+  toStatistic: (k: T) => number,
   entropy = random.PRNGi32(),
 ): () => T | undefined {
-  const N = keys.length,
-    xs = new Float64Array(N);
+  const N = keys.length, xs = new Float64Array(N);
 
-  for (let i = 0; i < N; i++) xs[i] = toScalar(keys[i]);
+  for (let i = 0; i < N; i++) xs[i] = toStatistic(keys[i]);
 
   // std. Devs from the median for each sample
   const weights = new Float64Array(N);
@@ -313,18 +273,46 @@ export function createOutlierSelection<T>(
   }
 
   const dist = random.discreteDistribution(weights, entropy);
-
   let totSeen = 0;
 
   return () => {
     // filtered everything?
     if (totSeen >= N) return void 0;
-
-    let idx = dist();
-
     totSeen++;
+
+    const idx = dist();
     dist.reweight(idx, 0);
 
     return keys[idx];
   };
 }
+
+const Annotations = {
+  /** P-value of the distribution. */
+  normality: 'digest:normality:p' as typeid,
+
+  /** size of the sampling distribution */
+  size: 'digest:n' as typeid,
+};
+
+ann.register('@digests:sampling-distribution-annotator' as typeid, {
+  annotations() {
+    return Object.values(Annotations);
+  },
+
+  annotate(
+    digest: types.Digest<any>,
+    _request: Map<typeid, {}>,
+  ): Status<ann.AnnotationBag | undefined> {
+    if (!Digest.is(digest)) {
+      return Status.value(void 0);
+    }
+
+    const bag = ann.DefaultBag.from([
+      [Annotations.normality, digest.normality()],
+      [Annotations.size, digest.N()],
+    ]);
+
+    return Status.value(bag);
+  },
+});

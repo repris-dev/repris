@@ -59,7 +59,7 @@ export interface GradingConfig {
 
   /**
    * For annotations, the thresholds field is used to convert the
-   * value in to a three-level grading.
+   * value in to a grading.
    */
   rules?: GradingThreshold[];
 }
@@ -76,12 +76,15 @@ export interface AnnotationConfig {
   /** The title to display in reports */
   displayName?: string;
 
+  /** default ANSI styling to apply */
+  style?: (str: string) => string;
+
   /** Configuration of the annotation */
   options?: Record<string, any>;
 
   /**
    * A grading can be configured to annotate the 'quality' of an annotation.
-   * The grading is used by reporters to color the statistic.
+   * The grading is used by reporters to style the statistic.
    *
    * For example, the mean value of a sample could be graded using
    * the coefficient of variance as a proxy for the 'noisiness' of the sample.
@@ -110,7 +113,7 @@ export const normalize = {
 
 const loadEsm = async (filepath: string) => {
   try {
-    dbg(`Loading (${filepath})`);
+    dbg('Loading (%s)', filepath);
     const exports = await import(filepath);
 
     if (typeof exports.default === 'object') {
@@ -164,7 +167,7 @@ export async function load(rootDir: string): Promise<ReprisConfig> {
 
 /**
  * @returns an iterator of all annotations which appear in the given
- * tree of annotations
+ * annotation request tree
  */
 export function* iterateAnnotationTree(
   tree: AnnotationRequestTree,
@@ -222,9 +225,9 @@ export function* iterateAnnotationTree(
  * the given configuration.
  */
 export function parseAnnotations(
-  annotations: AnnotationRequestTree = [],
+  annotationRequests: AnnotationRequestTree = [],
 ): (context?: Ctx) => Map<typeid, any> {
-  const requests = iterator.collect(iterateAnnotationTree(annotations));
+  const requests = iterator.collect(iterateAnnotationTree(annotationRequests));
 
   return (context?: Ctx) => {
     assert.eq(Array.isArray(context), false, 'Nested Contexts not supported');
@@ -232,11 +235,21 @@ export function parseAnnotations(
 
     requests.forEach(r => {
       if ((r.ctx === void 0 && context === void 0) || context === r.ctx?.[0]) {
-        if (result.has(r.type) && result.get(r.type) !== r.options) {
-          assert.is(false, 'Different configurations for the same annotation are not supported');
+        const newOpts = r.options;
+
+        if (result.has(r.type)) {
+          const oldOpts = result.get(r.type);
+
+          if (newOpts !== oldOpts) {
+            dbg(`(Warning) Annotation (${ r.type }) is defined multiple times with different configurations.\n`);
+            if (newOpts === void 0) {
+              // explicit options take precedence
+              return; 
+            }
+          }
         }
 
-        result.set(r.type, r.options);
+        result.set(r.type, newOpts);
       }
     });
 

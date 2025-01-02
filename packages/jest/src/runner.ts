@@ -13,7 +13,7 @@ import {
   wiretypes as wt,
   snapshots,
   snapshotManager,
-  benchmark as f,
+  benchmark as benchmk,
 } from '@repris/samplers';
 import { typeid, assert, iterator as iter, Status, uuid, asTuple } from '@repris/base';
 
@@ -222,7 +222,7 @@ export default async function testRunner(
           if (indexedSnapshot) {
             // load the previous samples of this benchmark from the cache, or create a new one
             const indexedBenchmark =
-              indexedSnapshot.getBenchmark(title, nth) ?? f.DefaultBenchmark.empty({ title, nth });
+              indexedSnapshot.getBenchmark(title, nth) ?? benchmk.DefaultBenchmark.empty({ title, nth });
 
             const newBenchmark = redigestBenchmark(
               indexedBenchmark,
@@ -289,7 +289,7 @@ export default async function testRunner(
     // update pending/pendingReady
     for (const fixt of indexedSnapshot.allBenchmarks()) {
       stat.cacheStat.totalBenchmarks++;
-      if (fixt.annotations().get(fixt[uuid])?.[f.annotations.stable]) {
+      if (fixt.annotations().get(fixt[uuid])?.[benchmk.Annotations.snapshottable.id]) {
         stat.cacheStat.stagedBenchmarks++;
       }
     }
@@ -332,7 +332,7 @@ async function tryCommitToBaseline(
     const { title, nth } = bench.name;
     const state = snapshot.benchmarkState(title, nth);
 
-    if (bag[f.annotations.stable]) {
+    if (bag[benchmk.Annotations.snapshottable.id]) {
       if (state === snapshots.BenchmarkState.Stored) {
         stat.updated++;
       } else {
@@ -369,11 +369,11 @@ function annotate(
 }
 
 function redigestBenchmark(
-  bench: f.AggregatedBenchmark<samples.duration.Duration>,
+  bench: benchmk.AggregatedBenchmark<samples.duration.Duration>,
   newEntry: { sample: samples.duration.Duration; annotations: wt.AnnotationBag },
   opts: digests.duration.Options,
   annotationRequest: Map<typeid, any>,
-): f.AggregatedBenchmark<samples.duration.Duration> {
+): benchmk.AggregatedBenchmark<samples.duration.Duration> {
   const allSamples = iter
     .collect(bench.samples())
     .map(s => asTuple([s.sample, bench.annotations().get(s.sample[uuid])]));
