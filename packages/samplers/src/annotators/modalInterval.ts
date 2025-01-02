@@ -33,16 +33,19 @@ const SampleAnnotations = Object.freeze({
    * The RME is the half-width of the confidence interval divided by the
    * estimated HSM.
    */
-  hsmCIRel: {
+  hsmCIRme: {
     id: 'sample:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
+
+  /** Bias corrected Half-sample mode. Requires sample:hsm:ci-rme */
+  hsmBC: 'sample:hsm:bias-corrected' as typeid,
 });
 
 const DigestAnnotations = Object.freeze({
   hsmMode: 'digest:hsm' as typeid,
 
-  hsmCIRel: {
+  hsmCIRme: {
     id: 'digest:hsm:ci-rme' as typeid,
     opts: { level: 0.95, resamples: 500, smoothing: 0 },
   },
@@ -92,16 +95,16 @@ const sampleAnnotator: ann.Annotator = {
       result.set(SampleAnnotations.hsm, sample.asQuantity(hsm.mode));
       result.set(SampleAnnotations.hsmDispersion, hsm.variation);
 
-      if (request.has(SampleAnnotations.hsmCIRel.id)) {
+      if (request.has(SampleAnnotations.hsmCIRme.id)) {
         const opts = {
-          ...SampleAnnotations.hsmCIRel.opts,
-          ...request.get(SampleAnnotations.hsmCIRel.id),
+          ...SampleAnnotations.hsmCIRme.opts,
+          ...request.get(SampleAnnotations.hsmCIRme.id),
         };
 
         array.sort(xs);
 
         const smoothing = hsmBootstrapSmoothing(xs, opts.smoothing);
-        const hsmCI = stats.bootstrap.confidenceInterval(
+        const [lo, hi, bias] = stats.bootstrap.confidenceInterval(
           xs,
           xs => stats.mode.hsm(xs).mode,
           opts.level,
@@ -110,8 +113,13 @@ const sampleAnnotator: ann.Annotator = {
         );
 
         result.set(
-          SampleAnnotations.hsmCIRel.id,
-          quantity.create('percent', stats.rme(hsmCI, hsm.mode)),
+          SampleAnnotations.hsmCIRme.id,
+          quantity.create('percent', stats.rme([lo, hi], hsm.mode)),
+        );
+
+        result.set(
+          SampleAnnotations.hsmBC,
+          sample.asQuantity(hsm.mode - bias)
         );
       }
     }
@@ -129,21 +137,19 @@ const digestAnnotator: ann.Annotator = {
     digest: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
-    if (!digest.ready()) {
-      return Status.value(void 0);
-    }
+    if (digest.normality() <= 0) return Status.value(void 0);
 
     // run pooled analysis only on the best samples
     const samplingDist = digest.samplingDistribution?.();
 
-    if (samplingDist && samplingDist?.length > 0) {
+    if (samplingDist && samplingDist.length >= 3) {
       const result = new Map<typeid, ann.Annotation>();
 
       // HSM statistics on the sampling distribution
-      if (request.has(DigestAnnotations.hsmMode) || request.has(DigestAnnotations.hsmCIRel.id)) {
+      if (request.has(DigestAnnotations.hsmMode) || request.has(DigestAnnotations.hsmCIRme.id)) {
         const opts = {
-          ...DigestAnnotations.hsmCIRel.opts,
-          ...request.get(DigestAnnotations.hsmCIRel.id),
+          ...DigestAnnotations.hsmCIRme.opts,
+          ...request.get(DigestAnnotations.hsmCIRme.id),
         };
 
         array.sort(samplingDist);
@@ -151,9 +157,9 @@ const digestAnnotator: ann.Annotator = {
         const hsm = stats.mode.hsm(samplingDist);
         result.set(DigestAnnotations.hsmMode, digest.asQuantity(hsm.mode));
 
-        if (request.has(DigestAnnotations.hsmCIRel.id)) {
+        if (request.has(DigestAnnotations.hsmCIRme.id)) {
           const smoothing = hsmBootstrapSmoothing(samplingDist, opts.smoothing);
-          const hsmCI = stats.bootstrap.confidenceInterval(
+          const [lo, hi] = stats.bootstrap.confidenceInterval(
             samplingDist,
             xs => stats.mode.hsm(xs).mode,
             opts.level,
@@ -161,7 +167,10 @@ const digestAnnotator: ann.Annotator = {
             smoothing,
           );
 
-          result.set(DigestAnnotations.hsmCIRel.id, stats.rme(hsmCI, hsm.mode));
+          result.set(
+            DigestAnnotations.hsmCIRme.id,
+            stats.rme([lo, hi], hsm.mode)
+          );
         }
       }
 
