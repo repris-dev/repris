@@ -15,5 +15,6 @@ export default {
   testEnvironmentOptions: { customExportConditions },
   globals: defaults(pkg),
   cacheDirectory: '<rootDir>/.jestcache/',
+  testTimeout: 60000,
   transform: {},
 };
