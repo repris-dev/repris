@@ -59,3 +59,22 @@ export function mde(a: number, b: number, n: number, std: number, p = 0.5) {
 
   return Math.abs(Za + Zb) * Math.sqrt((std * std) / n) * Math.sqrt(1 / (p * (1 - p)));
 }
+
+/**
+ * Returns the power for Comparing the Means of Two Normally Distributed samples Using a
+ * Significance	Level	α
+ * 
+ * @reference fundamentals of Biostatistics, Bernard Rosner - Equation 8.26
+ *
+ * @param a - desired significance level in a two-tailed test (e.g., for α = 0.05, Z1−α2≈1.96)
+ * @param n0 - sample size
+ * @param n1 - sample size
+ * @param std - sample standard deviation
+ * @param p - Proportion of the sample in the treatment group
+ */
+export function power(a: number, mean0: number, mean1: number, n0: number, n1: number, std0: number, std1: number) {
+  const Za = -ppf(1 - a / 2);
+  const se = Math.sqrt(((std0 * std0) / n0) + ((std1 * std1) / n1));
+
+  return cdf(Za + (Math.abs(mean0 - mean1) / se));
+}

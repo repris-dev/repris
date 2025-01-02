@@ -1,7 +1,6 @@
 import * as random from '../random.js';
 import * as modes from './mode.js';
 import * as bootstrap from './bootstrap.js';
-import { allPairs, mad, median, online } from '../stats.js';
 
 describe('modalSearch', () => {
   test('creates a correctly sized window (2)', () => {
@@ -88,6 +87,13 @@ describe('hsm', () => {
     const r = modes.hsm(sample);
 
     expect(r.mode).toBeCloseTo(5.5, 10);
+  });
+
+  test('no peak', () => {
+    const sample = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const r = modes.hsm(sample);
+
+    expect(r.mode).toBeCloseTo(4.5, 10);
   });
 
   describe('larger bounds', () => {

@@ -26,42 +26,49 @@ export type REM = {
 /**
  * Find the shortest interval in the given sample containing the
  * specified number of observations (k)
+ * 
+ * @param eps - tie threshold
  */
-export function modalSearch(sample: ArrayView<number>, k: number, i = 0, len = sample.length) {
+export function modalSearch(
+  sample: ArrayView<number>,
+  k: number,
+  i = 0,
+  len = sample.length,
+  eps = 1e-8,
+) {
   assert.le(k, len);
   assert.gte(len, 2);
   assert.bounds(sample, i);
   assert.bounds(sample, i + len - 1);
 
-  const EPS = 1e-8,
-    end = i + len;
+  const end = i + len;
 
-  let minRange = Infinity,
-    lo = i,
-    hi = end,
+  let lo = i,
+    minRange = sample[lo + k - 1] - sample[lo],
     ties = 0;
 
-  for (; i + k <= end; i++) {
+  for (i++; i + k <= end; i++) {
     const j = i + k - 1;
     const range = sample[j] - sample[i];
 
     if (range < minRange) {
       minRange = range;
       lo = i;
-      hi = j;
-      ties = 0;
-    } else if (range - minRange < EPS) {
-      if (j === hi + 1) hi++;
-      ties++;
-    }
+      ties = 0; // reset ties
+    } else if (range - minRange < eps && k + ties === j - lo)
+      ties++; // consecutive tie
   }
 
   if (ties > 0) {
     // When the final range is larger than k, pick the middle k
     // values of the range
     lo = lo + Math.floor(ties / 2);
-    hi = lo + k - 1;
   }
+  
+  const hi = lo + k - 1;
+
+  assert.bounds(sample, hi);
+  assert.bounds(sample, lo);
 
   return {
     range: [lo, hi] as [number, number],
@@ -123,9 +130,9 @@ export function estimateStdDev(xs: ArrayView<number>, std = 1) {
 function hsmImpl(sample: ArrayView<number>, minInterval = 2): REM {
   assert.gte(minInterval, 2);
 
-  let lo = 0,
-    hi = sample.length - 1;
-  let variation1 = 0;
+  let lo = 0;
+  let hi = sample.length - 1;
+  let variation = 0;
 
   while (hi - lo + 1 > minInterval) {
     // Recursively find the shortest interval that contains n samples
@@ -135,8 +142,8 @@ function hsmImpl(sample: ArrayView<number>, minInterval = 2): REM {
 
     [lo, hi] = modalSearch(sample, n, lo, space).range;
 
-    if (variation1 <= 0) {
-      variation1 = qcd([sample[lo], sample[hi]]);
+    if (variation <= 0) {
+      variation = qcd([sample[lo], sample[hi]]);
     }
   }
 
@@ -150,7 +157,7 @@ function hsmImpl(sample: ArrayView<number>, minInterval = 2): REM {
   return {
     bound: [lo, hi],
     ties: 0,
-    variation: variation1,
+    variation,
     mode,
   };
 }
