@@ -15,7 +15,7 @@ export const defaults = {
 
     duration: {
       min: 1_000,
-      max: 10_000,
+      max: 20_000,
     },
 
     sampleSize: {
