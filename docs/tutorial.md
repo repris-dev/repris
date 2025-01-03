@@ -107,17 +107,17 @@ The test and benchmark ran. The report contains a summary of each sample that wa
 
 ## Create a baseline
 
-To increase accuracy, multiple samples should be collected. (See [The Statistics of Repris](./statistics-of-repris.md) for an explanation.) Running the tests again produces a new sample:
+To increase accuracy, multiple samples should be collected from each benchmark. (See [The Statistics of Repris](./statistics-of-repris.md) for an explanation.) Running the tests 4 more times produces 4 new samples:
 
 <!--
-<DIV STYLE="display:inline-block;white-space:pre;background-color:#222;font-family:Cascadia Code;Consolas;monospace;padding:8px;border:1px solid;"><SPAN STYLE="color:#222;background-color:#98C379;"> PASS </SPAN><SPAN STYLE="color:#DCDFE4;"> </SPAN><SPAN STYLE="color:#6E6F72;"></SPAN><SPAN STYLE="color:#DCDFE4;">index.test.js<BR>                                       Iter.    Mode  95% CI       Index<BR>  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(n)<BR></SPAN><SPAN STYLE="color:#DCDFE4;">  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(500)</SPAN><SPAN STYLE="color:#DCDFE4;">                          10,000  4.56µs   </SPAN><SPAN STYLE="color:#E5C07B;">6.15%  </SPAN><SPAN STYLE="color:#6E6F72;">0.19 (2/2)</SPAN></DIV>
+<DIV STYLE="display:inline-block;white-space:pre;background-color:#222;font-family:Cascadia Code;Consolas;monospace;padding:8px;border:1px solid;"><SPAN STYLE="color:#222;background-color:#98C379;"> PASS </SPAN><SPAN STYLE="color:#DCDFE4;"> </SPAN><SPAN STYLE="color:#6E6F72;"></SPAN><SPAN STYLE="color:#DCDFE4;">index.test.js<BR>                                       Iter.    Mode  95% CI       Index<BR>  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(n)<BR></SPAN><SPAN STYLE="color:#DCDFE4;">  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(500)</SPAN><SPAN STYLE="color:#DCDFE4;">                          10,000  4.56µs   </SPAN><SPAN STYLE="color:#E5C07B;">6.15%  </SPAN><SPAN STYLE="color:#6E6F72;">0 (5/5)</SPAN></DIV>
 -->
 
 ```
  PASS  index.test.js
-                                       Iter.    Mode  95% CI       Index
+                                       Iter.    Mode  95% CI        Index
   ✓ fib(n)
-  ✓ fib(500)                          10,000  4.56µs   6.15%  0.19 (2/2)
+  ✓ fib(500)                          10,000  4.56µs   6.15%   0.03 (5/5)
 ```
 
 <BR>
@@ -125,13 +125,13 @@ To increase accuracy, multiple samples should be collected. (See [The Statistics
 The statistics are reported in the same way. You can also see the index summary has updated and shows:
 
 ```
-0.19 (2/2)
+0.03 (5/5)
 ```
 
 This summary has two parts:
 
-- `0.19` - A measure of the uncertainty of the trove collected so far. Ideally, we want this number to be as low as possible. As more samples are collected we should expect uncertainty to decrease.
-- `(2/2)` - (The number of samples in the trove/Total number of runs of this benchmark). Eventually the worst samples get rejected once the trove is full.
+- `0.03` - A measure of the quality of the trove collected so far. Ideally, we want this number to be as high as possible. As more samples are collected we should expect it to increase.
+- `(5/5)` - (The number of samples in the trove/Total number of runs of this benchmark). Eventually any extreme outlier samples (if there are any) get rejected once the trove is full.
 
 Now lets run the benchmark another 20 times. Having to do this manually is a chore so we can use a bash command to help:
 
@@ -142,19 +142,19 @@ for i in {1..20}; do echo "# RUN $i"; npm test || break; done
 The last run might look like this:
 
 <!--
-<DIV STYLE="display:inline-block;white-space:pre;background-color:#222;font-family:Cascadia Code;Consolas;monospace;padding:8px;border:1px solid;"><SPAN STYLE="color:#222;background-color:#98C379;"> PASS </SPAN><SPAN STYLE="color:#DCDFE4;"> </SPAN><SPAN STYLE="color:#6E6F72;"></SPAN><SPAN STYLE="color:#DCDFE4;">index.test.js<BR>                                     Iter.    Mode  95% CI         Index<BR>  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(n)<BR></SPAN><SPAN STYLE="color:#DCDFE4;">  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(500)</SPAN><SPAN STYLE="color:#DCDFE4;">                        10,000  4.48µs   </SPAN><SPAN STYLE="color:#98C379;">0.22%  </SPAN><SPAN STYLE="color:#DCDFE4;">0.00 (22/22)</SPAN></DIV>
+<DIV STYLE="display:inline-block;white-space:pre;background-color:#222;font-family:Cascadia Code;Consolas;monospace;padding:8px;border:1px solid;"><SPAN STYLE="color:#222;background-color:#98C379;"> PASS </SPAN><SPAN STYLE="color:#DCDFE4;"> </SPAN><SPAN STYLE="color:#6E6F72;"></SPAN><SPAN STYLE="color:#DCDFE4;">index.test.js<BR>                                     Iter.    Mode  95% CI         Index<BR>  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(n)<BR></SPAN><SPAN STYLE="color:#DCDFE4;">  </SPAN><SPAN STYLE="color:#98C379;">✓ </SPAN><SPAN STYLE="color:#6E6F72;">fib(500)</SPAN><SPAN STYLE="color:#DCDFE4;">                        10,000  4.48µs   </SPAN><SPAN STYLE="color:#98C379;">0.22%  </SPAN><SPAN STYLE="color:#DCDFE4;">0.11 (25/25)</SPAN></DIV>
 -->
 
 ```
  PASS  index.test.js
                                      Iter.    Mode  95% CI         Index
   ✓ fib(n)
-  ✓ fib(500)                        10,000  4.48µs   0.22%  0.00 (22/22)
+  ✓ fib(500)                        10,000  4.48µs   0.22%  0.11 (25/25)
 ```
 
 <BR>
 
-Notice that the trove uncertainty has dropped to 0 and become highlighted. This means this benchmark can now be snapshotted to be used as a baseline to compare against later.
+Notice that the trove quality has increased to 0.11 and is highlighted. This means this benchmark can now be snapshotted to be used as a baseline to compare against later.
 
 The process of updating snapshots is the same as in Jest:
 
@@ -180,8 +180,8 @@ The `npx repris show` command shows the current state of the project which now c
 
 ```
 src/index.test.js
-                                       mode  Index    mode      Baseline
-  fib(500)                                ?      ?  4.51µs  0.00 (22/22)
+                                       avg.  Index    avg.      Baseline
+  fib(500)                                ?      ?  4.51µs  0.11 (25/25)
 ```
 
 <BR>
@@ -214,7 +214,7 @@ We want to know how the new implementation compares to the old one. We might exp
  PASS  index.test.js
                                     Iter.    Mode  95% CI         Index
   ✓ fib(n)
-  ✓ fib(500)                       10,000  2.71µs   4.81%  0.02 (30/50)
+  ✓ fib(500)                       10,000  2.71µs   4.81%  0.06 (30/50)
 ```
 
 <BR>
@@ -231,13 +231,13 @@ We now have the baseline we collected earlier and the new pending snapshot in th
 
 ```
 index.test.js
-                                  Index        Change (99% CI)  Baseline
-  fib(500)                       2.71µs  -39.9% (-40.5, -39.1)    4.51µs
+                                  Index        Change (99% CI)  Effect  Baseline
+  fib(500)                       2.71µs  -39.9% (-40.5, -39.1)    1.21    4.51µs
 ```
 
 <BR>
 
-Repris reports that the iterative algorithm is 39.1% to 40.5% faster than the tail-recursive one!
+Repris reports that the iterative algorithm is 39.1% to 40.5% faster than the tail-recursive one! Also, the [effect size](https://en.wikipedia.org/wiki/Effect_size) (the relative statistical strength of the difference) is reported.
 
 ## (Optional) Reset the index
 
@@ -271,9 +271,9 @@ From this parameterized benchmark of `fib(n)` we create 3 benchmarks with differ
  PASS  src/index.test.js
                                       Iter.     Mode  95% CI       Index
   ✓ fib(n)
-  ✓ fib(500)                         10,000   4.66µs   3.22%  0.02 (3/3)
+  ✓ fib(500)                         10,000   4.66µs   3.22%  0.01 (3/3)
   ✓ fib(1000)                        10,000   8.62µs   4.62%  0.02 (3/3)
-  ✓ fib(10000)                       10,000  84.51µs   4.22%  0.06 (3/3)
+  ✓ fib(10000)                       10,000  84.51µs   4.22%  0.00 (3/3)
 ```
 
 From the initial results we can see the algorithm has an approximately linear growth rate.

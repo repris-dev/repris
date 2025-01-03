@@ -32,13 +32,15 @@ Non-parametric statistics are not restricted by assumptions concerning distribut
 
 - Repris needs to provide sound and useful statistical feedback even with small sample sizes (n < 10) and being able to make fewer assumptions is better in such cases.
 
-### Confidence intervals
+### Confidence intervals and quality control
 
 A confidence interval is a range of values that describes the uncertainty surrounding an estimate.
 
-By default, Repris computes [bootstrapped confidence intervals](<https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Deriving_confidence_intervals_from_the_bootstrap_distribution>) when running tests to report the sample quality.
+By default, Repris computes [bootstrapped confidence intervals](<https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Deriving_confidence_intervals_from_the_bootstrap_distribution>) when running tests to report the quality of each sample, and to automatically reject very poor quality ones.
 
-When comparing samples, a [studentized bootstrap](https://olebo.github.io/textbook/ch/18/hyp_studentized.html) paired difference test is used determine whether a change in performance is statistically significant.
+Once multiple samples for a benchmark are collected, the [Shapiro-Wilk](https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test) test is used to evaluate their [sampling distribution](https://en.wikipedia.org/wiki/Sampling_distribution). According to the Central Limit Theorem this distribution should be approximately normal, and until it is, the benchmark can't be snapshotted.
+
+When running `repris compare`, a [studentized bootstrap](https://olebo.github.io/textbook/ch/18/hyp_studentized.html) paired difference test of the sampling distributions is used determine whether any change in performance is statistically significant. 
 
 ## Robust statistics
 
