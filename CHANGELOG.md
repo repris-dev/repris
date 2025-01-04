@@ -1,3 +1,11 @@
+## 0.10.0
+
+- Replace Minimum Detectable Effect-size of the sampling distribution to a normality
+  test as a measure of its suitability for snapshotting and/or an
+  indication of the benchmark quality/experimental setup.
+
+- `@repris/base` - Introduce Shapiro-Wilk normality test
+
 ## 0.9.5
 
 - `@repris/samplers` - TS support
