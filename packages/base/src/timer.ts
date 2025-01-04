@@ -15,6 +15,9 @@ export interface TimeSource {
   /** Get the current elapsed time since the last call to start() */
   current(): HrTime;
 
+  /** Smallest reliable increment of the timer */
+  resolution(): HrTime;
+
   /** Clones the timer state */
   clone(): TimeSource;
 }
@@ -116,6 +119,10 @@ function nodeJSTimer(now = 0n as HrTime): TimeSource {
     },
     current() {
       return (process.hrtime.bigint() - now) as HrTime;
+    },
+    resolution() {
+      /* 0.25us */
+      return 250n as HrTime;
     },
     clone() {
       return nodeJSTimer(now);

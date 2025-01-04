@@ -71,7 +71,6 @@ describe('processSamples()', () => {
 
     const digest = processSamples(annotated, {
       locationEstimationType: 'duration:mean' as typeid,
-      maxPrecision: 0.1,
       maxSize: 8,
     });
 
@@ -95,7 +94,6 @@ describe('processSamples()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxPrecision: 0.1,
             maxSize: 3,
           },
           entropy,
@@ -120,7 +118,6 @@ describe('processSamples()', () => {
           annotated,
           {
             locationEstimationType: 'duration:mean' as typeid,
-            maxPrecision: 0.1,
             maxSize: 3,
           },
           entropy,

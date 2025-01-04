@@ -35,6 +35,7 @@ export type Options = {
 type WireType = wt.Sample & {
   summary: ReturnType<stats.online.Lognormal['toJson']>;
   units: q.UnitsOf<'time'>;
+  resolution: number;
   opts: Options;
   values?: number[];
 };
@@ -74,6 +75,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
     const sample = new Duration(x.opts ?? {});
     sample.onlineStats = stats.online.Lognormal.fromJson(x.summary);
     sample.uuid = x['@uuid'];
+    sample.epsilon = x.resolution;
 
     if (Array.isArray(x.values)) {
       x.values.forEach(v => sample.times.push(v));
@@ -90,6 +92,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
 
   private times: stats.ReservoirSample<number>;
   private onlineStats: stats.online.Lognormal;
+  private epsilon = Number.EPSILON;
   private uuid: uuid | undefined;
 
   constructor(
@@ -142,6 +145,14 @@ export class Duration implements MutableSample<timer.HrTime, number> {
     this.onlineStats.push(us);
   }
 
+  setResolution(resolution: timer.HrTime): void {
+    this.epsilon = timer.HrTime.toMicroseconds(resolution);
+  }
+
+  resolution(): number {
+    return this.epsilon;
+  }
+
   significant(): boolean {
     if (this.sampleSize() >= 3) {
       const hsm = stats.mode.lms(this.times.values);
@@ -157,6 +168,7 @@ export class Duration implements MutableSample<timer.HrTime, number> {
       '@uuid': this[uuid],
       summary: this.onlineStats.toJson(),
       units: UNIT,
+      resolution: this.epsilon,
       values: this.times.values,
       opts: this.opts,
     };

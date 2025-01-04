@@ -15,9 +15,6 @@ export interface DigestOptions {
    * from, e.g. median, mean.
    */
   locationEstimationType: typeid;
-
-  /** Maximum assumed precision of observations in each sample. */
-  maxPrecision: number;
 }
 
 /** A function to summarize a set of samples */

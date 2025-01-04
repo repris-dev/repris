@@ -42,6 +42,7 @@ export function processSamples(
 ): Status<Digest> {
   const points = [] as [number, duration.Duration][];
   const noisySamples = [] as duration.Duration[];
+  let maxResolution = 0;
 
   for (const [sample, bag] of samples) {
     if (bag !== void 0 && bag[NoisySample]) {
@@ -51,6 +52,8 @@ export function processSamples(
       // get the location estimate to analyze
       const locationStat = ann.fromJson(bag[opts.locationEstimationType]);
       const val = quantity.isQuantity(locationStat) ? locationStat.scalar : Number(locationStat);
+
+      maxResolution = Math.max(maxResolution, sample.resolution());
       points.push([Number(val), sample]);
     } else {
       // todo: annotate the sample here
@@ -60,7 +63,7 @@ export function processSamples(
     }
   }
 
-  const aggregation = aggregateAndFilter(points, opts, entropy);
+  const aggregation = aggregateAndFilter(points, maxResolution, opts, entropy);
   noisySamples.forEach(sample => aggregation.stat.push({ sample, rejected: true }));
 
   return Status.value(new Digest(aggregation));
@@ -90,7 +93,7 @@ export class Digest implements types.Digest<duration.Duration> {
 
       stat.push({
         sample: refs.get(ref)!,
-        rejected: s.rejected
+        rejected: s.rejected,
       });
     }
 
@@ -115,9 +118,7 @@ export class Digest implements types.Digest<duration.Duration> {
     return this._uuid;
   }
 
-  constructor(
-    private _aggregation: SamplingAggregation<duration.Duration>,
-  ) {}
+  constructor(private _aggregation: SamplingAggregation<duration.Duration>) {}
 
   N() {
     return this._aggregation.stat.length;
@@ -166,31 +167,27 @@ export class Digest implements types.Digest<duration.Duration> {
  */
 function aggregateAndFilter<T>(
   taggedPointEstimates: [pointEstimate: number, tag: T][],
+  maxPrecision: number,
   opts: Options,
   entropy?: random.Generator,
 ): SamplingAggregation<T> {
   const N = taggedPointEstimates.length;
 
   if (N < 2) {
-    // prettier-ignore
-    const stat = N === 1
-      ? [{ sample: taggedPointEstimates[0][1] }]
-      : [];
-
+    const [estimate, sample] = taggedPointEstimates[0];
+    const stat = N === 1 ? [{ sample }] : [];
     // single sample summary statistic
-    const samplingDistribution = N > 0
-      ? [taggedPointEstimates[0][0]]
-      : [];
+    const samplingDistribution = N > 0 ? [estimate] : [];
 
     return {
       stat,
       normality: 0,
-      samplingDistribution
+      samplingDistribution,
     };
   }
 
-  // Sampling distribution, sorted by hsm;
-  let stat = taggedPointEstimates.map(([pointEst, tag]) => ({
+  // Sampling distribution
+  const stat = taggedPointEstimates.map(([pointEst, tag]) => ({
     sample: tag,
     rejected: false,
     statistic: pointEst,
@@ -224,9 +221,12 @@ function aggregateAndFilter<T>(
     const xsTmp = array.sort(samplingDistribution.slice());
 
     if (xsTmp.length >= 3) {
-      normalitySignificance = xsTmp[xsTmp.length - 1] - xsTmp[0] > opts.maxPrecision 
-        ? stats.shapiro.shapiroWilk(xsTmp).pValue
-        : 1;
+      // Don't expect a normal distribution if the range of the sampling
+      // distribution is less than the timer resolution
+      normalitySignificance =
+        xsTmp[xsTmp.length - 1] - xsTmp[0] > maxPrecision
+          ? stats.shapiro.shapiroWilk(xsTmp).pValue
+          : 1;
     }
   }
 

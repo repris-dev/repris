@@ -33,12 +33,15 @@ export interface Sample<V> extends json.Serializable<wt.Sample> {
    */
   significant(): boolean;
 
+  /** smallest reliable increment of sampler that produced the sample */
+  resolution(): V;
+
   /** Convert a sample value to a quantity */
   asQuantity(value: V): q.Quantity;
 }
 
 /**
- * The writeable of a sample
+ * The write-side of a sample
  * @template O The input Observation type
  * @template V The value type of the sample
  */
@@ -48,6 +51,8 @@ export interface MutableSample<O, V = O> extends Sample<V> {
    * sample values
    */
   push(observation: O): void;
+
+  setResolution(resolution: O): void;
 
   /** Remove all observations */
   reset(): void;

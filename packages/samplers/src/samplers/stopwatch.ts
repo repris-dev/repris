@@ -101,6 +101,7 @@ export class Sampler<Args extends any[] = []> implements types.Sampler<number> {
     const applyParams = [this.state, ...args];
 
     this.phase = Phase.Warmup;
+    this.result.setResolution(this.timeSource.resolution());
     this.timeSource.start();
 
     return this.runAsync(applyParams);
