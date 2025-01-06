@@ -4,7 +4,12 @@
   test as a measure of its suitability for snapshotting and/or an
   indication of the benchmark quality/experimental setup.
 
+- sampling shortcut - use Average absolute deviation (AAD) instead of
+  Quartile coefficient of dispersion (QCD) of the mode. This seems more reliable in
+  practice. Use `shortcutThreshold` to configure the threshold.
+
 - `@repris/base` - Introduce Shapiro-Wilk normality test
+- `@repris/base` - Introduce Average absolute deviation
 
 ## 0.9.5
 
