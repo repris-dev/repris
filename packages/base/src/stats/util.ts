@@ -41,6 +41,18 @@ export function mad(sample: ArrayView<number>, x: number = median(sample), p = 0
   };
 }
 
+/** Average absolute deviation */
+export function aad(sample: ArrayView<number>, x: number = median(sample)): number {
+  gt(sample.length, 0);
+
+  let devs = 0;
+  for (let i = 0; i < sample.length; i++) {
+    devs += Math.abs(x - sample[i]);
+  }
+
+  return devs / sample.length;
+}
+
 /**
  * Quartile coefficient of dispersion (QCD)
  * https://en.wikipedia.org/wiki/Quartile_coefficient_of_dispersion
