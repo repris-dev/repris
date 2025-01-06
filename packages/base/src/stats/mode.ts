@@ -246,7 +246,7 @@ export function shorth(
 
   return {
     bound: r.range,
-    variation: dist.std(1) / dist.mode(),
+    variation: dist.std() / dist.mode(),
     ties: r.ties,
     mode: dist.mode(),
   };
