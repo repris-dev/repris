@@ -24,11 +24,12 @@ export type Options = {
   maxCapacity: number;
 
   /**
-   * If the Quartile coefficient of dispersion (QCD) about the mode of
-   * the sample falls below this threshold the sample can be considered
-   * sufficiently concentrated at the mode.
+   * If the Average absolute deviation (AAD) about the mode
+   * the sample falls below this threshold (as a proportion
+   * of the mode), the sample can be considered sufficiently
+   * concentrated, and the sample collection cut short.
    */
-  significanceThreshold: number;
+  shortcutThreshold: number;
 };
 
 /** Json representation of a duration sample */
@@ -155,8 +156,11 @@ export class Duration implements MutableSample<timer.HrTime, number> {
 
   significant(): boolean {
     if (this.sampleSize() >= 3) {
-      const hsm = stats.mode.lms(this.times.values);
-      return hsm.variation < this.opts.significanceThreshold;
+      const sample = this.times.values;
+      const hsm = stats.mode.hsm(sample);
+      const aad = stats.aad(sample, hsm.mode) / hsm.mode;
+
+      return aad < this.opts.shortcutThreshold;
     }
 
     return false;
