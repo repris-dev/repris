@@ -257,12 +257,14 @@ ann.register('@benchmark:annotator' as typeid, {
 
         result.set(
           Annotations.snapshottable.id,
-          totalIndexed >= opts.minSize && digest.normality() > opts.minNormalitySignificance,
+          totalIndexed >= opts.minSize && (digest.normality() ?? 0) > opts.minNormalitySignificance,
         );
       }
 
+      const norm = digest.normality();
+
       summary = `${
-        totalIndexed > 1 ? digest.normality().toFixed(2) : '-'
+        totalIndexed > 1 && norm !== void 0 ? norm.toFixed(2) : '-'
       } (${totalIndexed}/${fixt.totalRuns()})`;
     } else {
       // - (-/<total runs>)

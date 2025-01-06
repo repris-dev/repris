@@ -137,8 +137,6 @@ const digestAnnotator: ann.Annotator = {
     digest: digests.Digest<Sample<unknown>>,
     request: Map<typeid, {}>,
   ): Status<ann.AnnotationBag | undefined> {
-    if (digest.normality() <= 0) return Status.value(void 0);
-
     // run pooled analysis only on the best samples
     const samplingDist = digest.samplingDistribution?.();
 

@@ -41,7 +41,7 @@ export interface Digest<T extends Sample<V>, V = any>
    * hypothesis that the sampling distribution is normal), 0 indicates a non-normal
    * distribution.
    */
-  normality(): number;
+  normality(): number | undefined;
 
   /** Convert a sample value as a quantity */
   asQuantity(value: V): q.Quantity;
